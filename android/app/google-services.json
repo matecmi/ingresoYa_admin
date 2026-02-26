@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "576761570066",
+    "project_id": "ingresoya-fb6a6",
+    "storage_bucket": "ingresoya-fb6a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576761570066:android:82d1b6ac6ec56b3d88c9cb",
+        "android_client_info": {
+          "package_name": "com.example.ingresoya_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCP_36m3MFnfJ-MQLmyGcB--OK85yKgD7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
