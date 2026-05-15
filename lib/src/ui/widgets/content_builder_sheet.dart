@@ -761,6 +761,7 @@ class _SegmentEditor extends StatelessWidget {
               filled: true,
               fillColor: Colors.white.withOpacity(.05),
               isDense: true,
+              
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
