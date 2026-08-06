@@ -127,33 +127,46 @@ class CourseRepo {
 
   // ---------------- SUBTOPICS ----------------
 
-  Stream<List<SubtopicEntity>> watchSubtopics({
-    required String courseId,
-    required String topicId,
-  }) {
-    final ref = _col
-        .doc(courseId)
-        .collection(AppEnv.topicsSubcollection)
-        .doc(topicId)
-        .collection(AppEnv.subtopicsSubcollection);
+Stream<List<SubtopicEntity>> watchSubtopics({
+  required String courseId,
+  required String topicId,
+}) {
+  final ref = _col
+      .doc(courseId)
+      .collection(AppEnv.topicsSubcollection)
+      .doc(topicId)
+      .collection(AppEnv.subtopicsSubcollection);
 
-    return ref.orderBy('order').snapshots().map((snap) {
-      return snap.docs.map((d) {
-        final x = d.data();
-        return SubtopicEntity(
-          id: d.id,
-          idTopic: topicId,
-          name: (x['name'] ?? '').toString(),
-          content: (x['content'] ?? '').toString(),
-                  order: (x['order'] ?? 0) is int
-            ? x['order']
-            : int.tryParse(x['order'].toString()) ?? 0,
-          linkVideo: (x['linkVideo'] ?? '').toString(),
-        );
-      }).toList();
-    });
-  }
+  return ref.orderBy('order').snapshots().map((snap) {
+    return snap.docs.map((d) {
+      final x = d.data();
+      final parts = (x['listPart'] as List<dynamic>? ?? [])
+          .map(
+            (p) => SubtopicPartEntity(
+              id: (p['id'] ?? '').toString(),
+              name: (p['name'] ?? '').toString(),
+              idSubtopic: (p['idSubtopic'] ?? '').toString(),
+              idTopic: (p['idTopic'] ?? '').toString(),
+              content: (p['content'] ?? '').toString(),
+              order: (p['order'] ?? '').toString(),
+              linkVideo: (p['linkVideo'] ?? '').toString(),
+              linkPdf: (p['linkPdf'] ?? '').toString(),
+            ),
+          )
+          .toList();
 
+      return SubtopicEntity(
+        id: d.id,
+        idTopic: topicId,
+        name: (x['name'] ?? '').toString(),
+        content: (x['content'] ?? '').toString(),
+        order: (x['order'] ?? '').toString(),
+        linkVideo: (x['linkVideo'] ?? '').toString(),
+        listPart: parts,
+      );
+    }).toList();
+  });
+}
   Future<void> upsertSubtopic({
     required String courseId,
     required String topicId,
@@ -195,6 +208,111 @@ class CourseRepo {
         .doc(subtopicId)
         .delete();
   }
+
+  Future<void> addPart({
+  required String courseId,
+  required String topicId,
+  required String subtopicId,
+  required SubtopicPartEntity part,
+}) async {
+  final doc = await _col
+      .doc(courseId)
+      .collection(AppEnv.topicsSubcollection)
+      .doc(topicId)
+      .collection(AppEnv.subtopicsSubcollection)
+      .doc(subtopicId)
+      .get();
+
+  final data = doc.data() ?? {};
+
+  final list = List<Map<String, dynamic>>.from(
+    data['listPart'] ?? [],
+  );
+
+  list.add({
+    'id': part.id,
+    'name': part.name,
+    'idSubtopic': part.idSubtopic,
+    'idTopic': part.idTopic,
+    'content': part.content,
+    'order': part.order,
+    'linkVideo': part.linkVideo,
+    'linkPdf': part.linkPdf,
+  });
+
+  await doc.reference.update({
+    'listPart': list,
+  });
+}
+
+Future<void> deletePart({
+  required String courseId,
+  required String topicId,
+  required String subtopicId,
+  required String partId,
+}) async {
+  final doc = await _col
+      .doc(courseId)
+      .collection(AppEnv.topicsSubcollection)
+      .doc(topicId)
+      .collection(AppEnv.subtopicsSubcollection)
+      .doc(subtopicId)
+      .get();
+
+  final data = doc.data() ?? {};
+
+  final list = List<Map<String, dynamic>>.from(
+    data['listPart'] ?? [],
+  );
+
+  list.removeWhere((e) => e['id'] == partId);
+
+  await doc.reference.update({
+    'listPart': list,
+  });
+}
+
+Future<void> updatePart({
+  required String courseId,
+  required String topicId,
+  required String subtopicId,
+  required SubtopicPartEntity part,
+}) async {
+  final doc = await _col
+      .doc(courseId)
+      .collection(AppEnv.topicsSubcollection)
+      .doc(topicId)
+      .collection(AppEnv.subtopicsSubcollection)
+      .doc(subtopicId)
+      .get();
+
+  final data = doc.data() ?? {};
+
+  final list = List<Map<String, dynamic>>.from(
+    data['listPart'] ?? [],
+  );
+
+  final index = list.indexWhere(
+    (e) => e['id'] == part.id,
+  );
+
+  if (index >= 0) {
+    list[index] = {
+      'id': part.id,
+      'name': part.name,
+      'idSubtopic': part.idSubtopic,
+      'idTopic': part.idTopic,
+      'content': part.content,
+      'order': part.order,
+      'linkVideo': part.linkVideo,
+      'linkPdf': part.linkPdf,
+    };
+  }
+
+  await doc.reference.update({
+    'listPart': list,
+  });
+}
 
   // ---------------- JSON IMPORT (Courses) ----------------
   bool _toBool(dynamic v, {bool fallback = true}) {
