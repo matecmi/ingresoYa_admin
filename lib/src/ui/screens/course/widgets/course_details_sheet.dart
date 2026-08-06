@@ -10,15 +10,8 @@ import 'package:ingresoya_admin/src/ui/screens/course/widgets/subtopics_part_tab
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/subtopics_tab.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/topics_tab.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
-import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart';
-import 'package:ingresoya_admin/src/ui/widgets/content_builder_sheet.dart';
-import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
-import 'package:ingresoya_admin/src/ui/widgets/empty_card.dart';
-import 'package:ingresoya_admin/src/ui/widgets/exam_question.dart';
 import 'package:ingresoya_admin/src/ui/widgets/pill_pro.dart';
 import 'package:ingresoya_admin/src/ui/widgets/pill_tone.dart';
-import 'package:ingresoya_admin/src/ui/widgets/row_card.dart';
-import 'package:ingresoya_admin/src/ui/widgets/section_header.dart';
 
 class CourseDetailsSheet extends ConsumerStatefulWidget {
   const CourseDetailsSheet({super.key, required this.course});

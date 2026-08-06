@@ -67,7 +67,7 @@ class DashboardShell extends StatelessWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'IngresoYa Admin',
+                                'IngresoYa Admin version jenkins',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(.92),
                                   fontWeight: FontWeight.w900,
