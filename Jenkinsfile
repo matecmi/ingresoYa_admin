@@ -1,79 +1,79 @@
-pipeline {
+// pipeline {
 
-    agent {
-        docker {
-            image 'ghcr.io/cirruslabs/flutter:3.35.5'
-            args '-v flutter-web:/deploy'
-        }
-    }
-
-
-    stages {
+//     agent {
+//         docker {
+//             image 'ghcr.io/cirruslabs/flutter:3.35.5'
+//             args '-v flutter-web:/deploy'
+//         }
+//     }
 
 
-        stage('Version Flutter') {
-            steps {
-                sh '''
-                flutter --version
-                '''
-            }
-        }
+//     stages {
 
 
-        stage('Dependencies') {
-            steps {
-                sh '''
-                flutter pub get
-                '''
-            }
-        }
+//         stage('Version Flutter') {
+//             steps {
+//                 sh '''
+//                 flutter --version
+//                 '''
+//             }
+//         }
 
 
-        stage('Analyze') {
-            steps {
-                sh '''
-                 flutter analyze || true
-                '''
-            }
-        }
+//         stage('Dependencies') {
+//             steps {
+//                 sh '''
+//                 flutter pub get
+//                 '''
+//             }
+//         }
 
 
-        stage('Tests') {
-            steps {
-                sh '''
-                flutter test
-                '''
-            }
-        }
+//         stage('Analyze') {
+//             steps {
+//                 sh '''
+//                  flutter analyze || true
+//                 '''
+//             }
+//         }
 
 
-stage('Build Web') {
-    steps {
-        sh '''
-        flutter build web --release
-        '''
-    }
-}
+//         stage('Tests') {
+//             steps {
+//                 sh '''
+//                 flutter test
+//                 '''
+//             }
+//         }
 
 
-stage('Deploy') {
-    steps {
-        sh '''
-        rm -rf /deploy/*
-        cp -r build/web/* /deploy/
-        '''
-    }
-}
-
-    }
+// stage('Build Web') {
+//     steps {
+//         sh '''
+//         flutter build web --release
+//         '''
+//     }
+// }
 
 
-    post {
+// stage('Deploy') {
+//     steps {
+//         sh '''
+//         rm -rf /deploy/*
+//         cp -r build/web/* /deploy/
+//         '''
+//     }
+// }
 
-        success {
-            archiveArtifacts artifacts: 'build/web/**'
-        }
+//     }
 
-    }
 
-}
+//     post {
+
+//         success {
+//             archiveArtifacts artifacts: 'build/web/**'
+//         }
+
+//     }
+
+// }
