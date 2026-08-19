@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/domain/entities/course_entity.dart';
-import 'package:ingresoya_admin/src/domain/entities/topic_entity.dart';
-import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/Info_card.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/subtopics_part_tab.dart';
@@ -93,7 +90,6 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                     Tab(text: 'Temas'),
                     Tab(text: 'Subtemas'),
                     Tab(text: 'Partes'),
-
                   ],
                 ),
                 Expanded(
@@ -107,6 +103,8 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                           setState(() {
                             _topicSelectedId = id;
                             _topicSelectedName = name;
+                            _subtopicSelectedId = null;
+                            _subtopicSelectedName = null;
                           });
                         },
                         selectedTopicId: _topicSelectedId,
@@ -131,10 +129,7 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                         topicName: _topicSelectedName,
                         subtopicId: _subtopicSelectedId,
                         subtopicName: _subtopicSelectedName,
-
                       ),
-              
-              
                     ],
                   ),
                 ),
@@ -169,10 +164,7 @@ class _DatosTab extends StatelessWidget {
   }
 }
 
-
 // ---------- UI components PRO ----------
-
-
 
 class _Pill extends StatelessWidget {
   const _Pill({required this.text});

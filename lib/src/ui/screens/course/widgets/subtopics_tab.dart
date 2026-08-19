@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
-import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
+import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_entity_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart';
 import 'package:ingresoya_admin/src/ui/widgets/content_builder_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
@@ -163,41 +163,31 @@ class SubtopicsTab extends StatelessWidget {
     );
     final link = TextEditingController(text: editing?.linkVideo ?? '');
 
-    // ✅ ya no usaremos TextEditingController para el contenido como editor principal
     String contentRaw = editing?.content ?? '';
+    var saving = false;
 
-    await showDialog(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          editing == null ? 'Nuevo subtema' : 'Editar subtema',
-          style: TextStyle(
-            color: Colors.white.withOpacity(.92),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: StatefulBuilder(
-          builder: (dialogContext, setStateDialog) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+      builder: (sheetContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+        child: StatefulBuilder(
+          builder: (dialogContext, setStateDialog) => CourseEntityFormSheet(
+          title: editing == null ? 'Nuevo subtema' : 'Editar subtema',
+          description: 'Agrega contenido y recursos para este tema.',
+          icon: Icons.account_tree_rounded,
+          saving: saving,
+          child: Column(
+            children: [
                   DialogTF(ctrl: name, label: 'Nombre *'),
-
-                DialogTF(
+                  DialogTF(
                     ctrl: orderCtrl,
-                    label: 'Orden (int) *',
+                    label: 'Orden *',
                     keyboardType: TextInputType.number,
                   ),
-
                   DialogTF(ctrl: link, label: 'Link video'),
-
                   const SizedBox(height: 10),
-
-                  // ✅ Contenido: acciones + resumen
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
@@ -279,7 +269,6 @@ class SubtopicsTab extends StatelessWidget {
                     ),
                   ),
 
-                  // ✅ Preview render (opcional pero recomendado)
                   if (contentRaw.trim().isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Container(
@@ -310,22 +299,7 @@ class SubtopicsTab extends StatelessWidget {
                   ],
                 ],
               ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final nav = Navigator.of(dialogContext, rootNavigator: true);
-              if (nav.canPop()) nav.pop();
-            },
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white.withOpacity(.75)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
+          onSave: () async {
               final n = name.text.trim();
               final order = int.tryParse(orderCtrl.text.trim()) ?? 0;
 
@@ -349,37 +323,34 @@ class SubtopicsTab extends StatelessWidget {
                 );
                 return;
               }
-
-              await repo.upsertSubtopic(
-                courseId: courseId,
-                topicId: topicId,
-                subtopicId: editing?.id,
-                name: n,
-                content: contentRaw, // ✅ aquí guardas el raw final
-                order: order,
-                linkVideo: link.text.trim(),
-              );
-
-              HapticFeedback.selectionClick();
-              if (dialogContext.mounted) {
-                Navigator.of(dialogContext, rootNavigator: true).pop();
+              var closed = false;
+              setStateDialog(() => saving = true);
+              try {
+                await repo.upsertSubtopic(
+                  courseId: courseId,
+                  topicId: topicId,
+                  subtopicId: editing?.id,
+                  name: n,
+                  content: contentRaw,
+                  order: order,
+                  linkVideo: link.text.trim(),
+                );
+                HapticFeedback.selectionClick();
+                if (dialogContext.mounted) {
+                  closed = true;
+                  Navigator.of(dialogContext, rootNavigator: true).pop();
+                }
+              } finally {
+                if (!closed && dialogContext.mounted) {
+                  setStateDialog(() => saving = false);
+                }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text(
-              'Guardar',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
           ),
-        ],
-      ),
-    );
+        ),
+        ),
+      );
+    
   }
 }
 
