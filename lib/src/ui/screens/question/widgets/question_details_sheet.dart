@@ -8,7 +8,10 @@ import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 // ✅ tu renderer
-import 'package:ingresoya_admin/src/ui/widgets/exam_question.dart';
+import 'package:ingresoya_admin/src/ui/widgets/content_editor/content_preview.dart';
+import 'package:ingresoya_admin/src/domain/editor_document.dart';
+import 'alternative_form_dialog.dart';
+import 'explanation_panel.dart';
 
 class QuestionDetailsSheet extends ConsumerWidget {
   const QuestionDetailsSheet({super.key, required this.q});
@@ -25,15 +28,17 @@ class QuestionDetailsSheet extends ConsumerWidget {
       maxChildSize: .97,
       builder: (context, scroll) {
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Container(
             decoration: BoxDecoration(
               color: AppTheme.card,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.white.withOpacity(.08)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: .08)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(.26),
+                  color: Colors.black.withValues(alpha: .26),
                   blurRadius: 26,
                   offset: const Offset(0, 16),
                 ),
@@ -45,12 +50,13 @@ class QuestionDetailsSheet extends ConsumerWidget {
                 _topBar(context),
                 TabBar(
                   indicatorColor: AppTheme.accent,
-                  labelColor: Colors.white.withOpacity(.92),
-                  unselectedLabelColor: Colors.white.withOpacity(.65),
+                  labelColor: Colors.white.withValues(alpha: .92),
+                  unselectedLabelColor: Colors.white.withValues(alpha: .65),
                   labelStyle: const TextStyle(fontWeight: FontWeight.w900),
                   tabs: const [
                     Tab(text: 'Datos'),
                     Tab(text: 'Alternativas'),
+                    Tab(text: 'Explicación'),
                   ],
                 ),
                 Expanded(
@@ -58,6 +64,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
                     children: [
                       _datosTab(scroll),
                       _alternativesTab(context, repo),
+                      ExplanationPanel(repo: repo, questionId: q.id),
                     ],
                   ),
                 ),
@@ -78,7 +85,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
             child: Text(
               'Pregunta #${q.number}',
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: Colors.white.withValues(alpha: .92),
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
               ),
@@ -86,7 +93,10 @@ class QuestionDetailsSheet extends ConsumerWidget {
           ),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+            icon: Icon(
+              Icons.close_rounded,
+              color: Colors.white.withValues(alpha: .85),
+            ),
           ),
         ],
       ),
@@ -101,7 +111,9 @@ class QuestionDetailsSheet extends ConsumerWidget {
       children: [
         _pillRow(),
         const SizedBox(height: 12),
-        ExamQuestion(raw: q.statementText, useCard: true),
+        ContentPreview(
+          document: q.editorContent ?? EditorDocument.read({}, q.statementText),
+        ),
         const SizedBox(height: 12),
         _kv('Curso', q.courseName),
         _kv('Tema', q.topicName),
@@ -132,7 +144,10 @@ class QuestionDetailsSheet extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
-        decoration: AppTheme.cardDeco(radius: 18, color: Colors.white.withOpacity(.03)),
+        decoration: AppTheme.cardDeco(
+          radius: 18,
+          color: Colors.white.withValues(alpha: .03),
+        ),
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
@@ -141,7 +156,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
               child: Text(
                 k,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.70),
+                  color: Colors.white.withValues(alpha: .70),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -151,7 +166,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
               child: Text(
                 v,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.90),
+                  color: Colors.white.withValues(alpha: .90),
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -185,8 +200,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
 
-            if (items.isEmpty)
-              _EmptyCard(text: 'Aún no hay alternativas.'),
+            if (items.isEmpty) _EmptyCard(text: 'Aún no hay alternativas.'),
 
             ...items.map((a) {
               return Padding(
@@ -216,7 +230,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
                   },
                 ),
               );
-            }).toList(),
+            }),
           ],
         );
       },
@@ -229,81 +243,13 @@ class QuestionDetailsSheet extends ConsumerWidget {
     String questionId, {
     AlternativeEntity? editing,
   }) async {
-    final valueCtrl = TextEditingController(text: editing?.value ?? 'A');
-    final descCtrl = TextEditingController(text: editing?.descriptionText ?? '');
-    bool correct = (editing?.isCorrect ?? 'N') == 'Y';
-
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          editing == null ? 'Nueva alternativa' : 'Editar alternativa',
-          style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _DialogTF(ctrl: valueCtrl, label: 'Valor (A/B/C/...) *'),
-              _DialogTF(ctrl: descCtrl, label: 'Texto *', maxLines: 4),
-              SwitchListTile(
-                value: correct,
-                onChanged: (v) => correct = v,
-                activeColor: AppTheme.accent,
-                title: Text(
-                  'Es correcta',
-                  style: TextStyle(color: Colors.white.withOpacity(.90), fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final nav = Navigator.of(dialogContext, rootNavigator: true);
-              if (nav.canPop()) nav.pop();
-            },
-            child: Text('Cancelar', style: TextStyle(color: Colors.white.withOpacity(.75))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final v = valueCtrl.text.trim();
-              final d = descCtrl.text.trim();
-              if (v.isEmpty || d.isEmpty) return;
-
-              await repo.upsertAlternative(
-                questionId: questionId,
-                alternativeId: editing?.id,
-                value: v,
-                descriptionText: d,
-                isCorrect: correct ? 'Y' : 'N',
-              );
-
-              // si lo marcaste correcta, aseguras que sea única
-              if (correct) {
-                await repo.setCorrectAlternative(
-                  questionId: questionId,
-                  alternativeId: editing?.id ?? '', // ojo, si es create no sabemos id
-                );
-                // ✅ para create, lo más simple es: después de crear, que el usuario toque “Hacer correcta”
-                // (si quieres, te lo mejoro con retorno de id)
-              }
-
-              HapticFeedback.selectionClick();
-              if (dialogContext.mounted) Navigator.of(dialogContext, rootNavigator: true).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
+      builder: (_) => AlternativeFormDialog(
+        repo: repo,
+        questionId: questionId,
+        editing: editing,
       ),
     );
   }
@@ -337,20 +283,20 @@ class _AltRow extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 color: isCorrect
-                    ? const Color(0xFF22C55E).withOpacity(.14)
-                    : Colors.white.withOpacity(.06),
+                    ? const Color(0xFF22C55E).withValues(alpha: .14)
+                    : Colors.white.withValues(alpha: .06),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isCorrect
-                      ? const Color(0xFF22C55E).withOpacity(.35)
-                      : Colors.white.withOpacity(.10),
+                      ? const Color(0xFF22C55E).withValues(alpha: .35)
+                      : Colors.white.withValues(alpha: .10),
                 ),
               ),
               child: Center(
                 child: Text(
                   alt.value,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: Colors.white.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -358,24 +304,27 @@ class _AltRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                alt.descriptionText,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.86),
-                  fontWeight: FontWeight.w700,
-                  height: 1.25,
-                ),
+              child: ContentPreview(
+                document:
+                    alt.editorContent ??
+                    EditorDocument.read({}, alt.descriptionText),
               ),
             ),
             const SizedBox(width: 10),
 
-            _miniIcon(icon: Icons.check_circle_rounded, onTap: onMakeCorrect, hint: 'Hacer correcta'),
+            _miniIcon(
+              icon: Icons.check_circle_rounded,
+              onTap: onMakeCorrect,
+              hint: 'Hacer correcta',
+            ),
             const SizedBox(width: 8),
             _miniIcon(icon: Icons.edit_rounded, onTap: onEdit, hint: 'Editar'),
             const SizedBox(width: 8),
-            _miniIcon(icon: Icons.delete_outline_rounded, onTap: onDelete, hint: 'Eliminar'),
+            _miniIcon(
+              icon: Icons.delete_outline_rounded,
+              onTap: onDelete,
+              hint: 'Eliminar',
+            ),
           ],
         ),
       ),
@@ -390,7 +339,7 @@ class _AltRow extends StatelessWidget {
     return Tooltip(
       message: hint,
       child: Material(
-        color: Colors.white.withOpacity(.08),
+        color: Colors.white.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
@@ -400,9 +349,13 @@ class _AltRow extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(.10)),
+              border: Border.all(color: Colors.white.withValues(alpha: .10)),
             ),
-            child: Icon(icon, color: Colors.white.withOpacity(.90), size: 18),
+            child: Icon(
+              icon,
+              color: Colors.white.withValues(alpha: .90),
+              size: 18,
+            ),
           ),
         ),
       ),
@@ -428,7 +381,10 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: Colors.white.withValues(alpha: .03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
@@ -439,7 +395,7 @@ class _SectionHeader extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: Colors.white.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -447,7 +403,7 @@ class _SectionHeader extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.65),
+                    color: Colors.white.withValues(alpha: .65),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -457,11 +413,16 @@ class _SectionHeader extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: onAction,
             icon: Icon(icon, size: 18),
-            label: Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w900)),
+            label: Text(
+              actionLabel,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ],
@@ -477,63 +438,16 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: Colors.white.withValues(alpha: .03),
+      ),
       padding: const EdgeInsets.all(14),
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withOpacity(.70),
+          color: Colors.white.withValues(alpha: .70),
           fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogTF extends StatelessWidget {
-  const _DialogTF({
-    required this.ctrl,
-    required this.label,
-    this.keyboardType,
-    this.maxLines = 1,
-  });
-
-  final TextEditingController ctrl;
-  final String label;
-  final TextInputType? keyboardType;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        style: TextStyle(
-          color: Colors.white.withOpacity(.92),
-          fontWeight: FontWeight.w800,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
-          filled: true,
-          fillColor: Colors.white.withOpacity(.05),
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
-          ),
         ),
       ),
     );
@@ -552,14 +466,14 @@ class _Pill extends StatelessWidget {
     Color bg;
     Color border;
     if (tone == _PillTone.good) {
-      bg = const Color(0xFF22C55E).withOpacity(.14);
-      border = const Color(0xFF22C55E).withOpacity(.35);
+      bg = const Color(0xFF22C55E).withValues(alpha: .14);
+      border = const Color(0xFF22C55E).withValues(alpha: .35);
     } else if (tone == _PillTone.bad) {
-      bg = const Color(0xFFEF4444).withOpacity(.14);
-      border = const Color(0xFFEF4444).withOpacity(.35);
+      bg = const Color(0xFFEF4444).withValues(alpha: .14);
+      border = const Color(0xFFEF4444).withValues(alpha: .35);
     } else {
-      bg = Colors.white.withOpacity(.06);
-      border = Colors.white.withOpacity(.10);
+      bg = Colors.white.withValues(alpha: .06);
+      border = Colors.white.withValues(alpha: .10);
     }
 
     return Container(
@@ -574,7 +488,7 @@ class _Pill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: Colors.white.withOpacity(.90),
+          color: Colors.white.withValues(alpha: .90),
           fontWeight: FontWeight.w900,
           fontSize: 12,
         ),
@@ -600,11 +514,17 @@ Future<bool> _confirmMini(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Text(
         title,
-        style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: .92),
+          fontWeight: FontWeight.w900,
+        ),
       ),
       content: Text(
         message,
-        style: TextStyle(color: Colors.white.withOpacity(.80), height: 1.25),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: .80),
+          height: 1.25,
+        ),
       ),
       actions: [
         TextButton(
@@ -612,7 +532,10 @@ Future<bool> _confirmMini(
             final nav = Navigator.of(dialogContext, rootNavigator: true);
             if (nav.canPop()) nav.pop(false);
           },
-          child: Text('Cancelar', style: TextStyle(color: Colors.white.withOpacity(.78))),
+          child: Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.white.withValues(alpha: .78)),
+          ),
         ),
         ElevatedButton(
           onPressed: () {
@@ -622,9 +545,14 @@ Future<bool> _confirmMini(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFDC2626),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
-          child: Text(primary, style: const TextStyle(fontWeight: FontWeight.w900)),
+          child: Text(
+            primary,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
       ],
     ),

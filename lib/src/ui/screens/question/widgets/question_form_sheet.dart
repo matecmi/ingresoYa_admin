@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'question_catalog_fields.dart';
+import '../../../../domain/entities/admission_exam.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,7 +9,9 @@ import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 // ✅ ajusta a tu ruta real
-import 'package:ingresoya_admin/src/ui/widgets/content_builder_sheet.dart';
+import 'package:ingresoya_admin/src/ui/widgets/content_editor/content_editor.dart';
+import 'package:ingresoya_admin/src/ui/widgets/content_editor/content_preview.dart';
+import 'package:ingresoya_admin/src/domain/editor_document.dart';
 
 class QuestionFormSheet extends ConsumerStatefulWidget {
   const QuestionFormSheet({super.key, this.question});
@@ -29,11 +33,16 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   late final TextEditingController label;
 
   String statementRaw = '';
+  late EditorDocument content;
+  bool saving = false;
+  AdmissionExam? admissionExam;
+  bool originChanged = false;
   bool active = true;
 
   @override
   void initState() {
     final q = widget.question;
+    admissionExam = q?.admissionExam;
 
     numberCtrl = TextEditingController(text: (q?.number ?? 1).toString());
     courseId = TextEditingController(text: q?.courseId ?? '');
@@ -44,6 +53,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     label = TextEditingController(text: q?.label ?? '');
 
     statementRaw = q?.statementText ?? '';
+    content = q?.editorContent ?? EditorDocument.read({}, statementRaw);
     active = q?.isActive ?? true;
 
     super.initState();
@@ -75,10 +85,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withOpacity(.08)),
+            border: Border.all(color: Colors.white.withValues(alpha: .08)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(.26),
+                color: Colors.black.withValues(alpha: .26),
                 blurRadius: 26,
                 offset: const Offset(0, 16),
               ),
@@ -107,14 +117,22 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                   _activePill(),
                 ),
 
-                _tf(courseName, 'Nombre de curso *', requiredField: true),
-                _tf(courseId, 'ID curso *', requiredField: true),
-
-                _tf(topicName, 'Nombre de tema *', requiredField: true),
-                _tf(topicId, 'ID tema *', requiredField: true),
-
-                _tf(examId, 'ExamId (opcional)'),
-                _tf(label, 'Label (opcional)'),
+                QuestionCatalogFields(
+                  courseId: courseId,
+                  courseName: courseName,
+                  topicId: topicId,
+                  topicName: topicName,
+                  examId: examId,
+                  label: label,
+                  initialExam: widget.question?.admissionExam,
+                  allowLegacyOrigin:
+                      widget.question != null &&
+                      widget.question!.admissionExam == null,
+                  onExamChanged: (exam) {
+                    admissionExam = exam;
+                    originChanged = true;
+                  },
+                ),
 
                 const SizedBox(height: 12),
                 _contentBox(),
@@ -136,7 +154,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           child: Text(
             isEdit ? 'Editar pregunta' : 'Nueva pregunta',
             style: TextStyle(
-              color: Colors.white.withOpacity(.92),
+              color: Colors.white.withValues(alpha: .92),
               fontWeight: FontWeight.w900,
               fontSize: 16.5,
             ),
@@ -144,7 +162,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+          icon: Icon(
+            Icons.close_rounded,
+            color: Colors.white.withValues(alpha: .85),
+          ),
         ),
       ],
     );
@@ -154,7 +175,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     return Text(
       t,
       style: TextStyle(
-        color: Colors.white.withOpacity(.92),
+        color: Colors.white.withValues(alpha: .92),
         fontWeight: FontWeight.w900,
       ),
     );
@@ -172,28 +193,33 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         controller: c,
         keyboardType: keyboardType,
         style: TextStyle(
-          color: Colors.white.withOpacity(.92),
+          color: Colors.white.withValues(alpha: .92),
           fontWeight: FontWeight.w800,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+          labelStyle: TextStyle(color: Colors.white.withValues(alpha: .70)),
           filled: true,
-          fillColor: Colors.white.withOpacity(.05),
+          fillColor: Colors.white.withValues(alpha: .05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: .10)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: .10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
+            borderSide: BorderSide(
+              color: AppTheme.accent.withValues(alpha: .65),
+            ),
           ),
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
         validator: (v) {
           if (!requiredField) return null;
@@ -219,9 +245,9 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.05),
+        color: Colors.white.withValues(alpha: .05),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(.10)),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
       ),
       child: Row(
         children: [
@@ -229,15 +255,15 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             active ? Icons.check_circle_rounded : Icons.cancel_rounded,
             size: 18,
             color: active
-                ? const Color(0xFF22C55E).withOpacity(.90)
-                : const Color(0xFFEF4444).withOpacity(.90),
+                ? const Color(0xFF22C55E).withValues(alpha: .90)
+                : const Color(0xFFEF4444).withValues(alpha: .90),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               active ? 'Activa' : 'Inactiva',
               style: TextStyle(
-                color: Colors.white.withOpacity(.90),
+                color: Colors.white.withValues(alpha: .90),
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -248,7 +274,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
               setState(() => active = v);
               HapticFeedback.selectionClick();
             },
-            activeColor: AppTheme.accent,
+            activeThumbColor: AppTheme.accent,
           ),
         ],
       ),
@@ -257,7 +283,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
 
   Widget _contentBox() {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 20, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 20,
+        color: Colors.white.withValues(alpha: .03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,9 +296,9 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             children: [
               Expanded(
                 child: Text(
-                  'Enunciado (statementText) *',
+                  'Enunciado *',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: Colors.white.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -278,15 +307,16 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                 tooltip: 'Constructor',
                 icon: Icons.build_circle_rounded,
                 onTap: () async {
-                  final res = await showModalBottomSheet<String>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    useSafeArea: true,
-                    builder: (_) => ContentBuilderSheet(initialRaw: statementRaw),
+                  final res = await editContent(
+                    context,
+                    initial: content,
+                    title: 'Enunciado',
                   );
-                  if (res != null) {
-                    setState(() => statementRaw = res);
+                  if (res != null && mounted) {
+                    setState(() {
+                      content = res;
+                      statementRaw = res.legacy;
+                    });
                     HapticFeedback.selectionClick();
                   }
                 },
@@ -298,7 +328,9 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                 onTap: statementRaw.trim().isEmpty
                     ? null
                     : () async {
-                        await Clipboard.setData(ClipboardData(text: statementRaw));
+                        await Clipboard.setData(
+                          ClipboardData(text: statementRaw),
+                        );
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Raw copiado ✅')),
@@ -308,16 +340,19 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            statementRaw.trim().isEmpty
-                ? 'Aún no definiste el enunciado. Usa el Constructor.'
-                : _short(statementRaw),
-            style: TextStyle(
-              color: Colors.white.withOpacity(.72),
-              fontWeight: FontWeight.w700,
-              height: 1.25,
+          if (content.content.blocks.isNotEmpty)
+            ContentPreview(document: content),
+          if (content.content.blocks.isEmpty)
+            Text(
+              statementRaw.trim().isEmpty
+                  ? 'Aún no definiste el enunciado. Usa el Constructor.'
+                  : _short(statementRaw),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .72),
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -328,7 +363,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: _save,
+            onPressed: saving ? null : _save,
             icon: const Icon(Icons.save_rounded, size: 18),
             label: Text(
               isEdit ? 'Guardar cambios' : 'Crear pregunta',
@@ -358,7 +393,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       child: Tooltip(
         message: tooltip,
         child: Material(
-          color: Colors.white.withOpacity(.08),
+          color: Colors.white.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             onTap: onTap,
@@ -368,9 +403,13 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
               height: 40,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(.10)),
+                border: Border.all(color: Colors.white.withValues(alpha: .10)),
               ),
-              child: Icon(icon, color: Colors.white.withOpacity(.90), size: 20),
+              child: Icon(
+                icon,
+                color: Colors.white.withValues(alpha: .90),
+                size: 20,
+              ),
             ),
           ),
         ),
@@ -381,10 +420,22 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (statementRaw.trim().isEmpty) {
+    if (courseId.text.isEmpty ||
+        topicId.text.isEmpty ||
+        (admissionExam == null && (widget.question == null || originChanged))) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enunciado es requerido')),
+        const SnackBar(
+          content: Text(
+            'Selecciona curso, tema, universidad y examen de admisión.',
+          ),
+        ),
       );
+      return;
+    }
+    if (!content.hasContent) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enunciado es requerido')));
       return;
     }
 
@@ -392,42 +443,63 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
 
     final number = int.tryParse(numberCtrl.text.trim()) ?? 0;
     if (number <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Número debe ser > 0')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Número debe ser > 0')));
       return;
     }
 
     final act = active ? 'Y' : 'N';
+    setState(() => saving = true);
+    try {
+      if (widget.question == null) {
+        await repo.createQuestion(
+          editorContent: content,
+          admissionExam: admissionExam,
+          number: number,
+          statementText: statementRaw,
+          active: act,
+          topicId: topicId.text.trim(),
+          topicName: topicName.text.trim(),
+          courseId: courseId.text.trim(),
+          courseName: courseName.text.trim(),
+          examId: examId.text.trim(), // puede ser ""
+          label: label.text.trim().isEmpty ? null : label.text.trim(),
+        );
+      } else {
+        await repo.updateQuestion(
+          widget.question!.id,
+          patch: {
+            ...content.toFields(),
+            'number': number,
+            'statementText': statementRaw,
+            'active': act,
+            'topicId': topicId.text.trim(),
+            'topicName': topicName.text.trim(),
+            'courseId': courseId.text.trim(),
+            'courseName': courseName.text.trim(),
+            'examId': examId.text.trim(),
+            'label': label.text.trim(),
+            if (admissionExam != null) ...admissionExam!.questionFields,
+          },
+        );
+      }
 
-    if (widget.question == null) {
-      await repo.createQuestion(
-        number: number,
-        statementText: statementRaw,
-        active: act,
-        topicId: topicId.text.trim(),
-        topicName: topicName.text.trim(),
-        courseId: courseId.text.trim(),
-        courseName: courseName.text.trim(),
-        examId: examId.text.trim(), // puede ser ""
-        label: label.text.trim().isEmpty ? null : label.text.trim(),
-      );
-    } else {
-      await repo.updateQuestion(widget.question!.id, patch: {
-        'number': number,
-        'statementText': statementRaw,
-        'active': act,
-        'topicId': topicId.text.trim(),
-        'topicName': topicName.text.trim(),
-        'courseId': courseId.text.trim(),
-        'courseName': courseName.text.trim(),
-        'examId': examId.text.trim(),
-        'label': label.text.trim(),
-      });
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo guardar. Tus cambios siguen en el formulario; vuelve a intentarlo.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
-
-    if (!mounted) return;
-    Navigator.pop(context);
   }
 
   String _short(String s, {int max = 220}) {

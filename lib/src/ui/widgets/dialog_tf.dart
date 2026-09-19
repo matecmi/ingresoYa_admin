@@ -7,12 +7,14 @@ class DialogTF extends StatelessWidget {
     required this.label,
     this.keyboardType,
     this.maxLines = 1,
+    this.onChanged,
   });
 
   final TextEditingController ctrl;
   final String label;
   final TextInputType? keyboardType;
   final int maxLines;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +24,7 @@ class DialogTF extends StatelessWidget {
         controller: ctrl,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        onChanged: onChanged,
         style: TextStyle(
           color: Colors.white.withOpacity(.92),
           fontWeight: FontWeight.w800,

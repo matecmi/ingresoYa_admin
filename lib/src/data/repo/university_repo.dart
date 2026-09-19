@@ -93,6 +93,8 @@ class UniversityRepo {
     final id = _uuid.v4();
 
     await _col.doc(id).set({
+      'id': id,
+
       'idDoc': id,
 
       'name': name.trim(),
@@ -235,6 +237,8 @@ class UniversityRepo {
         final idDoc = (item['idDoc'] ?? item['id'] ?? _uuid.v4()).toString();
 
         batch.set(_col.doc(idDoc), {
+          'id': idDoc,
+
           'idDoc': idDoc,
 
           'name': item['name'],
@@ -411,6 +415,38 @@ Stream<List<ModeEntity>> watchModes(String universityId) {
       );
     }).toList();
   });
+}
+
+Future<String> upsertMode({
+  required String universityId,
+  String? modeId,
+  required String name,
+  required String acronym,
+  required bool active,
+}) async {
+  if (universityId.trim().isEmpty || name.trim().isEmpty) {
+    throw ArgumentError('Universidad y nombre de modalidad son obligatorios.');
+  }
+  final id = modeId ?? _uuid.v4();
+  final university = _col.doc(universityId);
+  final target = university.collection(AppEnv.modesSubcollection).doc(id);
+  await db.runTransaction((transaction) async {
+    final parent = await transaction.get(university);
+    final current = await transaction.get(target);
+    if (!parent.exists) throw StateError('La universidad ya no existe.');
+    final data = <String, dynamic>{
+      'id': id, 'universityId': universityId,
+      'name': name.trim(), 'acronym': acronym.trim(), 'active': active,
+      if (!current.exists) 'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (current.exists) {
+      transaction.update(target, data);
+    } else {
+      transaction.set(target, data);
+    }
+  });
+  return id;
 }
 
 Future<void> deleteMode({

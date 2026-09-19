@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 
@@ -11,14 +12,12 @@ class DashboardShell extends StatelessWidget {
     final loc = GoRouterState.of(context).matchedLocation;
 
     final isUni = loc.startsWith('/universities');
-    final isProf = loc.startsWith('/professions');
     final isCourse = loc.startsWith('/courses');
     final isQ = loc.startsWith('/questions');
     
 
     int bottomIndex() {
-      if (isProf) return 1;
-      if (isCourse) return 2;
+      if (isCourse) return 1;
       return 0; // default universidades
     }
 
@@ -89,14 +88,7 @@ class DashboardShell extends StatelessWidget {
                       ),
 
                       _SideItem(
-                        active: isProf,
-                        icon: Icons.work_rounded,
-                        label: 'Profesiones',
-                        onTap: () => context.go('/professions'),
-                      ),
-
-                      _SideItem(
-                        active: isProf,
+                        active: isCourse,
                         icon: Icons.menu_book_rounded,
                         label: 'Cursos',
                         onTap: () => context.go('/courses'),
@@ -110,6 +102,12 @@ class DashboardShell extends StatelessWidget {
                       
 
                       const Spacer(),
+
+                      ListTile(
+                        leading: const Icon(Icons.logout_rounded),
+                        title: const Text('Cerrar sesión'),
+                        onTap: () => FirebaseAuth.instance.signOut(),
+                      ),
 
                       Padding(
                         padding: const EdgeInsets.all(14),
@@ -142,9 +140,8 @@ bottomNavigationBar: LayoutBuilder(
     int indexFromLocation(String loc) {
       // ✅ soporta rutas hijas: /courses/xyz, /questions/new, etc.
       if (loc.startsWith('/universities')) return 0;
-      if (loc.startsWith('/professions')) return 1;
-      if (loc.startsWith('/courses')) return 2;
-      if (loc.startsWith('/questions')) return 3;
+      if (loc.startsWith('/courses')) return 1;
+      if (loc.startsWith('/questions')) return 2;
       return 0;
     }
 
@@ -166,12 +163,9 @@ bottomNavigationBar: LayoutBuilder(
               context.go('/universities');
               break;
             case 1:
-              context.go('/professions');
-              break;
-            case 2:
               context.go('/courses');
               break;
-            case 3:
+            case 2:
               context.go('/questions');
               break;
           }
@@ -184,10 +178,6 @@ bottomNavigationBar: LayoutBuilder(
           BottomNavigationBarItem(
             icon: Icon(Icons.school_rounded),
             label: 'Universidades',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work_rounded),
-            label: 'Profesiones',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book_rounded),

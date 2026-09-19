@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
+import '../../domain/editor_document.dart';
+import '../../domain/entities/admission_exam.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
 import 'package:ingresoya_admin/src/domain/entities/alternative_entity.dart';
@@ -19,6 +21,11 @@ class QuestionRepo {
         final d = doc.data();
 
         return QuestionEntity(
+          admissionExam: d['admissionExam'] == null
+              ? null
+              : AdmissionExam.fromJson(
+                  Map<String, dynamic>.from(d['admissionExam']),
+                ),
           id: doc.id,
           number: (d['number'] ?? 0) is int
               ? (d['number'] ?? 0) as int
@@ -27,6 +34,10 @@ class QuestionRepo {
               ? null
               : (d['label'] ?? '').toString(),
           statementText: (d['statementText'] ?? '').toString(),
+          editorContent: EditorDocument.read(
+            d,
+            (d['statementText'] ?? '').toString(),
+          ),
           active: (d['active'] ?? 'Y').toString(),
           topicId: (d['topicId'] ?? '').toString(),
           topicName: (d['topicName'] ?? '').toString(),
@@ -52,6 +63,10 @@ class QuestionRepo {
           id: doc.id,
           value: (d['value'] ?? '').toString(),
           descriptionText: (d['descriptionText'] ?? '').toString(),
+          editorContent: EditorDocument.read(
+            d,
+            (d['descriptionText'] ?? '').toString(),
+          ),
           isCorrect: (d['isCorrect'] ?? 'N').toString(),
           questionId: questionId,
         );
@@ -60,6 +75,8 @@ class QuestionRepo {
   }
 
   Future<String> createQuestion({
+    EditorDocument? editorContent,
+    AdmissionExam? admissionExam,
     required int number,
     required String statementText,
     required String active,
@@ -77,12 +94,14 @@ class QuestionRepo {
       'number': number,
       'label': (label ?? '').trim(),
       'statementText': statementText,
+      if (editorContent != null) ...editorContent.toFields(),
       'active': active,
       'topicId': topicId,
       'topicName': topicName,
       'courseId': courseId,
       'courseName': courseName,
       'examId': examId.trim(), // puede ser ""
+      if (admissionExam != null) ...admissionExam.questionFields,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -106,6 +125,7 @@ class QuestionRepo {
     for (final d in alts.docs) {
       batch.delete(d.reference);
     }
+    batch.delete(_explanation(id));
     batch.delete(ref);
 
     await batch.commit();
@@ -113,7 +133,8 @@ class QuestionRepo {
 
   // -------- alternatives CRUD --------
 
-  Future<void> upsertAlternative({
+  Future<String> upsertAlternative({
+    EditorDocument? editorContent,
     required String questionId,
     String? alternativeId,
     required String value, // A,B,C...
@@ -121,18 +142,45 @@ class QuestionRepo {
     required String isCorrect, // "Y" | "N"
   }) async {
     final id = alternativeId ?? const Uuid().v4();
-    await _col
+    final target = _col
         .doc(questionId)
         .collection(AppEnv.alternativesSubcollection)
-        .doc(id)
-        .set({
+        .doc(id);
+    final batch = db.batch();
+    if (isCorrect == 'Y') {
+      final others = await target.parent.get();
+      for (final doc in others.docs) {
+        if (doc.id != id) batch.update(doc.reference, {'isCorrect': 'N'});
+      }
+    }
+    batch.set(target, {
       'value': value.trim(),
       'descriptionText': descriptionText,
+      if (editorContent != null) ...editorContent.toFields(),
       'isCorrect': isCorrect,
       'updatedAt': FieldValue.serverTimestamp(),
       if (alternativeId == null) 'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    await batch.commit();
+    return id;
   }
+
+  // Editorial explanations must never be placed under the public catalog tree.
+  DocumentReference<Map<String, dynamic>> _explanation(String questionId) => db
+      .collection('${AppEnv.questionsCollection}-editor-private')
+      .doc(questionId);
+
+  Future<EditorDocument> readExplanation(String questionId) async =>
+      EditorDocument.read(
+        (await _explanation(questionId).get()).data() ?? {},
+        '',
+      );
+
+  Future<void> saveExplanation(String questionId, EditorDocument document) =>
+      _explanation(questionId).set({
+        ...document.toFields(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
   Future<void> deleteAlternative({
     required String questionId,
@@ -150,13 +198,17 @@ class QuestionRepo {
     required String questionId,
     required String alternativeId,
   }) async {
-    final ref = _col.doc(questionId).collection(AppEnv.alternativesSubcollection);
+    final ref = _col
+        .doc(questionId)
+        .collection(AppEnv.alternativesSubcollection);
 
     final snap = await ref.get();
     final batch = db.batch();
 
     for (final d in snap.docs) {
-      batch.update(d.reference, {'isCorrect': d.id == alternativeId ? 'Y' : 'N'});
+      batch.update(d.reference, {
+        'isCorrect': d.id == alternativeId ? 'Y' : 'N',
+      });
     }
 
     await batch.commit();

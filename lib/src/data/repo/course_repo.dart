@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ingresoya_admin/src/domain/entities/course_entity.dart';
 import 'package:ingresoya_admin/src/domain/entities/topic_entity.dart';
 import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
+import 'package:ingresoya_admin/src/domain/part_learning_contract.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 import 'package:uuid/uuid.dart';
 
@@ -45,7 +46,10 @@ class CourseRepo {
     return id;
   }
 
-  Future<void> updateCourse(String courseId, {required Map<String, dynamic> patch}) async {
+  Future<void> updateCourse(
+    String courseId, {
+    required Map<String, dynamic> patch,
+  }) async {
     patch['updatedAt'] = FieldValue.serverTimestamp();
     await _col.doc(courseId).update(patch);
   }
@@ -58,7 +62,9 @@ class CourseRepo {
 
     final batch = db.batch();
     for (final t in topics.docs) {
-      final sub = await t.reference.collection(AppEnv.subtopicsSubcollection).get();
+      final sub = await t.reference
+          .collection(AppEnv.subtopicsSubcollection)
+          .get();
       for (final s in sub.docs) {
         batch.delete(s.reference);
       }
@@ -79,9 +85,9 @@ class CourseRepo {
           id: d.id,
           name: (x['name'] ?? '').toString(),
           description: (x['description'] ?? '').toString(),
-                  order: (x['order'] ?? 0) is int
-            ? x['order']
-            : int.tryParse(x['order'].toString()) ?? 0,
+          order: (x['order'] ?? 0) is int
+              ? x['order']
+              : int.tryParse(x['order'].toString()) ?? 0,
           summary: (x['summary'] ?? '').toString(),
           subtopics: const [],
         );
@@ -114,7 +120,10 @@ class CourseRepo {
     required String courseId,
     required String topicId,
   }) async {
-    final topicRef = _col.doc(courseId).collection(AppEnv.topicsSubcollection).doc(topicId);
+    final topicRef = _col
+        .doc(courseId)
+        .collection(AppEnv.topicsSubcollection)
+        .doc(topicId);
 
     final subs = await topicRef.collection(AppEnv.subtopicsSubcollection).get();
     final batch = db.batch();
@@ -127,46 +136,59 @@ class CourseRepo {
 
   // ---------------- SUBTOPICS ----------------
 
-Stream<List<SubtopicEntity>> watchSubtopics({
-  required String courseId,
-  required String topicId,
-}) {
-  final ref = _col
-      .doc(courseId)
-      .collection(AppEnv.topicsSubcollection)
-      .doc(topicId)
-      .collection(AppEnv.subtopicsSubcollection);
+  Stream<List<SubtopicEntity>> watchSubtopics({
+    required String courseId,
+    required String topicId,
+  }) {
+    final ref = _col
+        .doc(courseId)
+        .collection(AppEnv.topicsSubcollection)
+        .doc(topicId)
+        .collection(AppEnv.subtopicsSubcollection);
 
-  return ref.orderBy('order').snapshots().map((snap) {
-    return snap.docs.map((d) {
-      final x = d.data();
-      final parts = (x['listPart'] as List<dynamic>? ?? [])
-          .map(
-            (p) => SubtopicPartEntity(
-              id: (p['id'] ?? '').toString(),
-              name: (p['name'] ?? '').toString(),
-              idSubtopic: (p['idSubtopic'] ?? '').toString(),
-              idTopic: (p['idTopic'] ?? '').toString(),
-              content: (p['content'] ?? '').toString(),
-              order: (p['order'] ?? '').toString(),
-              linkVideo: (p['linkVideo'] ?? '').toString(),
-              linkPdf: (p['linkPdf'] ?? '').toString(),
-            ),
-          )
-          .toList();
+    return ref.orderBy('order').snapshots().map((snap) {
+      return snap.docs.map((d) {
+        final x = d.data();
+        final parts = (x['listPart'] as List<dynamic>? ?? [])
+            .map(
+              (p) => SubtopicPartEntity(
+                id: (p['id'] ?? '').toString(),
+                name: (p['name'] ?? '').toString(),
+                idSubtopic: (p['idSubtopic'] ?? '').toString(),
+                idTopic: (p['idTopic'] ?? '').toString(),
+                content: (p['content'] ?? '').toString(),
+                order: (p['order'] ?? '').toString(),
+                linkVideo: (p['linkVideo'] ?? '').toString(),
+                linkPdf: (p['linkPdf'] ?? '').toString(),
+                summary: (p['summary'] ?? '').toString(),
+                objectives: _toStringList(p['objectives']),
+                keyPoints: _toStringList(p['keyPoints']),
+                estimatedMinutes: _toNullableInt(p['estimatedMinutes']),
+                difficulty: _toDifficulty(p['difficulty']),
+                formulas: _toMapList(p['formulas']),
+                examples: _toMapList(p['examples']),
+                exercises: _toMapList(p['exercises']),
+                images: _toMapList(p['images']),
+                externalLinks: _toMapList(p['externalLinks']),
+                flashcards: _toMapList(p['flashcards']),
+                quizQuestions: _toMapList(p['quizQuestions']),
+              ),
+            )
+            .toList();
 
-      return SubtopicEntity(
-        id: d.id,
-        idTopic: topicId,
-        name: (x['name'] ?? '').toString(),
-        content: (x['content'] ?? '').toString(),
-        order: (x['order'] ?? '').toString(),
-        linkVideo: (x['linkVideo'] ?? '').toString(),
-        listPart: parts,
-      );
-    }).toList();
-  });
-}
+        return SubtopicEntity(
+          id: d.id,
+          idTopic: topicId,
+          name: (x['name'] ?? '').toString(),
+          content: (x['content'] ?? '').toString(),
+          order: (x['order'] ?? '').toString(),
+          linkVideo: (x['linkVideo'] ?? '').toString(),
+          listPart: parts,
+        );
+      }).toList();
+    });
+  }
+
   Future<void> upsertSubtopic({
     required String courseId,
     required String topicId,
@@ -210,109 +232,77 @@ Stream<List<SubtopicEntity>> watchSubtopics({
   }
 
   Future<void> addPart({
-  required String courseId,
-  required String topicId,
-  required String subtopicId,
-  required SubtopicPartEntity part,
-}) async {
-  final doc = await _col
-      .doc(courseId)
-      .collection(AppEnv.topicsSubcollection)
-      .doc(topicId)
-      .collection(AppEnv.subtopicsSubcollection)
-      .doc(subtopicId)
-      .get();
+    required String courseId,
+    required String topicId,
+    required String subtopicId,
+    required SubtopicPartEntity part,
+  }) async {
+    final doc = await _col
+        .doc(courseId)
+        .collection(AppEnv.topicsSubcollection)
+        .doc(topicId)
+        .collection(AppEnv.subtopicsSubcollection)
+        .doc(subtopicId)
+        .get();
 
-  final data = doc.data() ?? {};
+    final data = doc.data() ?? {};
 
-  final list = List<Map<String, dynamic>>.from(
-    data['listPart'] ?? [],
-  );
+    final list = List<Map<String, dynamic>>.from(data['listPart'] ?? []);
 
-  list.add({
-    'id': part.id,
-    'name': part.name,
-    'idSubtopic': part.idSubtopic,
-    'idTopic': part.idTopic,
-    'content': part.content,
-    'order': part.order,
-    'linkVideo': part.linkVideo,
-    'linkPdf': part.linkPdf,
-  });
+    list.add(_partToMap(part));
 
-  await doc.reference.update({
-    'listPart': list,
-  });
-}
-
-Future<void> deletePart({
-  required String courseId,
-  required String topicId,
-  required String subtopicId,
-  required String partId,
-}) async {
-  final doc = await _col
-      .doc(courseId)
-      .collection(AppEnv.topicsSubcollection)
-      .doc(topicId)
-      .collection(AppEnv.subtopicsSubcollection)
-      .doc(subtopicId)
-      .get();
-
-  final data = doc.data() ?? {};
-
-  final list = List<Map<String, dynamic>>.from(
-    data['listPart'] ?? [],
-  );
-
-  list.removeWhere((e) => e['id'] == partId);
-
-  await doc.reference.update({
-    'listPart': list,
-  });
-}
-
-Future<void> updatePart({
-  required String courseId,
-  required String topicId,
-  required String subtopicId,
-  required SubtopicPartEntity part,
-}) async {
-  final doc = await _col
-      .doc(courseId)
-      .collection(AppEnv.topicsSubcollection)
-      .doc(topicId)
-      .collection(AppEnv.subtopicsSubcollection)
-      .doc(subtopicId)
-      .get();
-
-  final data = doc.data() ?? {};
-
-  final list = List<Map<String, dynamic>>.from(
-    data['listPart'] ?? [],
-  );
-
-  final index = list.indexWhere(
-    (e) => e['id'] == part.id,
-  );
-
-  if (index >= 0) {
-    list[index] = {
-      'id': part.id,
-      'name': part.name,
-      'idSubtopic': part.idSubtopic,
-      'idTopic': part.idTopic,
-      'content': part.content,
-      'order': part.order,
-      'linkVideo': part.linkVideo,
-      'linkPdf': part.linkPdf,
-    };
+    await doc.reference.update({'listPart': list});
   }
 
-  await doc.reference.update({
-    'listPart': list,
-  });
-}
+  Future<void> deletePart({
+    required String courseId,
+    required String topicId,
+    required String subtopicId,
+    required String partId,
+  }) async {
+    final doc = await _col
+        .doc(courseId)
+        .collection(AppEnv.topicsSubcollection)
+        .doc(topicId)
+        .collection(AppEnv.subtopicsSubcollection)
+        .doc(subtopicId)
+        .get();
+
+    final data = doc.data() ?? {};
+
+    final list = List<Map<String, dynamic>>.from(data['listPart'] ?? []);
+
+    list.removeWhere((e) => e['id'] == partId);
+
+    await doc.reference.update({'listPart': list});
+  }
+
+  Future<void> updatePart({
+    required String courseId,
+    required String topicId,
+    required String subtopicId,
+    required SubtopicPartEntity part,
+  }) async {
+    final doc = await _col
+        .doc(courseId)
+        .collection(AppEnv.topicsSubcollection)
+        .doc(topicId)
+        .collection(AppEnv.subtopicsSubcollection)
+        .doc(subtopicId)
+        .get();
+
+    final data = doc.data() ?? {};
+
+    final list = List<Map<String, dynamic>>.from(data['listPart'] ?? []);
+
+    final index = list.indexWhere((e) => e['id'] == part.id);
+
+    if (index >= 0) {
+      list[index] = _partToMap(part);
+    }
+
+    await doc.reference.update({'listPart': list});
+  }
 
   // ---------------- JSON IMPORT (Courses) ----------------
   bool _toBool(dynamic v, {bool fallback = true}) {
@@ -324,6 +314,66 @@ Future<void> updatePart({
     return fallback;
   }
 
+  List<String> _toStringList(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((item) => item.toString()).toList();
+  }
+
+  List<Map<String, dynamic>> _toMapList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  int? _toNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  String _toDifficulty(dynamic value) {
+    const allowed = {'basic', 'intermediate', 'advanced'};
+    final difficulty = value?.toString().trim().toLowerCase();
+    return allowed.contains(difficulty) ? difficulty! : 'basic';
+  }
+
+  Map<String, dynamic> _partToMap(SubtopicPartEntity part) => {
+    'id': part.id,
+    'name': part.name,
+    'idSubtopic': part.idSubtopic,
+    'idTopic': part.idTopic,
+    'content': part.content,
+    'order': part.order,
+    'linkVideo': part.linkVideo,
+    'linkPdf': part.linkPdf,
+    if (part.summary.isNotEmpty) 'summary': part.summary,
+    if (part.objectives.isNotEmpty) 'objectives': part.objectives,
+    if (part.keyPoints.isNotEmpty) 'keyPoints': part.keyPoints,
+    if (part.estimatedMinutes != null)
+      'estimatedMinutes': part.estimatedMinutes,
+    if (part.difficulty != 'basic') 'difficulty': part.difficulty,
+    if (part.formulas.isNotEmpty)
+      'formulas': PartLearningContract.normaliseEntries(part.formulas),
+    if (part.examples.isNotEmpty)
+      'examples': PartLearningContract.normaliseEntries(part.examples),
+    if (part.exercises.isNotEmpty)
+      'exercises': PartLearningContract.normaliseEntries(part.exercises),
+    if (part.images.isNotEmpty)
+      'images': PartLearningContract.normaliseEntries(part.images),
+    if (part.externalLinks.isNotEmpty)
+      'externalLinks': PartLearningContract.normaliseEntries(
+        part.externalLinks,
+      ),
+    if (part.flashcards.isNotEmpty)
+      'flashcards': PartLearningContract.normaliseEntries(part.flashcards),
+    if (part.quizQuestions.isNotEmpty)
+      'quizQuestions': PartLearningContract.normaliseEntries(
+        part.quizQuestions,
+      ),
+  };
+
   List<Map<String, dynamic>> parseJsonListOrThrow(String raw) {
     final decoded = jsonDecode(raw);
     if (decoded is! List) throw Exception('El JSON debe ser una LISTA []');
@@ -331,10 +381,15 @@ Future<void> updatePart({
   }
 
   /// ✅ Import masivo de cursos: [{idDoc?, name, description}]
-  Future<void> bulkUpsertCoursesFromJsonList(List<Map<String, dynamic>> list) async {
+  Future<void> bulkUpsertCoursesFromJsonList(
+    List<Map<String, dynamic>> list,
+  ) async {
     const chunkSize = 400;
     for (var i = 0; i < list.length; i += chunkSize) {
-      final chunk = list.sublist(i, (i + chunkSize > list.length) ? list.length : i + chunkSize);
+      final chunk = list.sublist(
+        i,
+        (i + chunkSize > list.length) ? list.length : i + chunkSize,
+      );
       final batch = db.batch();
 
       for (final item in chunk) {
@@ -342,7 +397,8 @@ Future<void> updatePart({
         final docId = idDocRaw.isNotEmpty ? idDocRaw : const Uuid().v4();
 
         final name = (item['name'] ?? '').toString().trim();
-        if (name.isEmpty) throw Exception('Falta "name" en un item (idDoc=$docId)');
+        if (name.isEmpty)
+          throw Exception('Falta "name" en un item (idDoc=$docId)');
 
         final patch = <String, dynamic>{
           'idDoc': docId,

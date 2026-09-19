@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'admission_exams_tab.dart';
+import 'mode_form_dialog.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/data/repo/university_repo.dart';
@@ -23,7 +25,7 @@ class UniversityDetailsSheet extends ConsumerWidget {
       maxChildSize: .97,
       builder: (context, scroll) {
         return DefaultTabController(
-          length: 3,
+          length: 5,
           child: Container(
             decoration: AppTheme.cardDeco(radius: 24),
             child: Column(
@@ -34,14 +36,17 @@ class UniversityDetailsSheet extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: TabBar(
+                    isScrollable: true,
                     indicatorColor: AppTheme.accent,
                     labelColor: Colors.white.withOpacity(.92),
                     unselectedLabelColor: Colors.white.withOpacity(.60),
                     labelStyle: const TextStyle(fontWeight: FontWeight.w900),
                     tabs: const [
                       Tab(text: 'Datos'),
+                      Tab(text: 'Links'),
                       Tab(text: 'Modalidades'),
                       Tab(text: 'Profesiones'),
+                      Tab(text: 'Exámenes de admisión'),
                     ],
                   ),
                 ),
@@ -50,8 +55,10 @@ class UniversityDetailsSheet extends ConsumerWidget {
                   child: TabBarView(
                     children: [
                       _DatosTab(u: u),
+                      _LinksTab(u: u),
                       _ModesTab(u: u, uniRepo: uniRepo),
                       _ProfessionsTab(u: u),
+                      AdmissionExamsTab(university: u),
                     ],
                   ),
                 ),
@@ -171,6 +178,79 @@ class _DatosTab extends StatelessWidget {
   }
 }
 
+class _LinksTab extends ConsumerStatefulWidget {
+  const _LinksTab({required this.u});
+  final UniversityEntity u;
+
+  @override
+  ConsumerState<_LinksTab> createState() => _LinksTabState();
+}
+
+class _LinksTabState extends ConsumerState<_LinksTab> {
+  late final List<String> _links;
+  final _ctrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _links = [...?widget.u.links];
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _SectionHeader(
+            title: 'Links oficiales',
+            subtitle: '${_links.length} registrados',
+            actionLabel: 'Guardar',
+            icon: Icons.link_rounded,
+            onAction: () async {
+              await ref.read(universityRepoProvider).updateUniversity(
+                widget.u.id,
+                patch: {'links': _links},
+              );
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Links guardados ✅')));
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _DialogTF(ctrl: _ctrl, label: 'https://sitio-oficial...')),
+            IconButton(
+              icon: const Icon(Icons.add_circle_rounded),
+              onPressed: () {
+                final value = _ctrl.text.trim();
+                if (value.isEmpty || _links.contains(value)) return;
+                setState(() {
+                  _links.add(value);
+                  _ctrl.clear();
+                });
+              },
+            ),
+          ]),
+          const SizedBox(height: 8),
+          if (_links.isEmpty) _EmptyCard(text: 'Aún no hay links oficiales.'),
+          ..._links.map((link) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _RowCard(
+                  icon: Icons.language_rounded,
+                  title: link,
+                  subtitle: 'Link oficial',
+                  rightPill: 'Activo',
+                  rightPillTone: _PillTone.good,
+                  onDelete: () => setState(() => _links.remove(link)),
+                ),
+              )),
+        ],
+      );
+}
+
 class _KV extends StatelessWidget {
   const _KV({required this.label, required this.value});
   final String label;
@@ -253,6 +333,7 @@ class _ModesTab extends StatelessWidget {
                   subtitle: m.acronym,
                   rightPill: m.active ? 'Activa' : 'Inactiva',
                   rightPillTone: m.active ? _PillTone.good : _PillTone.bad,
+                  onEdit: () => _modeDialog(context, uniRepo, u.id, editing: m),
                   onDelete: () async {
                     final ok = await _confirmPro(
                       context,
@@ -272,61 +353,12 @@ class _ModesTab extends StatelessWidget {
     );
   }
 
-  Future<void> _modeDialog(BuildContext context, dynamic repo, String universityId,
+  Future<void> _modeDialog(BuildContext context, UniversityRepo repo, String universityId,
       {ModeEntity? editing}) async {
-    final name = TextEditingController(text: editing?.name ?? '');
-    final acronym = TextEditingController(text: editing?.acronym ?? '');
-    bool active = editing?.active ?? true;
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          editing == null ? 'Nueva modalidad' : 'Editar modalidad',
-          style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _DialogTF(ctrl: name, label: 'Nombre'),
-            _DialogTF(ctrl: acronym, label: 'Sigla'),
-            SwitchListTile(
-              value: active,
-              onChanged: (v) => active = v,
-              activeColor: AppTheme.accent,
-              title: Text('Activa', style: TextStyle(color: Colors.white.withOpacity(.90), fontWeight: FontWeight.w800)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: Colors.white.withOpacity(.75))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await repo.upsertMode(
-                universityId: universityId,
-                modeId: editing?.id,
-                name: name.text,
-                acronym: acronym.text,
-                active: active,
-              );
-              if (context.mounted) Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
-      ),
-    );
+    await showDialog<void>(context: context, barrierDismissible: false,
+      builder: (_) => ModeFormDialog(repo: repo, universityId: universityId, editing: editing));
   }
+
 }
 
 /// ============================
