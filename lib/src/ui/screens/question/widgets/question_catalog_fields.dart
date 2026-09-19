@@ -125,7 +125,7 @@ class _QuestionCatalogFieldsState extends ConsumerState<QuestionCatalogFields> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _select(
-                      'Examen de admisión',
+                      'Examen de origen',
                       widget.examId.text,
                       {
                         for (final e in items.where(
@@ -153,7 +153,7 @@ class _QuestionCatalogFieldsState extends ConsumerState<QuestionCatalogFields> {
                     ),
                     if (items.where((e) => e.active).isEmpty)
                       const Text(
-                        'Registra un examen en Universidades → Exámenes de admisión.',
+                        'Registra un examen en Universidades → Exámenes de origen.',
                       ),
                   ],
                 ),

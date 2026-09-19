@@ -13,9 +13,11 @@ class SourceExam {
       universityId = idField(json, 'universityId'),
       universityName = idField(json, 'universityName'),
       universityAcronym = idField(json, 'universityAcronym'),
+      name = stringField(json, 'name', fallback: ''),
       examType = enumField(json, 'examType', [
         'admission_exam',
         'official_practice',
+        'other',
       ]),
       modalityId = idField(json, 'modalityId'),
       modalityName = idField(json, 'modalityName'),
@@ -25,14 +27,18 @@ class SourceExam {
     requireV2(json);
   }
   final String id, universityId, universityName, universityAcronym;
+  final String name;
   final String examType, modalityId, modalityName, period, reference;
   final int year;
   String get label {
-    final kind = examType == 'admission_exam'
-        ? 'examen de admisión'
-        : 'práctica oficial';
+    if (name.isNotEmpty) return '$universityAcronym - $name';
+    final kind = switch (examType) {
+      'admission_exam' => 'examen de admisión',
+      'official_practice' => 'práctica oficial',
+      _ => 'examen',
+    };
     final date = '$year${period.isEmpty ? '' : '-$period'}';
-    final prefix = examType == 'admission_exam'
+    final prefix = examType != 'official_practice'
         ? 'Pregunta del'
         : 'Pregunta de';
     return '$prefix $kind $modalityName $date | $universityAcronym';
@@ -41,6 +47,7 @@ class SourceExam {
   Json toJson() => {
     'schemaVersion': 2,
     'id': id,
+    if (name.isNotEmpty) 'name': name,
     'universityId': universityId,
     'universityName': universityName,
     'universityAcronym': universityAcronym,
@@ -87,6 +94,7 @@ class QuestionDocument {
       sourceType = enumField(json, 'sourceType', [
         'admission_exam',
         'official_practice',
+        'other',
         'original',
         'adapted',
         'unknown',
@@ -119,7 +127,7 @@ class QuestionDocument {
         json.containsKey('explanation')) {
       throw const FormatException('Private answer fields in question payload');
     }
-    if (['admission_exam', 'official_practice'].contains(sourceType) &&
+    if (['admission_exam', 'official_practice', 'other'].contains(sourceType) &&
         (sourceExam == null || sourceExam!.examType != sourceType)) {
       throw const FormatException('Source exam does not match provenance');
     }
@@ -200,7 +208,14 @@ class ExamFilter {
       sourceType = enumField(
         {...json, 'sourceType': json['sourceType'] ?? 'any'},
         'sourceType',
-        ['any', 'admission_exam', 'official_practice', 'original', 'adapted'],
+        [
+          'any',
+          'admission_exam',
+          'official_practice',
+          'other',
+          'original',
+          'adapted',
+        ],
       ),
       difficulty = enumField(
         {...json, 'difficulty': json['difficulty'] ?? 'any'},
@@ -271,7 +286,13 @@ class ExamTemplate {
         (v) => enumField(
           {'source': v},
           'source',
-          ['admission_exam', 'official_practice', 'original', 'adapted'],
+          [
+            'admission_exam',
+            'official_practice',
+            'other',
+            'original',
+            'adapted',
+          ],
         ),
       ),
       questionCount = intField(json, 'questionCount', min: 1),

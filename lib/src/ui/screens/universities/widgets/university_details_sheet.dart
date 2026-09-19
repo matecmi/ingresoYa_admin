@@ -46,7 +46,7 @@ class UniversityDetailsSheet extends ConsumerWidget {
                       Tab(text: 'Links'),
                       Tab(text: 'Modalidades'),
                       Tab(text: 'Profesiones'),
-                      Tab(text: 'Exámenes de admisión'),
+                      Tab(text: 'Exámenes de origen'),
                     ],
                   ),
                 ),

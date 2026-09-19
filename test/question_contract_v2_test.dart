@@ -12,6 +12,28 @@ Json fixture() => objectField(
 );
 
 void main() {
+  test('other exam sources and references roundtrip in app and admin', () {
+    final data = objectField(fixture()['sourceExam']);
+    final source = SourceExam.fromJson({
+      ...data,
+      'examType': 'other',
+      'reference': 'Documento original, página 5',
+    });
+    expect(
+      SourceExam.fromJson(source.toJson()).reference,
+      'Documento original, página 5',
+    );
+    expect(source.label, 'Pregunta del examen ordinario 2026-I | UNPRG');
+    expect(ExamFilter.fromJson({'sourceType': 'other'}).sourceType, 'other');
+    final named = SourceExam.fromJson({
+      ...source.toJson(),
+      'name': 'EXAMEN ORDINARIO 2026 I',
+    });
+    expect(
+      SourceExam.fromJson(named.toJson()).label,
+      'UNPRG - EXAMEN ORDINARIO 2026 I',
+    );
+  });
   test('official practice label and legacy IDs preserve their meaning', () {
     final data = objectField(fixture()['sourceExam']);
     expect(

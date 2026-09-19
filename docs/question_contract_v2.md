@@ -46,9 +46,9 @@ LaTeX en JSON requiere escapar una barra inversa como `\\`: `"latex": "A = \\fra
 
 `SourceExam.id`, `universityId` y `modalityId` serán IDs del catálogo; no nombres ni siglas usadas como claves. `QuestionDocument.sourceExam` es una copia de los datos de origen correspondiente a esa revisión. El origen real no cambia porque el estudiante elija otra universidad.
 
-`sourceType`: `admission_exam`, `official_practice`, `original`, `adapted` o `unknown` (compatibilidad/borrador). Una pregunta de examen requiere origen compatible. Una original no puede atribuirse un examen real; una adaptada se identifica como adaptada.
+`sourceType`: `admission_exam`, `official_practice`, `other`, `original`, `adapted` o `unknown` (compatibilidad/borrador). `other` identifica otro tipo de examen del catálogo y exige `SourceExam` compatible. Una pregunta de examen requiere origen compatible. Una original no puede atribuirse un examen real; una adaptada se identifica como adaptada. `SourceExam.reference` conserva una referencia opcional al documento original.
 
-La etiqueta deriva de los campos, por ejemplo: **Pregunta del examen de admisión ordinario 2026-I | UNPRG**. Con período vacío se muestra **2026**. Las preguntas desconocidas no infieren año/universidad desde el label antiguo.
+La etapa 2 añade `SourceExam.name` opcional. Cuando existe, la etiqueta usa el formato elegido: **UNPRG - EXAMEN DE ADMISIÓN ORDINARIO 2026 I**. Si falta (registros de etapa 1), mantiene la etiqueta derivada: **Pregunta del examen de admisión ordinario 2026-I | UNPRG**. Con período vacío se muestra **2026**. Las preguntas desconocidas no infieren año/universidad desde el label antiguo.
 
 Clasificación: `courseId`, `topicId`, `subtopicId`, `partIds`. Una pregunta puede asociarse con varias partes sin duplicarse. En publicación se validará que los IDs existan, pertenezcan a la jerarquía correcta y que los conocimientos requeridos correspondan a cada parte. Los nombres se resuelven mediante el catálogo. Dificultad: `easy`, `medium`, `hard`, `unknown`.
 

@@ -149,7 +149,7 @@ void main() {
       expect((await exams.watch('unprg').first).single.active, false);
       expect(
         (await questions.watchQuestions().first).single.label,
-        saved.label,
+        'UNPRG - Nombre actualizado',
       );
     },
   );
@@ -171,7 +171,7 @@ void main() {
             'modalityId': 'missing-mode',
           }),
         ),
-        throwsStateError,
+        throwsA(isA<ExamCatalogException>()),
       );
     },
   );
@@ -248,13 +248,13 @@ void main() {
       expect(topicId.text, isEmpty);
       await choose('Tema', 'Ortografía');
       await choose('Universidad', 'UNPRG — Universidad UNPRG');
-      await choose('Examen de admisión', 'EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
+      await choose('Examen de origen', 'EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
       expect(label.text, 'UNPRG - EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
       await choose('Universidad', 'UNMSM — Universidad UNMSM');
       expect(examId.text, isEmpty);
       expect(label.text, isEmpty);
       expect(selected, isNull);
-      await choose('Examen de admisión', 'EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
+      await choose('Examen de origen', 'EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
       expect(selected!.universityId, 'unmsm');
       expect(label.text, 'UNMSM - EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
       expect(tester.takeException(), isNull);

@@ -397,8 +397,9 @@ class CourseRepo {
         final docId = idDocRaw.isNotEmpty ? idDocRaw : const Uuid().v4();
 
         final name = (item['name'] ?? '').toString().trim();
-        if (name.isEmpty)
+        if (name.isEmpty) {
           throw Exception('Falta "name" en un item (idDoc=$docId)');
+        }
 
         final patch = <String, dynamic>{
           'idDoc': docId,

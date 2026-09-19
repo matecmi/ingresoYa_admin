@@ -89,7 +89,7 @@ class QuestionRepo {
   }) async {
     final id = const Uuid().v4();
 
-    await _col.doc(id).set({
+    await _writeQuestion(_col.doc(id), {
       'idDoc': id,
       'number': number,
       'label': (label ?? '').trim(),
@@ -104,7 +104,7 @@ class QuestionRepo {
       if (admissionExam != null) ...admissionExam.questionFields,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    }, create: true);
 
     return id;
   }
@@ -113,9 +113,53 @@ class QuestionRepo {
     String id, {
     required Map<String, dynamic> patch,
   }) async {
-    patch['updatedAt'] = FieldValue.serverTimestamp();
-    await _col.doc(id).update(patch);
+    await _writeQuestion(_col.doc(id), {
+      ...patch,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, create: false);
   }
+
+  Future<void> _writeQuestion(
+    DocumentReference<Map<String, dynamic>> target,
+    Map<String, dynamic> fields, {
+    required bool create,
+  }) => db.runTransaction((transaction) async {
+    final previous = create ? null : await transaction.get(target);
+    if (!create && previous?.exists != true) {
+      throw StateError('La pregunta ya no existe.');
+    }
+    final previousData = previous?.data();
+    final origin = fields['admissionExam'] ?? previousData?['admissionExam'];
+    final data = <String, dynamic>{...fields};
+    if (origin is Map) {
+      final selected = AdmissionExam.fromJson(
+        Map<String, dynamic>.from(origin),
+      );
+      final snapshot = await transaction.get(
+        db
+            .collection(AppEnv.universitiesCollection)
+            .doc(selected.universityId)
+            .collection('admissionExams')
+            .doc(selected.id),
+      );
+      if (!snapshot.exists) {
+        throw StateError('El examen seleccionado ya no existe.');
+      }
+      final latest = AdmissionExam.fromJson(snapshot.data()!);
+      final sameOrigin =
+          previousData?['examId'] == latest.id &&
+          previousData?['universityId'] == latest.universityId;
+      if (!latest.active && !sameOrigin) {
+        throw StateError('El examen seleccionado está inactivo.');
+      }
+      data.addAll(latest.questionFields);
+    }
+    if (create) {
+      transaction.set(target, data);
+    } else {
+      transaction.update(target, data);
+    }
+  });
 
   Future<void> deleteQuestion(String id) async {
     final ref = _col.doc(id);
