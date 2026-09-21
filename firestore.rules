@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function isCatalog(collectionName) {
+      return collectionName in [
+        'iya-universities-test', 'iya-universities-staging', 'iya-universities',
+        'iya-professions-test', 'iya-professions-staging', 'iya-professions',
+        'iya-config-test', 'iya-config-staging', 'iya-config',
+        'iya-exams-dynamic-test', 'iya-exams-dynamic-staging', 'iya-exams-dynamic',
+        'iya-courses-test', 'iya-courses-staging', 'iya-courses',
+        'iya-questions-test', 'iya-questions-staging', 'iya-questions'
+      ];
+    }
+
+    function isProfileCollection(collectionName) {
+      return collectionName in [
+        'iya-profile-test', 'iya-profile-staging', 'iya-profile'
+      ];
+    }
+
+    // Catálogos: lectura pública; escritura exclusiva de administradores.
+    match /{collectionName}/{questionId} {
+      allow read, write: if isAdmin() && collectionName in [
+        'iya-questions-test-editor-private',
+        'iya-questions-staging-editor-private',
+        'iya-questions-editor-private'
+      ];
+    }
+
+    // También cubre sus subcolecciones, como topics y subtopics.
+    match /{catalog}/{document=**} {
+      allow read: if isCatalog(catalog);
+      allow write: if isCatalog(catalog) && isAdmin();
+    }
+
+    // El UID del documento raíz es dueño de su perfil y de todo su árbol.
+    match /{profiles}/{userId} {
+      allow read, create, update, delete:
+        if isProfileCollection(profiles) && isOwner(userId);
+    }
+
+    match /{profiles}/{userId}/{document=**} {
+      allow read, create, update, delete:
+        if isProfileCollection(profiles) && isOwner(userId);
+    }
+  }
+}

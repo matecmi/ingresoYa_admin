@@ -1,26 +1,23 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_entity_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart';
-import 'package:ingresoya_admin/src/ui/widgets/content_builder_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
 import 'package:ingresoya_admin/src/ui/widgets/empty_card.dart';
-import 'package:ingresoya_admin/src/ui/widgets/exam_question.dart';
 import 'package:ingresoya_admin/src/ui/widgets/pill_tone.dart';
 import 'package:ingresoya_admin/src/ui/widgets/row_card.dart';
 import 'package:ingresoya_admin/src/ui/widgets/section_header.dart';
 
 class SubtopicsTab extends StatelessWidget {
   const SubtopicsTab({
+    super.key,
     required this.courseId,
     required this.repo,
     required this.topicId,
     required this.topicName,
     required this.onSubtopicSelected,
     required this.selectedSubtopicId,
-
   });
 
   final String courseId;
@@ -29,7 +26,6 @@ class SubtopicsTab extends StatelessWidget {
   final String? topicName;
   final String? selectedSubtopicId;
   final void Function(String topicId, String topicName) onSubtopicSelected;
-
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +64,7 @@ class SubtopicsTab extends StatelessWidget {
             if (items.isEmpty) EmptyCard(text: 'Aún no hay subtemas.'),
 
             ...items.map((s) {
-            final selected = selectedSubtopicId == s.id;
+              final selected = selectedSubtopicId == s.id;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -104,50 +100,12 @@ class SubtopicsTab extends StatelessWidget {
                     );
                   },
                 ),
-
-
               );
-            }).toList(),
+            }),
           ],
         );
       },
     );
-  }
-
-  Widget _miniIconBtn({
-    required String tooltip,
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
-    return Opacity(
-      opacity: onTap == null ? .35 : 1,
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: Colors.white.withOpacity(.08),
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(.10)),
-              ),
-              child: Icon(icon, color: Colors.white.withOpacity(.90), size: 20),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _shortRawPreview(String raw, {int maxChars = 220}) {
-    final s = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (s.length <= maxChars) return s;
-    return '${s.substring(0, maxChars).trim()}…';
   }
 
   Future<void> _subtopicDialog(
@@ -162,8 +120,7 @@ class SubtopicsTab extends StatelessWidget {
       text: (editing?.order ?? 1).toString(),
     );
     final link = TextEditingController(text: editing?.linkVideo ?? '');
-
-    String contentRaw = editing?.content ?? '';
+    final description = TextEditingController(text: editing?.content ?? '');
     var saving = false;
 
     await showDialog<void>(
@@ -174,132 +131,27 @@ class SubtopicsTab extends StatelessWidget {
         insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
         child: StatefulBuilder(
           builder: (dialogContext, setStateDialog) => CourseEntityFormSheet(
-          title: editing == null ? 'Nuevo subtema' : 'Editar subtema',
-          description: 'Agrega contenido y recursos para este tema.',
-          icon: Icons.account_tree_rounded,
-          saving: saving,
-          child: Column(
-            children: [
-                  DialogTF(ctrl: name, label: 'Nombre *'),
-                  DialogTF(
-                    ctrl: orderCtrl,
-                    label: 'Orden *',
-                    keyboardType: TextInputType.number,
-                  ),
-                  DialogTF(ctrl: link, label: 'Link video'),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(.05),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withOpacity(.10)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Contenido (raw)',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(.92),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            _miniIconBtn(
-                              tooltip: 'Copiar raw',
-                              icon: Icons.copy_rounded,
-                              onTap: contentRaw.trim().isEmpty
-                                  ? null
-                                  : () async {
-                                      await Clipboard.setData(
-                                        ClipboardData(text: contentRaw),
-                                      );
-                                      HapticFeedback.selectionClick();
-                                      if (dialogContext.mounted) {
-                                        ScaffoldMessenger.of(
-                                          dialogContext,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Raw copiado ✅'),
-                                          ),
-                                        );
-                                      }
-                                    },
-                            ),
-                            const SizedBox(width: 8),
-                            _miniIconBtn(
-                              tooltip: 'Constructor',
-                              icon: Icons.build_circle_rounded,
-                              onTap: () async {
-                                final res = await showModalBottomSheet<String>(
-                                  context: dialogContext,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  useSafeArea: true,
-                                  builder: (_) => ContentBuilderSheet(
-                                    initialRaw: contentRaw,
-                                  ),
-                                );
-
-                                if (res != null) {
-                                  setStateDialog(() => contentRaw = res);
-                                  HapticFeedback.selectionClick();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          contentRaw.trim().isEmpty
-                              ? 'Aún no definiste el contenido. Usa el Constructor.'
-                              : _shortRawPreview(contentRaw),
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(.75),
-                            fontWeight: FontWeight.w700,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  if (contentRaw.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(.03),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(.08),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Vista previa',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(.92),
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ExamQuestion(raw: contentRaw, useCard: true),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-          onSave: () async {
+            title: editing == null ? 'Nuevo subtema' : 'Editar subtema',
+            description: 'Agrega contenido y recursos para este tema.',
+            icon: Icons.account_tree_rounded,
+            saving: saving,
+            child: Column(
+              children: [
+                DialogTF(ctrl: name, label: 'Nombre *'),
+                DialogTF(
+                  ctrl: orderCtrl,
+                  label: 'Orden *',
+                  keyboardType: TextInputType.number,
+                ),
+                DialogTF(ctrl: link, label: 'Link video'),
+                DialogTF(
+                  ctrl: description,
+                  label: 'Descripción *',
+                  maxLines: 6,
+                ),
+              ],
+            ),
+            onSave: () async {
               final n = name.text.trim();
               final order = int.tryParse(orderCtrl.text.trim()) ?? 0;
 
@@ -315,11 +167,9 @@ class SubtopicsTab extends StatelessWidget {
                 );
                 return;
               }
-              if (contentRaw.trim().isEmpty) {
+              if (description.text.trim().isEmpty) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('Define el contenido con el Constructor'),
-                  ),
+                  const SnackBar(content: Text('Descripción es requerida')),
                 );
                 return;
               }
@@ -331,14 +181,22 @@ class SubtopicsTab extends StatelessWidget {
                   topicId: topicId,
                   subtopicId: editing?.id,
                   name: n,
-                  content: contentRaw,
+                  content: description.text.trim(),
                   order: order,
                   linkVideo: link.text.trim(),
                 );
                 HapticFeedback.selectionClick();
-                if (dialogContext.mounted) {
+                if (sheetContext.mounted) {
                   closed = true;
-                  Navigator.of(dialogContext, rootNavigator: true).pop();
+                  Navigator.of(sheetContext).pop();
+                }
+              } catch (error) {
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: Text('No se pudo guardar el subtema: $error'),
+                    ),
+                  );
                 }
               } finally {
                 if (!closed && dialogContext.mounted) {
@@ -348,10 +206,12 @@ class SubtopicsTab extends StatelessWidget {
             },
           ),
         ),
-        ),
-      );
-    
+      ),
+    );
+
+    name.dispose();
+    orderCtrl.dispose();
+    link.dispose();
+    description.dispose();
   }
 }
-
-

@@ -106,7 +106,9 @@ class SubtopicsPartTab extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      useRootNavigator: true,
+      // Mantiene la hoja dentro del navegador del panel, cuyo
+      // ScaffoldMessenger sí tiene un Scaffold asociado.
+      useRootNavigator: false,
       backgroundColor: Colors.transparent,
       builder: (_) => PartFormSheet(
         courseId: courseId,

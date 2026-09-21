@@ -1,0 +1,61 @@
+{
+  "sourceExam": {
+    "schemaVersion": 2, "id": "exam-demo", "universityId": "university-demo",
+    "universityName": "Universidad Nacional Pedro Ruiz Gallo", "universityAcronym": "UNPRG",
+    "examType": "admission_exam", "modalityId": "ordinary-demo", "modalityName": "ordinario",
+    "year": 2026, "period": "I", "reference": "Ejemplo ficticio de contrato"
+  },
+  "question": {
+    "schemaVersion": 2, "questionId": "q-01", "version": 1, "status": "draft",
+    "sourceType": "admission_exam",
+    "sourceExam": {
+      "schemaVersion": 2, "id": "exam-demo", "universityId": "university-demo",
+      "universityName": "Universidad Nacional Pedro Ruiz Gallo", "universityAcronym": "UNPRG",
+      "examType": "admission_exam", "modalityId": "ordinary-demo", "modalityName": "ordinario",
+      "year": 2026, "period": "I", "reference": "Ejemplo ficticio de contrato"
+    },
+    "originalNumber": 12, "courseId": "course-demo", "topicId": "topic-demo", "subtopicId": "subtopic-demo",
+    "partIds": ["part-1", "part-2"], "difficulty": "medium",
+    "content": [
+      {"id": "text-1", "type": "text", "text": "Observa la figura. ¿Cuánto vale x?\nJustifica tu elección."},
+      {"id": "image-1", "type": "image", "storagePath": "questions/q-01/v1/figure.webp", "altText": "Triángulo de base 8 y altura x", "caption": "Figura de ejemplo", "width": 1000, "height": 700},
+      {"id": "formula-1", "type": "formula", "latex": "A = \\frac{8x}{2}", "displayMode": "block"},
+      {"id": "paragraph-1", "type": "paragraph", "spans": [
+        {"type": "text", "text": "Si "},
+        {"type": "formula", "latex": "x^2=25"},
+        {"type": "text", "text": ", elige la respuesta.", "marks": ["bold"]}
+      ]}
+    ],
+    "alternatives": [
+      {"id": "alt-a", "label": "A", "content": [{"id": "a-1", "type": "formula", "latex": "x=5", "displayMode": "block"}]},
+      {"id": "alt-b", "label": "B", "content": [{"id": "b-1", "type": "image", "url": "https://example.com/figure.png", "altText": "Otra figura", "caption": ""}]}
+    ]
+  },
+  "answerKey": {
+    "schemaVersion": 2, "questionId": "q-01", "version": 1, "correctAlternativeId": "alt-a",
+    "explanation": [{"id": "solution-1", "type": "text", "text": "Solución ilustrativa; no corresponde a un examen real."}]
+  },
+  "template": {
+    "schemaVersion": 2, "id": "part-exam-v1", "version": 1, "title": "Examen de parte",
+    "purpose": "part_completion", "mode": "dynamic", "selectionPolicy": "strict",
+    "questionCount": 10, "allowedFallbackSources": [], "passPercentExclusive": 80,
+    "blocks": [{"count": 10, "filter": {
+      "universityId": "university-demo", "sourceExamId": "", "modalityId": "ordinary-demo",
+      "courseId": "course-demo", "topicId": "topic-demo", "subtopicId": "subtopic-demo", "partId": "part-1",
+      "sourceType": "admission_exam", "difficulty": "any", "yearFrom": 2020, "yearTo": 2026
+    }}], "fixedQuestions": []
+  },
+  "attempt": {
+    "schemaVersion": 2, "id": "attempt-demo", "userId": "user-demo", "requestId": "request-demo",
+    "templateId": "one-question-demo", "templateVersion": 1, "partId": "part-1",
+    "status": "in_progress", "createdAtMs": 1,
+    "questions": [{"questionId": "q-01", "version": 1, "alternativeOrder": ["alt-b", "alt-a"]}],
+    "answers": {"q-01": "alt-a"}
+  },
+  "legacy": {
+    "id": "old-1", "number": 3, "active": "Y", "label": "UNPRG 2025 I",
+    "courseId": "course-old", "topicId": "topic-old", "sectionId": "section-old", "groupId": "group-old", "examId": "exam-old",
+    "statementText": "Observa ángulos[@]TEXT[%]https://example.com/image.png[@]URL[%]Si[#]x^2=25[@]MATH[#]calcula[@]TEXT",
+    "alternatives": [{"id": "old-a", "value": "A", "descriptionText": "\\frac{1}{2}[@]MATH", "descriptionUrlImage": "https://example.com/a.png", "isCorrect": "Y"}]
+  }
+}

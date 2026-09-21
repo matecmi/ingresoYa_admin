@@ -1,10 +1,14 @@
 import 'alternative_entity.dart';
+import 'admission_exam.dart';
+import '../editor_document.dart';
 
 class QuestionEntity {
+  final AdmissionExam? admissionExam;
   final String id;
   final int number;
   final String? label;
   final String statementText;
+  final EditorDocument? editorContent;
   final String active; // "Y" | "N"
 
   final String topicId;
@@ -29,6 +33,8 @@ class QuestionEntity {
     required this.examId,
     required this.alternatives,
     this.label,
+    this.editorContent,
+    this.admissionExam,
   });
 
   bool get isActive => active == 'Y';
