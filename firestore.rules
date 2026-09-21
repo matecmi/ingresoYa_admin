@@ -20,8 +20,35 @@ service cloud.firestore {
         'iya-professions-test', 'iya-professions-staging', 'iya-professions',
         'iya-config-test', 'iya-config-staging', 'iya-config',
         'iya-exams-dynamic-test', 'iya-exams-dynamic-staging', 'iya-exams-dynamic',
-        'iya-courses-test', 'iya-courses-staging', 'iya-courses',
+        'iya-courses-test', 'iya-courses-staging', 'iya-courses'
+      ];
+    }
+
+    function isQuestionsCollection(collectionName) {
+      return collectionName in [
         'iya-questions-test', 'iya-questions-staging', 'iya-questions'
+      ];
+    }
+
+    function isAnswerKeyCollection(collectionName) {
+      return collectionName in [
+        'iya-question-answer-keys-test',
+        'iya-question-answer-keys-staging',
+        'iya-question-answer-keys'
+      ];
+    }
+
+    function isTemplateCollection(collectionName) {
+      return collectionName in [
+        'iya-exam-templates-test',
+        'iya-exam-templates-staging',
+        'iya-exam-templates'
+      ];
+    }
+
+    function isAttemptCollection(collectionName) {
+      return collectionName in [
+        'iya-exam-attempts-test', 'iya-exam-attempts-staging', 'iya-exam-attempts'
       ];
     }
 
@@ -31,7 +58,8 @@ service cloud.firestore {
       ];
     }
 
-    // Catálogos: lectura pública; escritura exclusiva de administradores.
+    // Editor explanations contain answer rationale and are never readable by a
+    // student. Legacy alternatives are handled separately below.
     match /{collectionName}/{questionId} {
       allow read, write: if isAdmin() && collectionName in [
         'iya-questions-test-editor-private',
@@ -40,10 +68,82 @@ service cloud.firestore {
       ];
     }
 
-    // También cubre sus subcolecciones, como topics y subtopics.
+    // Conventional catalogs, including nested course/university catalogs.
     match /{catalog}/{document=**} {
       allow read: if isCatalog(catalog);
       allow write: if isCatalog(catalog) && isAdmin();
+    }
+
+    // Current public projection. A draft or retired root is not visible to
+    // students; top-level answer data is forbidden even to an admin client.
+    match /{collectionName}/{questionId} {
+      allow read: if isQuestionsCollection(collectionName)
+        && (isAdmin() || resource.data.status == 'published');
+      allow create, update: if isQuestionsCollection(collectionName) && isAdmin()
+        && !request.resource.data.keys().hasAny([
+          'correctAlternativeId', 'isCorrect', 'explanation'
+        ]);
+      // Preserve the public history after it has ever become selectable.
+      // Status-less documents are legacy drafts and retain the existing editor
+      // deletion workflow until an explicit v2 migration is performed.
+      allow delete: if isQuestionsCollection(collectionName) && isAdmin()
+        && (resource.data.status == 'draft'
+          || !resource.data.keys().hasAny(['status']));
+    }
+
+    // Write-once question snapshot used by attempts. Functions use Admin SDK
+    // and are not constrained by these client rules.
+    match /{collectionName}/{questionId}/versions/{version} {
+      allow read: if isQuestionsCollection(collectionName) && isAdmin();
+      allow create: if isQuestionsCollection(collectionName) && isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Existing editor alternatives contain `isCorrect`, so they remain admin
+    // only and cannot leak through the public root projection.
+    match /{collectionName}/{questionId}/alternatives/{alternativeId} {
+      allow read, write: if isQuestionsCollection(collectionName) && isAdmin();
+    }
+
+    // Private key. It is editable only for the root's current draft revision.
+    // Forking a root changes its version, which makes every old key immutable.
+    match /{collectionName}/{keyId} {
+      allow read: if isAnswerKeyCollection(collectionName) && isAdmin();
+      allow create, update: if isAnswerKeyCollection(collectionName) && isAdmin()
+        && request.resource.data.questionId is string
+        && request.resource.data.version is int
+        && (
+          (collectionName == 'iya-question-answer-keys-test'
+            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+          || (collectionName == 'iya-question-answer-keys-staging'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+          || (collectionName == 'iya-question-answer-keys'
+            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+        );
+      allow delete: if false;
+    }
+
+    match /{collectionName}/{templateId} {
+      allow read: if isTemplateCollection(collectionName)
+        && (isAdmin() || resource.data.status == 'published');
+      allow write: if isTemplateCollection(collectionName) && isAdmin();
+    }
+
+    match /{collectionName}/{templateId}/versions/{version} {
+      allow read: if isTemplateCollection(collectionName) && isAdmin();
+      allow create: if isTemplateCollection(collectionName) && isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Attempts are created, frozen and graded by Functions. The owner reads a
+    // safe projection only; no client can write selection, result or answers.
+    match /{collectionName}/{attemptId} {
+      allow read: if isAttemptCollection(collectionName)
+        && (isAdmin() || (signedIn() && resource.data.userId == request.auth.uid));
+      allow write: if false;
     }
 
     // El UID del documento raíz es dueño de su perfil y de todo su árbol.
@@ -52,9 +152,21 @@ service cloud.firestore {
         if isProfileCollection(profiles) && isOwner(userId);
     }
 
-    match /{profiles}/{userId}/{document=**} {
+    match /{profiles}/{userId}/{subcollection}/{document=**} {
       allow read, create, update, delete:
-        if isProfileCollection(profiles) && isOwner(userId);
+        if isProfileCollection(profiles) && isOwner(userId)
+          && subcollection != 'examRequestKeys'
+          && subcollection != 'recentQuestions';
+    }
+
+    // These records are server-owned: request IDs provide idempotency and
+    // recent-question history affects unbiased selection.
+    match /{profiles}/{userId}/examRequestKeys/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /{profiles}/{userId}/recentQuestions/{questionId} {
+      allow read, write: if false;
     }
   }
 }
