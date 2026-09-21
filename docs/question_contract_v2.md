@@ -54,12 +54,13 @@ Clasificación: `courseId`, `topicId`, `subtopicId`, `partIds`. Una pregunta pue
 
 ## Versiones, almacenamiento y permisos previstos
 
-Nombres lógicos, sujetos al prefijo de cada entorno:
+Nombres lógicos, sujetos al prefijo de cada entorno. La matriz definitiva y
+la estrategia de publicación están en `docs/publishable_question_bank.md`:
 
 - `sourceExams/{id}`: catálogo de orígenes.
 - `questions/{questionId}`: revisión vigente y metadatos consultables.
 - `questions/{questionId}/versions/{version}`: revisión inmutable utilizada por intentos.
-- `questionAnswerKeys/{questionId-version}`: clave privada de esa revisión.
+- `questionAnswerKeys/{questionId}_{version}`: clave privada de esa revisión.
 - `examTemplates/{templateId}` y sus versiones: configuraciones publicadas.
 - `examAttempts/{attemptId}`: selección estable y resultado propiedad de un alumno.
 

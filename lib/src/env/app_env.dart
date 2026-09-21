@@ -6,12 +6,21 @@ class AppEnv {
   static const professionsCollection = 'iya-professions-test';
   static const coursesCollection = 'iya-courses-test';
   static const String questionsCollection = 'iya-questions-test';
+  // Publicable exam-bank collections. Keep the environment suffix in the
+  // collection name: production removes `-test`, staging uses `-staging`.
+  static const String questionAnswerKeysCollection =
+      'iya-question-answer-keys-test';
+  static const String examTemplatesCollection = 'iya-exam-templates-test';
+  static const String examAttemptsCollection = 'iya-exam-attempts-test';
+  static const String usersCollection = 'iya-profile-test';
+
+  static const String questionVersionsSubcollection = 'versions';
+  static const String templateVersionsSubcollection = 'versions';
+  static const String examRequestKeysSubcollection = 'examRequestKeys';
+  static const String recentQuestionsSubcollection = 'recentQuestions';
 
   // subcollections
   static const String alternativesSubcollection = 'alternatives';
-
-
-
 
   /// subcollections
   static const modesSubcollection = 'modes';
