@@ -23,6 +23,10 @@ class QuestionEntity {
   final String courseName;
 
   final String examId; // puede ser ""
+  final String difficulty;
+  final int? originalNumber;
+  final String editorialStatus;
+  final int version;
 
   final List<AlternativeEntity> alternatives; // en lista lo dejamos vacío
 
@@ -37,6 +41,10 @@ class QuestionEntity {
     required this.courseName,
     required this.examId,
     required this.alternatives,
+    this.difficulty = 'unknown',
+    this.originalNumber,
+    this.editorialStatus = 'draft',
+    this.version = 1,
     this.subtopicId = '',
     this.subtopicName = '',
     this.partIds = const [],

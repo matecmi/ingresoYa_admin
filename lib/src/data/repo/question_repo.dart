@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/editor_document.dart';
 import '../../domain/entities/admission_exam.dart';
 import 'academic_context_validator.dart';
+import '../../../shared/question_contract/question_contract.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
 import 'package:ingresoya_admin/src/domain/entities/alternative_entity.dart';
@@ -49,6 +50,10 @@ class QuestionRepo {
           courseId: (d['courseId'] ?? '').toString(),
           courseName: (d['courseName'] ?? '').toString(),
           examId: (d['examId'] ?? '').toString(),
+          difficulty: (d['difficulty'] ?? 'unknown').toString(),
+          originalNumber: (d['originalNumber'] as num?)?.toInt(),
+          editorialStatus: (d['status'] ?? 'draft').toString(),
+          version: (d['version'] as num?)?.toInt() ?? 1,
           alternatives: const [], // 👈 no cargar en list
         );
       }).toList();
@@ -91,6 +96,8 @@ class QuestionRepo {
     String? subtopicName,
     List<String>? partIds,
     Map<String, String>? partNames,
+    String difficulty = 'unknown',
+    int? originalNumber,
     required String courseId,
     required String courseName,
     required String examId, // puede ser ""
@@ -111,6 +118,8 @@ class QuestionRepo {
       if (subtopicName != null) 'subtopicName': subtopicName.trim(),
       if (partIds != null) 'partIds': List<String>.from(partIds),
       if (partNames != null) 'partNames': Map<String, String>.from(partNames),
+      'difficulty': difficulty,
+      if (originalNumber != null) 'originalNumber': originalNumber,
       'courseId': courseId,
       'courseName': courseName,
       'examId': examId.trim(), // puede ser ""
@@ -280,6 +289,32 @@ class QuestionRepo {
       });
     }
 
+    await batch.commit();
+  }
+
+  /// Compatibility projection for the pre-v2 details screen. It only upserts
+  /// edited alternatives and deliberately never deletes old subcollection
+  /// documents; editorial migration is progressive and reversible.
+  Future<void> mirrorV2Alternatives({
+    required String questionId,
+    required List<QuestionAlternative> alternatives,
+    String? correctAlternativeId,
+  }) async {
+    final batch = db.batch();
+    final collection = _col
+        .doc(questionId)
+        .collection(AppEnv.alternativesSubcollection);
+    for (final alternative in alternatives) {
+      final document = EditorDocument(alternative.content);
+      batch.set(collection.doc(alternative.id), {
+        'value': alternative.label,
+        'descriptionText': document.legacy,
+        ...document.toFields(),
+        'isCorrect': alternative.id == correctAlternativeId ? 'Y' : 'N',
+        'updatedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
     await batch.commit();
   }
 

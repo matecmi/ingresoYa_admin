@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -38,10 +39,10 @@ class PublishableQuestionRepo {
   /// revision is overwritten by an editorial save.
   Future<void> saveDraft(
     QuestionDocument question, {
-    required QuestionAnswerKey answerKey,
+    QuestionAnswerKey? answerKey,
   }) async {
     _requireDraft(question);
-    answerKey.validateAgainst(question);
+    answerKey?.validateAgainst(question);
     final root = _question(question.ref.questionId);
     final key = _answerKey(question.ref.questionId, question.ref.version);
     await db.runTransaction((transaction) async {
@@ -50,22 +51,61 @@ class PublishableQuestionRepo {
       if (data?['status'] == 'published') {
         throw StateError('Primero crea un borrador de la pregunta publicada.');
       }
-      if (data != null && _versionOf(data) != question.ref.version) {
+      if (data?['status'] == 'retired') {
+        throw StateError(
+          'Una pregunta retirada no se puede reabrir desde el formulario.',
+        );
+      }
+      if (data?['version'] != null &&
+          _versionOf(data!) != question.ref.version) {
         throw StateError('La versión del borrador ya cambió. Recárgalo.');
       }
       final savedKey = await transaction.get(key);
-      transaction.set(root, {
+      final fields = {
         ..._questionFields(question, randomKey: _randomKey(data)),
+        if (question.originalNumber == null && data?['originalNumber'] != null)
+          'originalNumber': FieldValue.delete(),
         if (!existing.exists) 'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      transaction.set(key, {
-        ...answerKey.toJson(),
-        'createdAt':
-            savedKey.data()?['createdAt'] ?? FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      if (existing.exists) {
+        transaction.update(root, fields);
+      } else {
+        transaction.set(root, fields);
+      }
+      if (answerKey != null) {
+        transaction.set(key, {
+          ...answerKey.toJson(),
+          'createdAt':
+              savedKey.data()?['createdAt'] ?? FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else if (savedKey.exists) {
+        transaction.delete(key);
+      }
     });
+  }
+
+  /// Available only to the authenticated admin editor. Mobile clients have no
+  /// read rule for this collection.
+  Future<QuestionAnswerKey?> readAnswerKey(
+    String questionId,
+    int version,
+  ) async {
+    final snapshot = await _answerKey(questionId, version).get();
+    return snapshot.exists
+        ? QuestionAnswerKey.fromJson(snapshot.data()!)
+        : null;
+  }
+
+  Future<QuestionDocument?> readQuestionDocument(String questionId) async {
+    final snapshot = await _question(questionId).get();
+    if (!snapshot.exists) return null;
+    try {
+      return QuestionDocument.fromJson(snapshot.data()!);
+    } on FormatException {
+      return null;
+    }
   }
 
   /// Publishes the current draft and atomically freezes the matching snapshot.
@@ -78,6 +118,7 @@ class PublishableQuestionRepo {
       final question = QuestionDocument.fromJson(current.data()!);
       _requireDraft(question);
       _requirePublishable(question);
+      await _validateActiveSource(transaction, question);
       await AcademicContextValidator.validate(
         db,
         transaction,
@@ -226,8 +267,41 @@ class PublishableQuestionRepo {
         )) {
       throw StateError('Publica al menos dos alternativas con contenido.');
     }
+    final distinctContents = question.alternatives
+        .map((alternative) => jsonEncode(alternative.content.toJson()))
+        .toSet();
+    if (distinctContents.length != question.alternatives.length) {
+      throw StateError('Las alternativas publicables no pueden repetirse.');
+    }
     if (question.courseId.isEmpty || question.topicId.isEmpty) {
       throw StateError('Selecciona curso y tema antes de publicar.');
+    }
+  }
+
+  Future<void> _validateActiveSource(
+    Transaction transaction,
+    QuestionDocument question,
+  ) async {
+    if (![
+      'admission_exam',
+      'official_practice',
+      'other',
+    ].contains(question.sourceType)) {
+      return;
+    }
+    final source = question.sourceExam;
+    if (source == null) {
+      throw StateError('Selecciona un examen de origen antes de publicar.');
+    }
+    final catalog = await transaction.get(
+      db
+          .collection(AppEnv.universitiesCollection)
+          .doc(source.universityId)
+          .collection('admissionExams')
+          .doc(source.id),
+    );
+    if (!catalog.exists || catalog.data()?['active'] == false) {
+      throw StateError('El examen de origen ya no existe o está inactivo.');
     }
   }
 

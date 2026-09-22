@@ -1,4 +1,4 @@
-# Banco publicable, plantillas e intentos — etapa 3A
+# Banco publicable, plantillas e intentos — etapa 3
 
 Este documento fija el esquema de persistencia que consumen el administrador,
 la app y las Functions. Es complementario al contrato v2 en
@@ -86,11 +86,33 @@ que `partIds` no tenga duplicados. Esto impide asociar una pregunta a una parte
 de otro subtema. El generador podrá filtrar por `partIds` y excluir preguntas
 de partes que el alumno no haya completado.
 
-`PublishableQuestionRepo` implementa estas transacciones. La UI legacy aún
-usa alternativas en subcolección y explicación editorial privada; no se la
-migra automáticamente. Una migración o botón editorial posterior debe crear
-el payload v2 explícitamente y pasar por este repositorio, nunca copiar
-`isCorrect` a la raíz pública.
+`PublishableQuestionRepo` implementa estas transacciones. Al publicar también
+vuelve a leer el examen de origen dentro de la transacción: debe seguir
+existiendo y estar activo. Rechaza además alternativas sin contenido o con el
+mismo contenido v2. Así, un cambio concurrente de catálogo no puede publicar
+una referencia inválida.
+
+## Flujo editorial del administrador
+
+El formulario de pregunta reúne en una sola hoja el enunciado visual, número
+original, dificultad, procedencia, clasificación, alternativas, clave,
+explicación, estado y vista previa. Las alternativas tienen UUID estable y
+etiquetas de presentación `A`, `B`, … recalculadas según el orden; arrastrarlas
+no cambia el UUID. Se exige un mínimo configurable de dos (actualmente dos) y
+exactamente una correcta para publicar. Borradores incompletos se pueden
+guardar para terminar después.
+
+La clave y la explicación se escriben en `questionAnswerKeys` con la misma
+versión del documento público. Al editar una publicación, el repositorio crea
+la siguiente versión en borrador antes de permitir cambios; la versión
+publicada y su clave nunca se sobrescriben.
+
+Para compatibilidad, cada guardado v2 **solo inserta o actualiza** las
+alternativas editadas en la subcolección legacy `alternatives`, preservando su
+UUID, contenido visual y marca editorial privada. No borra documentos legacy
+huérfanos ni ejecuta una migración masiva automática. La explicación legacy
+también se conserva como copia editorial; la fuente de verdad para la
+calificación v2 es exclusivamente `questionAnswerKeys`.
 
 ## Seguridad y compatibilidad
 

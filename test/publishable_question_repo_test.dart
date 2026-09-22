@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ingresoya_admin/src/data/repo/publishable_question_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/question_repo.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 import 'package:ingresoya_admin/shared/question_contract/question_contract.dart';
 
@@ -41,6 +42,12 @@ Future<void> seedAcademicContext(
       {'id': 'part-2', 'name': 'Parte 2', 'active': true},
     ],
   });
+  await db
+      .collection(AppEnv.universitiesCollection)
+      .doc('university-demo')
+      .collection('admissionExams')
+      .doc('exam-demo')
+      .set({'active': true});
 }
 
 void main() {
@@ -154,6 +161,112 @@ void main() {
       await repo.saveDraft(question(), answerKey: key());
 
       await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+    },
+  );
+
+  test(
+    'a draft may be incomplete but cannot publish without a private key',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db);
+      await repo.saveDraft(question());
+
+      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+    },
+  );
+
+  test('a v2 draft upgrades an existing legacy root in place', () async {
+    final db = FakeFirebaseFirestore();
+    final repo = PublishableQuestionRepo(db);
+    await db.collection(AppEnv.questionsCollection).doc('q-01').set({
+      'number': 12,
+      'statementText': 'Registro legacy que se conserva',
+    });
+
+    await repo.saveDraft(question(), answerKey: key());
+
+    final saved =
+        (await db.collection(AppEnv.questionsCollection).doc('q-01').get())
+            .data()!;
+    expect(saved['status'], 'draft');
+    expect(saved['version'], 1);
+    expect(saved['number'], 12);
+    expect(
+      (await db
+              .collection(AppEnv.questionAnswerKeysCollection)
+              .doc('q-01_1')
+              .get())
+          .exists,
+      isTrue,
+    );
+  });
+
+  test(
+    'publication rejects duplicated alternative content and inactive source',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db);
+      final duplicateData = question().toJson();
+      final alternatives = List<Map<String, dynamic>>.from(
+        duplicateData['alternatives'] as List,
+      );
+      alternatives[1] = {
+        ...alternatives[1],
+        'content': alternatives.first['content'],
+      };
+      final duplicate = QuestionDocument.fromJson({
+        ...duplicateData,
+        'alternatives': alternatives,
+      });
+      await repo.saveDraft(duplicate, answerKey: key());
+      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+
+      await repo.saveDraft(question(), answerKey: key());
+      await db
+          .collection(AppEnv.universitiesCollection)
+          .doc('university-demo')
+          .collection('admissionExams')
+          .doc('exam-demo')
+          .update({'active': false});
+      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+    },
+  );
+
+  test(
+    'legacy alternatives are projected progressively without deletion',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = QuestionRepo(db);
+      final alternatives = db
+          .collection(AppEnv.questionsCollection)
+          .doc('legacy-question')
+          .collection(AppEnv.alternativesSubcollection);
+      await alternatives.doc('old-record').set({
+        'value': 'Z',
+        'descriptionText': 'Conservar',
+        'isCorrect': 'N',
+      });
+      final current = QuestionAlternative.fromJson({
+        'id': 'stable-alt',
+        'label': 'A',
+        'content': [
+          {'id': 'text-1', 'type': 'text', 'text': 'Contenido v2'},
+        ],
+      });
+
+      await repo.mirrorV2Alternatives(
+        questionId: 'legacy-question',
+        alternatives: [current],
+        correctAlternativeId: current.id,
+      );
+
+      expect((await alternatives.doc('old-record').get()).exists, isTrue);
+      final mirrored = (await alternatives.doc(current.id).get()).data()!;
+      expect(mirrored['value'], 'A');
+      expect(mirrored['isCorrect'], 'Y');
+      expect(mirrored['content'], current.content.toJson());
     },
   );
 }
