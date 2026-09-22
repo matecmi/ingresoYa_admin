@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../shared/question_contract/question_contract.dart';
 import '../../env/app_env.dart';
+import 'academic_context_validator.dart';
 
 /// Editorial persistence for the v2 public bank.
 ///
@@ -77,6 +78,15 @@ class PublishableQuestionRepo {
       final question = QuestionDocument.fromJson(current.data()!);
       _requireDraft(question);
       _requirePublishable(question);
+      await AcademicContextValidator.validate(
+        db,
+        transaction,
+        courseId: question.courseId,
+        topicId: question.topicId,
+        subtopicId: question.subtopicId,
+        partIds: question.partIds,
+        requireComplete: true,
+      );
       final keyRef = _answerKey(questionId, question.ref.version);
       final keySnapshot = await transaction.get(keyRef);
       if (!keySnapshot.exists) {

@@ -6,6 +6,7 @@ class SubtopicEntity {
   final String order;
   final String linkVideo;
   final List<SubtopicPartEntity> listPart;
+  final bool active;
 
   const SubtopicEntity({
     required this.id,
@@ -16,6 +17,7 @@ class SubtopicEntity {
     required this.linkVideo,
 
     required this.listPart,
+    this.active = true,
   });
 }
 
@@ -40,6 +42,7 @@ class SubtopicPartEntity {
   final List<Map<String, dynamic>> externalLinks;
   final List<Map<String, dynamic>> flashcards;
   final List<Map<String, dynamic>> quizQuestions;
+  final bool active;
 
   const SubtopicPartEntity({
     required this.id,
@@ -62,5 +65,6 @@ class SubtopicPartEntity {
     this.externalLinks = const [],
     this.flashcards = const [],
     this.quizQuestions = const [],
+    this.active = true,
   });
 }

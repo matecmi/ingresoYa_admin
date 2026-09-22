@@ -24,12 +24,32 @@ QuestionAnswerKey key({int version = 1}) => QuestionAnswerKey.fromJson({
   'version': version,
 });
 
+Future<void> seedAcademicContext(
+  FakeFirebaseFirestore db, {
+  bool partActive = true,
+}) async {
+  final course = db.collection(AppEnv.coursesCollection).doc('course-demo');
+  await course.set({'name': 'Curso demo', 'active': true});
+  final topic = course.collection('topics').doc('topic-demo');
+  await topic.set({'name': 'Tema demo', 'active': true, 'order': 1});
+  await topic.collection('subtopics').doc('subtopic-demo').set({
+    'name': 'Subtema demo',
+    'active': true,
+    'order': 1,
+    'listPart': [
+      {'id': 'part-1', 'name': 'Parte 1', 'active': partActive},
+      {'id': 'part-2', 'name': 'Parte 2', 'active': true},
+    ],
+  });
+}
+
 void main() {
   test(
     'publishes a public projection without correctness and freezes it',
     () async {
       final db = FakeFirebaseFirestore();
       final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db);
       final draft = question();
       await repo.saveDraft(draft, answerKey: key());
       await repo.publishDraft(draft.ref.questionId);
@@ -74,6 +94,7 @@ void main() {
     () async {
       final db = FakeFirebaseFirestore();
       final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db);
       await repo.saveDraft(question(), answerKey: key());
       await repo.publishDraft('q-01');
       final before =
@@ -121,6 +142,18 @@ void main() {
         ),
         throwsFormatException,
       );
+    },
+  );
+
+  test(
+    'publication rejects a removed or inactive academic reference',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db, partActive: false);
+      await repo.saveDraft(question(), answerKey: key());
+
+      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
     },
   );
 }

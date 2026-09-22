@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/editor_document.dart';
 import '../../domain/entities/admission_exam.dart';
+import 'academic_context_validator.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
 import 'package:ingresoya_admin/src/domain/entities/alternative_entity.dart';
@@ -41,6 +42,10 @@ class QuestionRepo {
           active: (d['active'] ?? 'Y').toString(),
           topicId: (d['topicId'] ?? '').toString(),
           topicName: (d['topicName'] ?? '').toString(),
+          subtopicId: (d['subtopicId'] ?? '').toString(),
+          subtopicName: (d['subtopicName'] ?? '').toString(),
+          partIds: _stringList(d['partIds']),
+          partNames: _stringMap(d['partNames']),
           courseId: (d['courseId'] ?? '').toString(),
           courseName: (d['courseName'] ?? '').toString(),
           examId: (d['examId'] ?? '').toString(),
@@ -82,6 +87,10 @@ class QuestionRepo {
     required String active,
     required String topicId,
     required String topicName,
+    String? subtopicId,
+    String? subtopicName,
+    List<String>? partIds,
+    Map<String, String>? partNames,
     required String courseId,
     required String courseName,
     required String examId, // puede ser ""
@@ -98,6 +107,10 @@ class QuestionRepo {
       'active': active,
       'topicId': topicId,
       'topicName': topicName,
+      if (subtopicId != null) 'subtopicId': subtopicId.trim(),
+      if (subtopicName != null) 'subtopicName': subtopicName.trim(),
+      if (partIds != null) 'partIds': List<String>.from(partIds),
+      if (partNames != null) 'partNames': Map<String, String>.from(partNames),
       'courseId': courseId,
       'courseName': courseName,
       'examId': examId.trim(), // puede ser ""
@@ -153,6 +166,18 @@ class QuestionRepo {
         throw StateError('El examen seleccionado está inactivo.');
       }
       data.addAll(latest.questionFields);
+    }
+    if (fields.containsKey('subtopicId') || fields.containsKey('partIds')) {
+      final combined = <String, dynamic>{...?previousData, ...data};
+      await AcademicContextValidator.validate(
+        db,
+        transaction,
+        courseId: (combined['courseId'] ?? '').toString().trim(),
+        topicId: (combined['topicId'] ?? '').toString().trim(),
+        subtopicId: (combined['subtopicId'] ?? '').toString().trim(),
+        partIds: _stringList(combined['partIds']),
+        requireComplete: true,
+      );
     }
     if (create) {
       transaction.set(target, data);
@@ -256,5 +281,20 @@ class QuestionRepo {
     }
 
     await batch.commit();
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Map<String, String> _stringMap(dynamic value) {
+    if (value is! Map) return const {};
+    return Map<String, String>.unmodifiable(
+      value.map((key, item) => MapEntry(key.toString(), item.toString())),
+    );
   }
 }

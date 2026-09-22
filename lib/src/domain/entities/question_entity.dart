@@ -14,6 +14,11 @@ class QuestionEntity {
   final String topicId;
   final String topicName;
 
+  final String subtopicId;
+  final String subtopicName;
+  final List<String> partIds;
+  final Map<String, String> partNames;
+
   final String courseId;
   final String courseName;
 
@@ -32,6 +37,10 @@ class QuestionEntity {
     required this.courseName,
     required this.examId,
     required this.alternatives,
+    this.subtopicId = '',
+    this.subtopicName = '',
+    this.partIds = const [],
+    this.partNames = const {},
     this.label,
     this.editorContent,
     this.admissionExam,

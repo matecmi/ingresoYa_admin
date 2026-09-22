@@ -67,6 +67,25 @@ El cliente no puede escribir ni leer estos dos árboles.
 4. `retired` impide nuevas selecciones sin borrar snapshots, claves o intentos;
    no se elimina una pregunta v2 que ya fue publicada.
 
+## Clasificación académica
+
+El formulario encadena curso → tema → subtema → una o varias partes. Los IDs
+persistidos son `courseId`, `topicId`, `subtopicId` y `partIds`; las copias
+`courseName`, `topicName`, `subtopicName` y `partNames` son solo etiquetas de
+visualización del editor legacy y no autorizan ni resuelven una referencia.
+
+Al cambiar un padre se borran sus descendientes y las partes elegidas. La UI
+mantiene una referencia antigua visible y deshabilitada como “registro guardado
+no disponible”, en vez de borrarla silenciosamente. No permite elegir catálogos
+ni partes inactivas.
+
+Antes de crear/editar una clasificación completa y nuevamente antes de publicar,
+una transacción lee la ruta real `courses/{course}/topics/{topic}/subtopics/
+{subtopic}`. Exige que todos los documentos y partes existan, estén activos y
+que `partIds` no tenga duplicados. Esto impide asociar una pregunta a una parte
+de otro subtema. El generador podrá filtrar por `partIds` y excluir preguntas
+de partes que el alumno no haya completado.
+
 `PublishableQuestionRepo` implementa estas transacciones. La UI legacy aún
 usa alternativas en subcolección y explicación editorial privada; no se la
 migra automáticamente. Una migración o botón editorial posterior debe crear

@@ -29,6 +29,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   late final TextEditingController courseName;
   late final TextEditingController topicId;
   late final TextEditingController topicName;
+  late final TextEditingController subtopicId;
+  late final TextEditingController subtopicName;
   late final TextEditingController examId;
   late final TextEditingController label;
 
@@ -38,6 +40,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   AdmissionExam? admissionExam;
   bool originChanged = false;
   bool active = true;
+  late final List<String> partIds;
+  late final Map<String, String> partNames;
 
   @override
   void initState() {
@@ -49,6 +53,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     courseName = TextEditingController(text: q?.courseName ?? '');
     topicId = TextEditingController(text: q?.topicId ?? '');
     topicName = TextEditingController(text: q?.topicName ?? '');
+    subtopicId = TextEditingController(text: q?.subtopicId ?? '');
+    subtopicName = TextEditingController(text: q?.subtopicName ?? '');
+    partIds = List<String>.from(q?.partIds ?? const []);
+    partNames = Map<String, String>.from(q?.partNames ?? const {});
     examId = TextEditingController(text: q?.examId ?? '');
     label = TextEditingController(text: q?.label ?? '');
 
@@ -66,6 +74,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     courseName.dispose();
     topicId.dispose();
     topicName.dispose();
+    subtopicId.dispose();
+    subtopicName.dispose();
     examId.dispose();
     label.dispose();
     super.dispose();
@@ -122,6 +132,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                   courseName: courseName,
                   topicId: topicId,
                   topicName: topicName,
+                  subtopicId: subtopicId,
+                  subtopicName: subtopicName,
+                  partIds: partIds,
+                  partNames: partNames,
                   examId: examId,
                   label: label,
                   initialExam: widget.question?.admissionExam,
@@ -422,11 +436,13 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
 
     if (courseId.text.isEmpty ||
         topicId.text.isEmpty ||
+        subtopicId.text.isEmpty ||
+        partIds.isEmpty ||
         (admissionExam == null && (widget.question == null || originChanged))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Selecciona curso, tema, universidad y examen de admisión.',
+            'Selecciona curso, tema, subtema, al menos una parte y el examen de origen.',
           ),
         ),
       );
@@ -461,6 +477,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           active: act,
           topicId: topicId.text.trim(),
           topicName: topicName.text.trim(),
+          subtopicId: subtopicId.text.trim(),
+          subtopicName: subtopicName.text.trim(),
+          partIds: List<String>.from(partIds),
+          partNames: Map<String, String>.from(partNames),
           courseId: courseId.text.trim(),
           courseName: courseName.text.trim(),
           examId: examId.text.trim(), // puede ser ""
@@ -476,6 +496,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             'active': act,
             'topicId': topicId.text.trim(),
             'topicName': topicName.text.trim(),
+            'subtopicId': subtopicId.text.trim(),
+            'subtopicName': subtopicName.text.trim(),
+            'partIds': List<String>.from(partIds),
+            'partNames': Map<String, String>.from(partNames),
             'courseId': courseId.text.trim(),
             'courseName': courseName.text.trim(),
             'examId': examId.text.trim(),

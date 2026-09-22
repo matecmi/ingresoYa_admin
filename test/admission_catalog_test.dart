@@ -41,9 +41,22 @@ Future<void> seed(FakeFirebaseFirestore db) async {
   for (final entry in {'math': 'Matemática', 'language': 'Lenguaje'}.entries) {
     final doc = db.collection(AppEnv.coursesCollection).doc(entry.key);
     await doc.set({'name': entry.value});
-    await doc.collection('topics').doc('${entry.key}-topic').set({
+    final topic = doc.collection('topics').doc('${entry.key}-topic');
+    await topic.set({
       'name': entry.key == 'math' ? 'Álgebra' : 'Ortografía',
       'order': 1,
+    });
+    await topic.collection('subtopics').doc('${entry.key}-subtopic').set({
+      'name': entry.key == 'math' ? 'Ecuaciones' : 'Tildación',
+      'order': 1,
+      'listPart': [
+        {
+          'id': '${entry.key}-part-1',
+          'name': entry.key == 'math'
+              ? 'Ecuaciones lineales'
+              : 'Tildes diacríticas',
+        },
+      ],
     });
   }
 }
@@ -189,6 +202,10 @@ void main() {
           courseName = TextEditingController();
       final topicId = TextEditingController(),
           topicName = TextEditingController();
+      final subtopicId = TextEditingController(),
+          subtopicName = TextEditingController();
+      final partIds = <String>[];
+      final partNames = <String, String>{};
       final examId = TextEditingController(), label = TextEditingController();
       addTearDown(() {
         for (final c in [
@@ -196,6 +213,8 @@ void main() {
           courseName,
           topicId,
           topicName,
+          subtopicId,
+          subtopicName,
           examId,
           label,
         ]) {
@@ -218,6 +237,10 @@ void main() {
                     courseName: courseName,
                     topicId: topicId,
                     topicName: topicName,
+                    subtopicId: subtopicId,
+                    subtopicName: subtopicName,
+                    partIds: partIds,
+                    partNames: partNames,
                     examId: examId,
                     label: label,
                     onExamChanged: (e) => selected = e,
@@ -244,9 +267,17 @@ void main() {
       await choose('Curso', 'Matemática');
       await choose('Tema', 'Álgebra');
       expect(topicId.text, 'math-topic');
+      await choose('Subtema', 'Ecuaciones');
+      await tester.tap(find.text('Ecuaciones lineales'));
+      await tester.pumpAndSettle();
+      expect(subtopicId.text, 'math-subtopic');
+      expect(partIds, ['math-part-1']);
       await choose('Curso', 'Lenguaje');
       expect(topicId.text, isEmpty);
+      expect(subtopicId.text, isEmpty);
+      expect(partIds, isEmpty);
       await choose('Tema', 'Ortografía');
+      await choose('Subtema', 'Tildación');
       await choose('Universidad', 'UNPRG — Universidad UNPRG');
       await choose('Examen de origen', 'EXAMEN DE ADMISIÓN ORDINARIO 2015 I');
       expect(label.text, 'UNPRG - EXAMEN DE ADMISIÓN ORDINARIO 2015 I');

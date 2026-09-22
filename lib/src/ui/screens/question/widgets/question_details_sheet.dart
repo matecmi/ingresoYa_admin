@@ -117,6 +117,15 @@ class QuestionDetailsSheet extends ConsumerWidget {
         const SizedBox(height: 12),
         _kv('Curso', q.courseName),
         _kv('Tema', q.topicName),
+        _kv('Subtema', q.subtopicName.isEmpty ? '—' : q.subtopicName),
+        _kv(
+          'Partes',
+          q.partIds.isEmpty
+              ? '—'
+              : q.partIds
+                    .map((id) => q.partNames[id] ?? '$id (sin nombre actual)')
+                    .join(', '),
+        ),
         _kv('ExamId', q.examId.trim().isEmpty ? '—' : q.examId),
         _kv('Label', (q.label ?? '').trim().isEmpty ? '—' : q.label!),
         _kv('Activo', q.isActive ? 'Y' : 'N'),
@@ -131,6 +140,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
       children: [
         _Pill(text: q.courseName.isEmpty ? '—' : q.courseName),
         _Pill(text: q.topicName.isEmpty ? '—' : q.topicName),
+        if (q.subtopicName.isNotEmpty) _Pill(text: q.subtopicName),
         _Pill(
           text: q.isActive ? 'Activa' : 'Inactiva',
           tone: q.isActive ? _PillTone.good : _PillTone.bad,

@@ -7,6 +7,7 @@ class TopicEntity {
   final int order;
   final String summary;
   final List<SubtopicEntity> subtopics;
+  final bool active;
 
   const TopicEntity({
     required this.id,
@@ -15,5 +16,6 @@ class TopicEntity {
     required this.order,
     required this.summary,
     required this.subtopics,
+    this.active = true,
   });
 }
