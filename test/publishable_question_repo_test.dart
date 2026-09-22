@@ -5,6 +5,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ingresoya_admin/src/data/repo/publishable_question_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/question_repo.dart';
+import 'package:ingresoya_admin/src/domain/question_publication_validation.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 import 'package:ingresoya_admin/shared/question_contract/question_contract.dart';
 
@@ -160,7 +161,10 @@ void main() {
       await seedAcademicContext(db, partActive: false);
       await repo.saveDraft(question(), answerKey: key());
 
-      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+      await expectLater(
+        repo.publishDraft('q-01'),
+        throwsA(isA<QuestionPublicationException>()),
+      );
     },
   );
 
@@ -172,7 +176,10 @@ void main() {
       await seedAcademicContext(db);
       await repo.saveDraft(question());
 
-      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+      await expectLater(
+        repo.publishDraft('q-01'),
+        throwsA(isA<QuestionPublicationException>()),
+      );
     },
   );
 
@@ -221,7 +228,10 @@ void main() {
         'alternatives': alternatives,
       });
       await repo.saveDraft(duplicate, answerKey: key());
-      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+      await expectLater(
+        repo.publishDraft('q-01'),
+        throwsA(isA<QuestionPublicationException>()),
+      );
 
       await repo.saveDraft(question(), answerKey: key());
       await db
@@ -230,7 +240,10 @@ void main() {
           .collection('admissionExams')
           .doc('exam-demo')
           .update({'active': false});
-      await expectLater(repo.publishDraft('q-01'), throwsA(isA<StateError>()));
+      await expectLater(
+        repo.publishDraft('q-01'),
+        throwsA(isA<QuestionPublicationException>()),
+      );
     },
   );
 
@@ -267,6 +280,111 @@ void main() {
       expect(mirrored['value'], 'A');
       expect(mirrored['isCorrect'], 'Y');
       expect(mirrored['content'], current.content.toJson());
+    },
+  );
+
+  test('publication validation reports every incomplete draft field', () {
+    final data = question().toJson();
+    final incomplete = QuestionDocument.fromJson({
+      ...data,
+      'sourceType': 'unknown',
+      'sourceExam': null,
+      'courseId': '',
+      'topicId': '',
+      'subtopicId': '',
+      'partIds': [],
+      'difficulty': 'unknown',
+      'content': [],
+      'alternatives': [],
+    });
+
+    final validation = QuestionPublicationValidator.validate(
+      question: incomplete,
+      answerKey: null,
+    );
+
+    expect(validation.isPublishable, isFalse);
+    expect(
+      validation.issues.map((issue) => issue.code),
+      containsAll([
+        'statement.empty',
+        'classification.incomplete',
+        'classification.parts.empty',
+        'difficulty.undefined',
+        'source.undefined',
+        'alternatives.minimum',
+        'answer.missing',
+      ]),
+    );
+  });
+
+  test('publication validation rejects formulas the renderer cannot parse', () {
+    final invalidFormula = QuestionDocument.fromJson({
+      ...question().toJson(),
+      'content': [
+        {
+          'id': 'invalid-formula',
+          'type': 'formula',
+          'latex': r'\notARealLatexCommand',
+          'displayMode': 'block',
+        },
+      ],
+    });
+
+    final validation = QuestionPublicationValidator.validate(
+      question: invalidFormula,
+      answerKey: key(),
+    );
+
+    expect(
+      validation.issues.map((issue) => issue.code),
+      contains('formula.invalid'),
+    );
+  });
+
+  test(
+    'validate draft names inactive references and retirement keeps snapshots',
+    () async {
+      final db = FakeFirebaseFirestore();
+      final repo = PublishableQuestionRepo(db);
+      await seedAcademicContext(db);
+      await repo.saveDraft(question(), answerKey: key());
+      await db
+          .collection(AppEnv.universitiesCollection)
+          .doc('university-demo')
+          .collection('admissionExams')
+          .doc('exam-demo')
+          .update({'active': false});
+
+      final validation = await repo.validateDraft('q-01');
+      expect(
+        validation.issues.map((issue) => issue.code),
+        contains('source.exam.inactive'),
+      );
+
+      await db
+          .collection(AppEnv.universitiesCollection)
+          .doc('university-demo')
+          .collection('admissionExams')
+          .doc('exam-demo')
+          .update({'active': true});
+      await repo.publishDraft('q-01');
+      await repo.retirePublished('q-01');
+
+      final root =
+          (await db.collection(AppEnv.questionsCollection).doc('q-01').get())
+              .data()!;
+      expect(root['status'], 'retired');
+      expect(
+        (await db
+                .collection(AppEnv.questionsCollection)
+                .doc('q-01')
+                .collection(AppEnv.questionVersionsSubcollection)
+                .doc('1')
+                .get())
+            .exists,
+        isTrue,
+      );
     },
   );
 }

@@ -123,7 +123,22 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
             && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
         );
-      allow delete: if false;
+      // Clearing the correct answer is allowed only while the corresponding
+      // draft is still current. Published and historical keys stay immutable.
+      allow delete: if isAnswerKeyCollection(collectionName)
+        && resource.data.questionId is string
+        && resource.data.version is int
+        && (
+          (collectionName == 'iya-question-answer-keys-test'
+            && get(/databases/$(database)/documents/iya-questions-test/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-test/$(resource.data.questionId)).data.version == resource.data.version)
+          || (collectionName == 'iya-question-answer-keys-staging'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(resource.data.questionId)).data.version == resource.data.version)
+          || (collectionName == 'iya-question-answer-keys'
+            && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.version == resource.data.version)
+        );
     }
 
     match /{collectionName}/{templateId} {

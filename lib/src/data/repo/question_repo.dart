@@ -98,6 +98,7 @@ class QuestionRepo {
     Map<String, String>? partNames,
     String difficulty = 'unknown',
     int? originalNumber,
+    bool requireCompleteAcademic = true,
     required String courseId,
     required String courseName,
     required String examId, // puede ser ""
@@ -105,28 +106,33 @@ class QuestionRepo {
   }) async {
     final id = const Uuid().v4();
 
-    await _writeQuestion(_col.doc(id), {
-      'idDoc': id,
-      'number': number,
-      'label': (label ?? '').trim(),
-      'statementText': statementText,
-      if (editorContent != null) ...editorContent.toFields(),
-      'active': active,
-      'topicId': topicId,
-      'topicName': topicName,
-      if (subtopicId != null) 'subtopicId': subtopicId.trim(),
-      if (subtopicName != null) 'subtopicName': subtopicName.trim(),
-      if (partIds != null) 'partIds': List<String>.from(partIds),
-      if (partNames != null) 'partNames': Map<String, String>.from(partNames),
-      'difficulty': difficulty,
-      if (originalNumber != null) 'originalNumber': originalNumber,
-      'courseId': courseId,
-      'courseName': courseName,
-      'examId': examId.trim(), // puede ser ""
-      if (admissionExam != null) ...admissionExam.questionFields,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, create: true);
+    await _writeQuestion(
+      _col.doc(id),
+      {
+        'idDoc': id,
+        'number': number,
+        'label': (label ?? '').trim(),
+        'statementText': statementText,
+        if (editorContent != null) ...editorContent.toFields(),
+        'active': active,
+        'topicId': topicId,
+        'topicName': topicName,
+        if (subtopicId != null) 'subtopicId': subtopicId.trim(),
+        if (subtopicName != null) 'subtopicName': subtopicName.trim(),
+        if (partIds != null) 'partIds': List<String>.from(partIds),
+        if (partNames != null) 'partNames': Map<String, String>.from(partNames),
+        'difficulty': difficulty,
+        if (originalNumber != null) 'originalNumber': originalNumber,
+        'courseId': courseId,
+        'courseName': courseName,
+        'examId': examId.trim(), // puede ser ""
+        if (admissionExam != null) ...admissionExam.questionFields,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      create: true,
+      requireCompleteAcademic: requireCompleteAcademic,
+    );
 
     return id;
   }
@@ -134,17 +140,21 @@ class QuestionRepo {
   Future<void> updateQuestion(
     String id, {
     required Map<String, dynamic> patch,
+    bool requireCompleteAcademic = true,
   }) async {
-    await _writeQuestion(_col.doc(id), {
-      ...patch,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, create: false);
+    await _writeQuestion(
+      _col.doc(id),
+      {...patch, 'updatedAt': FieldValue.serverTimestamp()},
+      create: false,
+      requireCompleteAcademic: requireCompleteAcademic,
+    );
   }
 
   Future<void> _writeQuestion(
     DocumentReference<Map<String, dynamic>> target,
     Map<String, dynamic> fields, {
     required bool create,
+    required bool requireCompleteAcademic,
   }) => db.runTransaction((transaction) async {
     final previous = create ? null : await transaction.get(target);
     if (!create && previous?.exists != true) {
@@ -185,7 +195,7 @@ class QuestionRepo {
         topicId: (combined['topicId'] ?? '').toString().trim(),
         subtopicId: (combined['subtopicId'] ?? '').toString().trim(),
         partIds: _stringList(combined['partIds']),
-        requireComplete: true,
+        requireComplete: requireCompleteAcademic,
       );
     }
     if (create) {

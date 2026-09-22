@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../shared/question_contract/question_contract.dart';
+import '../../domain/question_publication_validation.dart';
 import '../../env/app_env.dart';
 import 'academic_context_validator.dart';
 
@@ -108,6 +108,55 @@ class PublishableQuestionRepo {
     }
   }
 
+  /// Performs the same content checks used for publication and reports every
+  /// missing field that can be observed from the current draft. It is a
+  /// preflight only; [publishDraft] repeats the critical checks transactionally.
+  Future<QuestionDraftValidation> validateDraft(String questionId) async {
+    final root = await _question(questionId).get();
+    if (!root.exists) {
+      return const QuestionDraftValidation([
+        QuestionValidationIssue(
+          'question.missing',
+          'La pregunta ya no existe.',
+        ),
+      ]);
+    }
+    late QuestionDocument question;
+    try {
+      question = QuestionDocument.fromJson(root.data()!);
+    } on FormatException {
+      return const QuestionDraftValidation([
+        QuestionValidationIssue(
+          'contract.invalid',
+          'El borrador no cumple el contrato de pregunta v2.',
+        ),
+      ]);
+    }
+    final issues = <QuestionValidationIssue>[];
+    QuestionAnswerKey? answerKey;
+    final key = await _answerKey(questionId, question.ref.version).get();
+    if (key.exists) {
+      try {
+        answerKey = QuestionAnswerKey.fromJson(key.data()!);
+      } on FormatException {
+        issues.add(
+          const QuestionValidationIssue(
+            'answer.contract.invalid',
+            'La clave privada no cumple el contrato v2.',
+          ),
+        );
+      }
+    }
+    issues.addAll(
+      QuestionPublicationValidator.validate(
+        question: question,
+        answerKey: answerKey,
+      ).issues,
+    );
+    issues.addAll(await _referenceIssues(question));
+    return QuestionDraftValidation(List.unmodifiable(issues));
+  }
+
   /// Publishes the current draft and atomically freezes the matching snapshot.
   /// A snapshot can never be replaced, even by a later edit of the root.
   Future<void> publishDraft(String questionId) async {
@@ -115,26 +164,65 @@ class PublishableQuestionRepo {
     await db.runTransaction((transaction) async {
       final current = await transaction.get(root);
       if (!current.exists) throw StateError('La pregunta no existe.');
-      final question = QuestionDocument.fromJson(current.data()!);
+      late QuestionDocument question;
+      try {
+        question = QuestionDocument.fromJson(current.data()!);
+      } on FormatException {
+        throw const QuestionPublicationException(
+          QuestionDraftValidation([
+            QuestionValidationIssue(
+              'contract.invalid',
+              'El borrador no cumple el contrato de pregunta v2.',
+            ),
+          ]),
+        );
+      }
       _requireDraft(question);
-      _requirePublishable(question);
-      await _validateActiveSource(transaction, question);
-      await AcademicContextValidator.validate(
-        db,
-        transaction,
-        courseId: question.courseId,
-        topicId: question.topicId,
-        subtopicId: question.subtopicId,
-        partIds: question.partIds,
-        requireComplete: true,
-      );
       final keyRef = _answerKey(questionId, question.ref.version);
       final keySnapshot = await transaction.get(keyRef);
-      if (!keySnapshot.exists) {
-        throw StateError('Falta la clave de respuesta privada.');
+      QuestionAnswerKey? answerKey;
+      if (keySnapshot.exists) {
+        try {
+          answerKey = QuestionAnswerKey.fromJson(keySnapshot.data()!);
+        } on FormatException {
+          throw const QuestionPublicationException(
+            QuestionDraftValidation([
+              QuestionValidationIssue(
+                'answer.contract.invalid',
+                'La clave privada no cumple el contrato v2.',
+              ),
+            ]),
+          );
+        }
       }
-      final answerKey = QuestionAnswerKey.fromJson(keySnapshot.data()!);
-      answerKey.validateAgainst(question);
+      final validation = QuestionPublicationValidator.validate(
+        question: question,
+        answerKey: answerKey,
+      );
+      if (!validation.isPublishable) {
+        throw QuestionPublicationException(validation);
+      }
+      try {
+        await _validateActiveSource(transaction, question);
+        await AcademicContextValidator.validate(
+          db,
+          transaction,
+          courseId: question.courseId,
+          topicId: question.topicId,
+          subtopicId: question.subtopicId,
+          partIds: question.partIds,
+          requireComplete: true,
+        );
+      } on StateError catch (error) {
+        throw QuestionPublicationException(
+          QuestionDraftValidation([
+            QuestionValidationIssue(
+              'references.invalid',
+              error.message.toString(),
+            ),
+          ]),
+        );
+      }
       final version = _version(questionId, question.ref.version);
       if ((await transaction.get(version)).exists) {
         throw StateError('Esta versión ya fue publicada y es inmutable.');
@@ -257,27 +345,6 @@ class PublishableQuestionRepo {
     }
   }
 
-  void _requirePublishable(QuestionDocument question) {
-    if (!_hasContent(question.content)) {
-      throw StateError('El enunciado no puede estar vacío al publicar.');
-    }
-    if (question.alternatives.length < 2 ||
-        question.alternatives.any(
-          (alternative) => !_hasContent(alternative.content),
-        )) {
-      throw StateError('Publica al menos dos alternativas con contenido.');
-    }
-    final distinctContents = question.alternatives
-        .map((alternative) => jsonEncode(alternative.content.toJson()))
-        .toSet();
-    if (distinctContents.length != question.alternatives.length) {
-      throw StateError('Las alternativas publicables no pueden repetirse.');
-    }
-    if (question.courseId.isEmpty || question.topicId.isEmpty) {
-      throw StateError('Selecciona curso y tema antes de publicar.');
-    }
-  }
-
   Future<void> _validateActiveSource(
     Transaction transaction,
     QuestionDocument question,
@@ -305,15 +372,106 @@ class PublishableQuestionRepo {
     }
   }
 
-  bool _hasContent(QuestionContent content) => content.blocks.any((block) {
-    return switch (block) {
-      TextBlock block => block.text.trim().isNotEmpty,
-      ParagraphBlock block => block.spans.any(
-        (span) => span.value.trim().isNotEmpty,
-      ),
-      FormulaBlock block => block.latex.trim().isNotEmpty,
-      ImageBlock _ => true,
-      LegacyBlock block => block.raw.trim().isNotEmpty,
+  Future<List<QuestionValidationIssue>> _referenceIssues(
+    QuestionDocument question,
+  ) async {
+    final issues = <QuestionValidationIssue>[];
+    final source = question.sourceExam;
+    if (source != null &&
+        const {
+          'admission_exam',
+          'official_practice',
+          'other',
+        }.contains(question.sourceType)) {
+      final exam = await db
+          .collection(AppEnv.universitiesCollection)
+          .doc(source.universityId)
+          .collection('admissionExams')
+          .doc(source.id)
+          .get();
+      if (!exam.exists) {
+        issues.add(
+          const QuestionValidationIssue(
+            'source.exam.missing',
+            'El examen de origen ya no existe.',
+          ),
+        );
+      } else if (!_isActive(exam.data())) {
+        issues.add(
+          const QuestionValidationIssue(
+            'source.exam.inactive',
+            'El examen de origen está inactivo.',
+          ),
+        );
+      }
+    }
+
+    if (question.courseId.isEmpty) return issues;
+    final course = await db
+        .collection(AppEnv.coursesCollection)
+        .doc(question.courseId)
+        .get();
+    if (!course.exists || !_isActive(course.data())) {
+      issues.add(
+        const QuestionValidationIssue(
+          'course.invalid',
+          'El curso seleccionado ya no existe o está inactivo.',
+        ),
+      );
+      return issues;
+    }
+    if (question.topicId.isEmpty) return issues;
+    final topic = await course.reference
+        .collection(AppEnv.topicsSubcollection)
+        .doc(question.topicId)
+        .get();
+    if (!topic.exists || !_isActive(topic.data())) {
+      issues.add(
+        const QuestionValidationIssue(
+          'topic.invalid',
+          'El tema seleccionado ya no existe, está inactivo o no pertenece al curso.',
+        ),
+      );
+      return issues;
+    }
+    if (question.subtopicId.isEmpty) return issues;
+    final subtopic = await topic.reference
+        .collection(AppEnv.subtopicsSubcollection)
+        .doc(question.subtopicId)
+        .get();
+    final subtopicData = subtopic.data();
+    if (!subtopic.exists || !_isActive(subtopicData)) {
+      issues.add(
+        const QuestionValidationIssue(
+          'subtopic.invalid',
+          'El subtema seleccionado ya no existe, está inactivo o no pertenece al tema.',
+        ),
+      );
+      return issues;
+    }
+    final parts = <String, Map<String, dynamic>>{
+      for (final raw in (subtopicData?['listPart'] as List? ?? const []))
+        if (raw is Map && raw['id']?.toString().trim().isNotEmpty == true)
+          raw['id'].toString(): Map<String, dynamic>.from(raw),
     };
-  });
+    for (final partId in question.partIds) {
+      if (!parts.containsKey(partId) || !_isActive(parts[partId])) {
+        issues.add(
+          QuestionValidationIssue(
+            'part.$partId.invalid',
+            'La parte seleccionada "$partId" no existe, está inactiva o no pertenece al subtema.',
+          ),
+        );
+      }
+    }
+    return issues;
+  }
+
+  bool _isActive(Map<String, dynamic>? data) {
+    if (data == null) return false;
+    final value = data['active'];
+    if (value is bool) return value;
+    final normalized = value?.toString().trim().toLowerCase();
+    return normalized != 'false' && normalized != 'n' && normalized != '0';
+  }
 }

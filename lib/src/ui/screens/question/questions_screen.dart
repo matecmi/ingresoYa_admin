@@ -117,8 +117,16 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                     return _QuestionCard(
                       q: q,
                       onOpen: () => _openQuestionDetails(context, q),
-                      onEdit: () => _openQuestionForm(context, q: q),
-                      onDelete: () => _deleteQuestion(context, q),
+                      onEdit: q.editorialStatus == 'retired'
+                          ? () => _showRetiredMessage(context)
+                          : () => _openQuestionForm(context, q: q),
+                      onDelete: q.editorialStatus == 'retired'
+                          ? () => _showRetiredMessage(context)
+                          : q.editorialStatus == 'published'
+                          ? () => _retireQuestion(context, q)
+                          : () => _deleteQuestion(context, q),
+                      isPublished: q.editorialStatus == 'published',
+                      isRetired: q.editorialStatus == 'retired',
                     );
                   },
                 );
@@ -140,14 +148,42 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     if (!ok) return;
 
     await ref.read(questionRepoProvider).deleteQuestion(q.id);
-    if (!mounted) return;
+    if (!context.mounted) return;
 
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Eliminada ✅')));
+  }
+
+  Future<void> _retireQuestion(BuildContext context, QuestionEntity q) async {
+    final ok = await _confirmPro(
+      context,
+      title: 'Retirar pregunta',
+      message:
+          'La pregunta #${q.number} dejará de entrar en nuevos exámenes. Los intentos existentes conservarán su versión congelada.',
+      primary: 'Retirar',
+    );
+    if (!ok) return;
+
+    await ref.read(publishableQuestionRepoProvider).retirePublished(q.id);
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Eliminada ✅')),
+      const SnackBar(content: Text('Pregunta retirada de nuevos exámenes.')),
     );
   }
 
-  Future<void> _openQuestionForm(BuildContext context, {QuestionEntity? q}) async {
+  void _showRetiredMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Una pregunta retirada no se edita desde el formulario.'),
+      ),
+    );
+  }
+
+  Future<void> _openQuestionForm(
+    BuildContext context, {
+    QuestionEntity? q,
+  }) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -157,7 +193,10 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     );
   }
 
-  Future<void> _openQuestionDetails(BuildContext context, QuestionEntity q) async {
+  Future<void> _openQuestionDetails(
+    BuildContext context,
+    QuestionEntity q,
+  ) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -174,12 +213,16 @@ class _QuestionCard extends StatelessWidget {
     required this.onOpen,
     required this.onEdit,
     required this.onDelete,
+    required this.isPublished,
+    required this.isRetired,
   });
 
   final QuestionEntity q;
   final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isPublished;
+  final bool isRetired;
 
   @override
   Widget build(BuildContext context) {
@@ -237,12 +280,15 @@ class _QuestionCard extends StatelessWidget {
                           if ((q.label ?? '').trim().isNotEmpty)
                             _Pill(text: q.label!.trim()),
                           _Pill(
-                            text: q.examId.trim().isEmpty ? 'Sin examen' : 'Con examen',
+                            text: q.examId.trim().isEmpty
+                                ? 'Sin examen'
+                                : 'Con examen',
                           ),
                           _Pill(
                             text: q.isActive ? 'Activa' : 'Inactiva',
                             tone: q.isActive ? _PillTone.good : _PillTone.bad,
                           ),
+                          _Pill(text: _editorialStatus(q.editorialStatus)),
                         ],
                       ),
                     ],
@@ -251,7 +297,14 @@ class _QuestionCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 _IconMiniBtn(icon: Icons.edit_rounded, onTap: onEdit),
                 const SizedBox(width: 8),
-                _IconMiniBtn(icon: Icons.delete_outline_rounded, onTap: onDelete),
+                _IconMiniBtn(
+                  icon: isPublished
+                      ? Icons.archive_outlined
+                      : isRetired
+                      ? Icons.lock_outline_rounded
+                      : Icons.delete_outline_rounded,
+                  onTap: onDelete,
+                ),
               ],
             ),
           ),
@@ -259,6 +312,12 @@ class _QuestionCard extends StatelessWidget {
       ),
     );
   }
+
+  String _editorialStatus(String status) => switch (status) {
+    'published' => 'Publicada',
+    'retired' => 'Retirada',
+    _ => 'Borrador',
+  };
 }
 
 class _IconMiniBtn extends StatelessWidget {

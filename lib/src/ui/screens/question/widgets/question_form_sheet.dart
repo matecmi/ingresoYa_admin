@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
+import 'package:ingresoya_admin/src/domain/question_publication_validation.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
@@ -42,7 +43,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   late EditorDocument content;
   bool saving = false;
   AdmissionExam? admissionExam;
-  bool originChanged = false;
   bool active = true;
   late final List<String> partIds;
   late final Map<String, String> partNames;
@@ -52,6 +52,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   String difficulty = 'unknown';
   String editorialStatus = 'draft';
   bool loadingEditorial = false;
+  List<QuestionValidationIssue> publicationIssues = const [];
 
   static const _minimumAlternatives = 2;
 
@@ -218,6 +219,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                   _difficultySelect(),
                 ),
                 _editorialStatusCard(),
+                if (publicationIssues.isNotEmpty) ...[
+                  _publicationErrorsCard(),
+                  const SizedBox(height: 10),
+                ],
 
                 QuestionCatalogFields(
                   courseId: courseId,
@@ -236,7 +241,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                       widget.question!.admissionExam == null,
                   onExamChanged: (exam) {
                     admissionExam = exam;
-                    originChanged = true;
                   },
                 ),
 
@@ -436,6 +440,35 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),
+      ],
+    ),
+  );
+
+  Widget _publicationErrorsCard() => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: AppTheme.cardDeco(
+      radius: 16,
+      color: const Color(0xFFEF4444).withValues(alpha: .10),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444)),
+            SizedBox(width: 8),
+            Text(
+              'Errores que impiden publicar',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (final issue in publicationIssues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Text('• ${issue.message}'),
+          ),
       ],
     ),
   );
@@ -721,44 +754,56 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   };
 
   Widget _primaryActions(bool isEdit) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: saving ? null : () => _save(publish: false),
-            icon: const Icon(Icons.save_rounded, size: 18),
-            label: Text(
-              isEdit ? 'Guardar borrador' : 'Crear borrador',
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-            ),
-          ),
+        OutlinedButton.icon(
+          onPressed: saving
+              ? null
+              : () => _save(publish: false, validateAfterSave: true),
+          icon: const Icon(Icons.fact_check_outlined, size: 18),
+          label: const Text('Validar borrador'),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: saving ? null : () => _save(publish: true),
-            icon: const Icon(Icons.publish_rounded, size: 18),
-            label: const Text(
-              'Publicar',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: saving ? null : () => _save(publish: false),
+                icon: const Icon(Icons.save_rounded, size: 18),
+                label: Text(
+                  isEdit ? 'Guardar borrador' : 'Crear borrador',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: saving ? null : () => _save(publish: true),
+                icon: const Icon(Icons.publish_rounded, size: 18),
+                label: const Text(
+                  'Publicar',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF16A34A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -798,29 +843,11 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     );
   }
 
-  Future<void> _save({required bool publish}) async {
+  Future<void> _save({
+    required bool publish,
+    bool validateAfterSave = false,
+  }) async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (courseId.text.isEmpty ||
-        topicId.text.isEmpty ||
-        subtopicId.text.isEmpty ||
-        partIds.isEmpty ||
-        (admissionExam == null && (widget.question == null || originChanged))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Selecciona curso, tema, subtema, al menos una parte y el examen de origen.',
-          ),
-        ),
-      );
-      return;
-    }
-    if (!content.hasContent) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enunciado es requerido')));
-      return;
-    }
 
     final repo = ref.read(questionRepoProvider);
     final publicRepo = ref.read(publishableQuestionRepoProvider);
@@ -842,22 +869,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       );
       return;
     }
-    if (publish &&
-        (alternatives.length < _minimumAlternatives ||
-            alternatives.any(
-              (alternative) => !alternative.content.hasContent,
-            ) ||
-            correctAlternativeId == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Para publicar completa al menos dos alternativas y marca una correcta.',
-          ),
-        ),
-      );
-      return;
-    }
-
     final act = active ? 'Y' : 'N';
     setState(() => saving = true);
     try {
@@ -881,6 +892,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           partNames: Map<String, String>.from(partNames),
           difficulty: difficulty,
           originalNumber: originalNumber,
+          requireCompleteAcademic: false,
           courseId: courseId.text.trim(),
           courseName: courseName.text.trim(),
           examId: examId.text.trim(), // puede ser ""
@@ -889,6 +901,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       } else {
         await repo.updateQuestion(
           widget.question!.id,
+          requireCompleteAcademic: false,
           patch: {
             ...content.toFields(),
             'number': number,
@@ -958,10 +971,21 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       if (explanation.hasContent) {
         await repo.saveExplanation(resolvedQuestionId, explanation);
       }
+      if (publish || validateAfterSave) {
+        final validation = await publicRepo.validateDraft(resolvedQuestionId);
+        if (!mounted) return;
+        setState(() => publicationIssues = validation.issues);
+        if (!validation.isPublishable) return;
+        if (validateAfterSave) return;
+      }
       if (publish) await publicRepo.publishDraft(resolvedQuestionId);
 
       if (!mounted) return;
       Navigator.pop(context);
+    } on QuestionPublicationException catch (error) {
+      if (mounted) {
+        setState(() => publicationIssues = error.validation.issues);
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

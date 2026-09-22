@@ -19,6 +19,10 @@ class AcademicContextValidator {
   }) async {
     final values = [courseId, topicId, subtopicId];
     if (!requireComplete && values.every((value) => value.isEmpty)) return;
+    // A draft can be classified progressively. Once it has the complete
+    // hierarchy, validate any selected parts; publication always requires the
+    // full context below.
+    if (!requireComplete && values.any((value) => value.isEmpty)) return;
     if (values.any((value) => value.isEmpty)) {
       throw StateError('Selecciona curso, tema y subtema compatibles.');
     }

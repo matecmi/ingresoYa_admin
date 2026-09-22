@@ -57,9 +57,13 @@ El cliente no puede escribir ni leer estos dos árboles.
 ## Ciclo de vida de una pregunta
 
 1. Se guarda un `draft` v2 con su clave privada de la misma versión.
-2. Al publicar, una transacción valida enunciado, clasificación, dos o más
-   alternativas con contenido y correspondencia exacta con la clave. Copia la
-   revisión una sola vez a `versions/{version}` y marca la raíz `published`.
+2. Al publicar, una transacción valida el contrato v2 completo: enunciado,
+   dificultad definida, clasificación y partes activas, procedencia coherente,
+   examen de origen activo cuando corresponde, dos o más alternativas no
+   duplicadas, una única clave privada y explicación con contenido. También
+   verifica que cada fórmula LaTex pueda ser interpretada y que cada imagen
+   tenga una ruta Storage relativa o URL HTTP(S) válida. Copia la revisión una
+   sola vez a `versions/{version}` y marca la raíz `published`.
 3. Editar una publicada ejecuta **crear borrador de revisión**: duplica en la
    raíz la revisión y clave como `version + 1`, `status: draft`; no cambia la
    snapshot previa ni su clave. Mientras ese borrador no se publique deja de
@@ -113,6 +117,22 @@ UUID, contenido visual y marca editorial privada. No borra documentos legacy
 huérfanos ni ejecuta una migración masiva automática. La explicación legacy
 también se conserva como copia editorial; la fuente de verdad para la
 calificación v2 es exclusivamente `questionAnswerKeys`.
+
+## Validación, publicación y retiro
+
+El botón **Validar borrador** guarda el estado parcial permitido y muestra una
+lista de errores concreta en el formulario: campos faltantes, alternativa o
+explicación vacía, clave inválida, fórmulas no interpretables, referencias de
+catálogo inexistentes/inactivas e imágenes sin fuente válida. **Publicar**
+ejecuta esa prevalidación y repite las verificaciones críticas dentro de la
+transacción; un cambio concurrente no puede introducir una pregunta inválida.
+
+Una pregunta `draft` no es seleccionable, `published` es la única proyección
+que puede entrar a exámenes nuevos y `retired` deja de ser seleccionable sin
+borrar su snapshot. Desde el listado, el botón de archivo retira una pregunta
+publicada; no borra versiones ni intentos. Editar una publicada crea la
+siguiente revisión `draft`, de modo que los intentos existentes continúan
+referenciando su versión congelada.
 
 ## Seguridad y compatibilidad
 
