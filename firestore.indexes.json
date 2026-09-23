@@ -1,0 +1,31 @@
+{
+  "indexes": [
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"sourceExamId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"modalityId","order":"ASCENDING"},{"fieldPath":"sourceType","order":"ASCENDING"},{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"partIds","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"partSearchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"searchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-test","queryScope":"COLLECTION","fields":[{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"sourceExamId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"modalityId","order":"ASCENDING"},{"fieldPath":"sourceType","order":"ASCENDING"},{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"partIds","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"partSearchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"searchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions-staging","queryScope":"COLLECTION","fields":[{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"sourceExamId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"universityId","order":"ASCENDING"},{"fieldPath":"modalityId","order":"ASCENDING"},{"fieldPath":"sourceType","order":"ASCENDING"},{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"courseId","order":"ASCENDING"},{"fieldPath":"topicId","order":"ASCENDING"},{"fieldPath":"subtopicId","order":"ASCENDING"},{"fieldPath":"partIds","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"partSearchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"searchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
+    {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]}
+  ],
+  "fieldOverrides": []
+}

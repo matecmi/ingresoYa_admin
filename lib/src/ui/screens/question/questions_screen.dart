@@ -1,11 +1,16 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
+import 'package:ingresoya_admin/src/domain/question_bank_filter.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'widgets/question_form_sheet.dart';
 import 'widgets/question_details_sheet.dart';
+import 'widgets/question_bank_filter_sheet.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   const QuestionsScreen({super.key});
@@ -16,18 +21,82 @@ class QuestionsScreen extends ConsumerStatefulWidget {
 
 class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
   final _search = TextEditingController();
-  String _q = '';
+  Timer? _searchDebounce;
+  QuestionBankFilter _filter = const QuestionBankFilter();
+  List<QuestionEntity> _items = const [];
+  DocumentSnapshot<Map<String, dynamic>>? _cursor;
+  bool _loading = false;
+  bool _hasMore = false;
+  String? _loadError;
+  int _request = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(reset: true);
+  }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _search.dispose();
     super.dispose();
   }
 
+  Future<void> _load({required bool reset}) async {
+    if (_loading && !reset) return;
+    final request = ++_request;
+    setState(() {
+      _loading = true;
+      _loadError = null;
+      if (reset) {
+        _items = const [];
+        _cursor = null;
+        _hasMore = false;
+      }
+    });
+    try {
+      final page = await ref
+          .read(questionRepoProvider)
+          .fetchQuestionPage(_filter, after: reset ? null : _cursor);
+      if (!mounted || request != _request) return;
+      setState(() {
+        _items = reset ? page.items : [..._items, ...page.items];
+        _cursor = page.nextCursor;
+        _hasMore = page.hasMore;
+      });
+    } catch (_) {
+      if (!mounted || request != _request) return;
+      setState(() => _loadError = 'No se pudo cargar esta página del banco.');
+    } finally {
+      if (mounted && request == _request) setState(() => _loading = false);
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _filter = _filter.copyWith(text: value);
+      _load(reset: true);
+    });
+  }
+
+  Future<void> _openFilters(BuildContext context) async {
+    final next = await showModalBottomSheet<QuestionBankFilter>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      builder: (_) => QuestionBankFilterSheet(initial: _filter),
+    );
+    if (next == null || !mounted) return;
+    setState(() => _filter = next);
+    _load(reset: true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final repo = ref.watch(questionRepoProvider);
-
     return Container(
       color: AppTheme.bg,
       child: Column(
@@ -49,6 +118,12 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   ),
                 ),
                 _GlassBtn(
+                  icon: Icons.filter_alt_rounded,
+                  label: 'Filtros',
+                  onTap: () => _openFilters(context),
+                ),
+                const SizedBox(width: 8),
+                _GlassBtn(
                   icon: Icons.add_rounded,
                   label: 'Crear',
                   onTap: () => _openQuestionForm(context),
@@ -61,80 +136,84 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: _SearchBar(
               controller: _search,
-              onChanged: (v) => setState(() => _q = v),
+              onChanged: _onSearchChanged,
               onClear: () {
                 _search.clear();
-                setState(() => _q = '');
+                _onSearchChanged('');
               },
             ),
           ),
 
-          Expanded(
-            child: StreamBuilder<List<QuestionEntity>>(
-              stream: repo.watchQuestions(),
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final all = snap.data ?? const [];
-
-                final filtered = _q.trim().isEmpty
-                    ? all
-                    : all.where((x) {
-                        final q = _q.toLowerCase();
-                        return x.courseName.toLowerCase().contains(q) ||
-                            x.topicName.toLowerCase().contains(q) ||
-                            x.statementText.toLowerCase().contains(q) ||
-                            (x.label ?? '').toLowerCase().contains(q) ||
-                            x.number.toString().contains(q);
-                      }).toList();
-
-                if (filtered.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Container(
-                      decoration: AppTheme.cardDeco(radius: 22),
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'No hay preguntas (o tu búsqueda no encontró resultados).',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(.75),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    final q = filtered[i];
-                    return _QuestionCard(
-                      q: q,
-                      onOpen: () => _openQuestionDetails(context, q),
-                      onEdit: q.editorialStatus == 'retired'
-                          ? () => _showRetiredMessage(context)
-                          : () => _openQuestionForm(context, q: q),
-                      onDelete: q.editorialStatus == 'retired'
-                          ? () => _showRetiredMessage(context)
-                          : q.editorialStatus == 'published'
-                          ? () => _retireQuestion(context, q)
-                          : () => _deleteQuestion(context, q),
-                      isPublished: q.editorialStatus == 'published',
-                      isRetired: q.editorialStatus == 'retired',
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+          Expanded(child: _bankList(context)),
         ],
       ),
+    );
+  }
+
+  Widget _bankList(BuildContext context) {
+    if (_loadError != null && _items.isEmpty) {
+      return Center(
+        child: TextButton(
+          onPressed: () => _load(reset: true),
+          child: Text('$_loadError Reintentar'),
+        ),
+      );
+    }
+    if (_loading && _items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Container(
+          decoration: AppTheme.cardDeco(radius: 22),
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No hay preguntas para estos filtros.',
+            style: TextStyle(
+              color: Colors.white.withOpacity(.75),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      physics: const BouncingScrollPhysics(),
+      itemCount: _items.length + (_hasMore || _loading ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, index) {
+        if (index == _items.length) {
+          return Center(
+            child: _loading
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator(),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: () => _load(reset: false),
+                    icon: const Icon(Icons.expand_more_rounded),
+                    label: const Text('Cargar más'),
+                  ),
+          );
+        }
+        final q = _items[index];
+        return _QuestionCard(
+          q: q,
+          onOpen: () => _openQuestionDetails(context, q),
+          onEdit: q.editorialStatus == 'retired'
+              ? () => _showRetiredMessage(context)
+              : () => _openQuestionForm(context, q: q),
+          onDelete: q.editorialStatus == 'retired'
+              ? () => _showRetiredMessage(context)
+              : q.editorialStatus == 'published'
+              ? () => _retireQuestion(context, q)
+              : () => _deleteQuestion(context, q),
+          isPublished: q.editorialStatus == 'published',
+          isRetired: q.editorialStatus == 'retired',
+        );
+      },
     );
   }
 
@@ -153,6 +232,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Eliminada ✅')));
+    _load(reset: true);
   }
 
   Future<void> _retireQuestion(BuildContext context, QuestionEntity q) async {
@@ -170,6 +250,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pregunta retirada de nuevos exámenes.')),
     );
+    _load(reset: true);
   }
 
   void _showRetiredMessage(BuildContext context) {
@@ -191,6 +272,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
       useSafeArea: true,
       builder: (_) => QuestionFormSheet(question: q),
     );
+    if (mounted) _load(reset: true);
   }
 
   Future<void> _openQuestionDetails(
@@ -289,8 +371,42 @@ class _QuestionCard extends StatelessWidget {
                             tone: q.isActive ? _PillTone.good : _PillTone.bad,
                           ),
                           _Pill(text: _editorialStatus(q.editorialStatus)),
+                          _Pill(text: 'v${q.version}'),
                         ],
                       ),
+                      const SizedBox(height: 7),
+                      Text(
+                        'Procedencia: ${q.sourceLabel.isEmpty ? 'Pendiente' : q.sourceLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .72),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Clasificación: ${_classification(q)} · ${_updatedAt(q.updatedAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .62),
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (q.editorialWarnings.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '⚠ ${q.editorialWarnings.join(' · ')}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFFBBF24),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -318,6 +434,22 @@ class _QuestionCard extends StatelessWidget {
     'retired' => 'Retirada',
     _ => 'Borrador',
   };
+
+  String _classification(QuestionEntity question) {
+    final values = [
+      question.courseName,
+      question.topicName,
+      question.subtopicName,
+      if (question.partIds.isNotEmpty) '${question.partIds.length} parte(s)',
+    ].where((value) => value.trim().isNotEmpty);
+    return values.isEmpty ? 'Pendiente' : values.join(' › ');
+  }
+
+  String _updatedAt(DateTime? value) {
+    if (value == null) return 'Sin fecha de actualización';
+    final date = value.toLocal();
+    return 'Actualizada ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
 }
 
 class _IconMiniBtn extends StatelessWidget {

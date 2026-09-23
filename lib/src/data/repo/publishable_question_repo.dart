@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../shared/question_contract/question_contract.dart';
+import '../../domain/question_bank_filter.dart';
 import '../../domain/question_publication_validation.dart';
 import '../../env/app_env.dart';
 import 'academic_context_validator.dart';
@@ -63,6 +64,13 @@ class PublishableQuestionRepo {
       final savedKey = await transaction.get(key);
       final fields = {
         ..._questionFields(question, randomKey: _randomKey(data)),
+        if (data?['searchTokens'] == null)
+          'searchTokens': _searchTokens(question),
+        if (data?['partSearchTokens'] == null)
+          'partSearchTokens': QuestionBankSearch.partTokens(
+            question.partIds,
+            _searchTokens(question),
+          ),
         if (question.originalNumber == null && data?['originalNumber'] != null)
           'originalNumber': FieldValue.delete(),
         if (!existing.exists) 'createdAt': FieldValue.serverTimestamp(),
@@ -335,6 +343,22 @@ class PublishableQuestionRepo {
     if (value is num && value >= 0 && value < 1) return value.toDouble();
     return Random.secure().nextDouble();
   }
+
+  List<String> _searchTokens(QuestionDocument question) =>
+      QuestionBankSearch.tokens([
+        question.ref.questionId,
+        question.sourceLabel,
+        question.sourceExam?.id ?? '',
+        for (final block in question.content.blocks)
+          switch (block) {
+            TextBlock block => block.text,
+            ParagraphBlock block =>
+              block.spans.map((span) => span.value).join(' '),
+            FormulaBlock block => block.latex,
+            ImageBlock block => '${block.altText} ${block.caption}',
+            LegacyBlock block => block.raw,
+          },
+      ]);
 
   int _versionOf(Map<String, dynamic> data) =>
       (data['version'] as num?)?.toInt() ?? 0;

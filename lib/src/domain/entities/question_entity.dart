@@ -27,6 +27,14 @@ class QuestionEntity {
   final int? originalNumber;
   final String editorialStatus;
   final int version;
+  final String sourceType;
+  final String sourceLabel;
+  final String universityId;
+  final String modalityId;
+  final int? year;
+  final String period;
+  final DateTime? updatedAt;
+  final List<String> editorialWarnings;
 
   final List<AlternativeEntity> alternatives; // en lista lo dejamos vacío
 
@@ -45,6 +53,14 @@ class QuestionEntity {
     this.originalNumber,
     this.editorialStatus = 'draft',
     this.version = 1,
+    this.sourceType = 'unknown',
+    this.sourceLabel = '',
+    this.universityId = '',
+    this.modalityId = '',
+    this.year,
+    this.period = '',
+    this.updatedAt,
+    this.editorialWarnings = const [],
     this.subtopicId = '',
     this.subtopicName = '',
     this.partIds = const [],
