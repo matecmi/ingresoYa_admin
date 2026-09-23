@@ -38,6 +38,14 @@ service cloud.firestore {
       ];
     }
 
+    function isQuestionMigrationRunCollection(collectionName) {
+      return collectionName in [
+        'iya-question-migration-runs-test',
+        'iya-question-migration-runs-staging',
+        'iya-question-migration-runs'
+      ];
+    }
+
     function isTemplateCollection(collectionName) {
       return collectionName in [
         'iya-exam-templates-test',
@@ -114,14 +122,14 @@ service cloud.firestore {
         && request.resource.data.version is int
         && (
           (collectionName == 'iya-question-answer-keys-test'
-            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.version == request.resource.data.version)
           || (collectionName == 'iya-question-answer-keys-staging'
-            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.version == request.resource.data.version)
           || (collectionName == 'iya-question-answer-keys'
-            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
         );
       // Clearing the correct answer is allowed only while the corresponding
       // draft is still current. Published and historical keys stay immutable.
@@ -139,6 +147,14 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.status == 'draft'
             && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.version == resource.data.version)
         );
+    }
+
+    // Dry-run reports contain editorial diagnostics and logical-backup
+    // metadata. They are never visible to learners and can only be changed by
+    // an authenticated admin running the migration process.
+    match /{collectionName}/{runId}/{document=**} {
+      allow read, write: if isQuestionMigrationRunCollection(collectionName)
+        && isAdmin();
     }
 
     match /{collectionName}/{templateId} {
