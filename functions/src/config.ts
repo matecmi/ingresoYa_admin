@@ -6,6 +6,7 @@ export interface BackendCollections {
   templates: string;
   attempts: string;
   users: string;
+  courses: string;
 }
 
 export interface BackendConfig {
@@ -20,21 +21,24 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     answerKeys: "iya-question-answer-keys-test",
     templates: "iya-exam-templates-test",
     attempts: "iya-exam-attempts-test",
-    users: "iya-profile-test"
+    users: "iya-profile-test",
+    courses: "iya-courses-test"
   },
   staging: {
     questions: "iya-questions-staging",
     answerKeys: "iya-question-answer-keys-staging",
     templates: "iya-exam-templates-staging",
     attempts: "iya-exam-attempts-staging",
-    users: "iya-profile-staging"
+    users: "iya-profile-staging",
+    courses: "iya-courses-staging"
   },
   production: {
     questions: "iya-questions",
     answerKeys: "iya-question-answer-keys",
     templates: "iya-exam-templates",
     attempts: "iya-exam-attempts",
-    users: "iya-profile"
+    users: "iya-profile",
+    courses: "iya-courses"
   }
 };
 

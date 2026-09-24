@@ -2,8 +2,9 @@ import { invalidArgument } from "./errors";
 
 export interface CreateExamAttemptInput {
   requestId: string;
+  purpose: "part_completion";
   templateId: string;
-  partId?: string;
+  partId: string;
 }
 
 export interface GetExamAttemptInput {
@@ -41,12 +42,15 @@ function id(value: unknown, name: string): string {
 
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
-  onlyKeys(value, ["requestId", "templateId", "partId"]);
-  const partId = value.partId === undefined ? undefined : id(value.partId, "partId");
+  onlyKeys(value, ["requestId", "purpose", "templateId", "partId"]);
+  if (value.purpose !== "part_completion") {
+    throw invalidArgument("purpose must be part_completion.");
+  }
   return {
     requestId: id(value.requestId, "requestId"),
+    purpose: "part_completion",
     templateId: id(value.templateId, "templateId"),
-    ...(partId === undefined ? {} : { partId })
+    partId: id(value.partId, "partId")
   };
 }
 

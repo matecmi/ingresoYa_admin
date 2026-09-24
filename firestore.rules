@@ -187,7 +187,8 @@ service cloud.firestore {
       allow read, create, update, delete:
         if isProfileCollection(profiles) && isOwner(userId)
           && subcollection != 'examRequestKeys'
-          && subcollection != 'recentQuestions';
+          && subcollection != 'recentQuestions'
+          && subcollection != 'learningProgress';
     }
 
     // These records are server-owned: request IDs provide idempotency and
@@ -197,6 +198,12 @@ service cloud.firestore {
     }
 
     match /{profiles}/{userId}/recentQuestions/{questionId} {
+      allow read, write: if false;
+    }
+
+    // Learning unlocks are server-owned. The exam generator validates the
+    // allowed part context against this progress and the course hierarchy.
+    match /{profiles}/{userId}/learningProgress/{document=**} {
       allow read, write: if false;
     }
   }
