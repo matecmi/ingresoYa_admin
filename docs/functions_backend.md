@@ -45,9 +45,7 @@ la entrega reciben `attemptId` y el mapa `questionId -> alternativeId`. Se
 rechazan campos extra como `userId`, puntaje, duración, lista de preguntas o
 versión.
 
-`createExamAttempt`, `getExamAttempt` y `saveExamAnswers` están disponibles;
-la calificación de `submitExamAttempt` se completa en la tarea posterior y por
-ahora continúa devolviendo `failed-precondition`. Las escrituras usan
+Las cuatro callables están disponibles. Las escrituras usan
 `serverTimestamp()` de Admin SDK, nunca el reloj enviado por el cliente.
 
 Los errores se traducen a códigos callable tipados y los logs registran sólo
@@ -114,3 +112,28 @@ idempotentes y no escriben; un cambio se guarda en una transacción y se limita
 a un parche por intento cada segundo. El límite devuelve `resource-exhausted`
 con `retryAfterMs`. No se escribe ningún campo de resultado y los intentos
 `submitted` o `expired` no se pueden modificar.
+
+## Entrega y calificación
+
+`submitExamAttempt` verifica autenticación, propietario, estado y cada ID de
+pregunta y alternativa recibido. Combina el mapa final con los borradores ya
+guardados; una ausencia queda sin responder y cuenta como incorrecta. No
+acepta puntaje, porcentaje, regla de aprobación, duración, versiones ni claves
+proporcionadas por el cliente.
+
+Para cada referencia congelada `{questionId, version}`, la Function lee
+`questionAnswerKeys/{questionId}_{version}` con Admin SDK y comprueba que la
+clave corresponda exactamente a la versión y a una alternativa de la
+instantánea. Calcula aciertos y porcentaje sin redondeos para decidir: la
+regla es `correct * 100 > total * passPercentExclusive`. Por eso, para diez
+preguntas y umbral exclusivo de 80, `requiredCorrectAnswers` es 9: 8/10 falla
+y 9/10 aprueba.
+
+La transición y la escritura del resultado suceden en una sola transacción. El
+documento del intento conserva sólo conteos, regla congelada y marca de tiempo;
+no guarda claves ni explicaciones. Un reintento, incluso simultáneo, no vuelve
+a calificar ni cambia el resultado: devuelve la misma revisión derivada de las
+claves privadas e inmutables. La respuesta callable al dueño incluye la
+revisión por pregunta, alternativa seleccionada, alternativa correcta y
+explicación solamente después de entregar; `getExamAttempt` sigue sin exponer
+esa información antes de la entrega.

@@ -4,7 +4,13 @@ import test from "node:test";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { requireUid } from "../src/handlers";
-import { projectAttemptResponse, validateAnswerPatch } from "../src/attempt_service";
+import {
+  gradeFrozenAttempt,
+  projectAttemptResponse,
+  validateAnswerPatch,
+  type AttemptQuestionSnapshot,
+  type FrozenAnswerKey
+} from "../src/attempt_service";
 import type { CandidateQuestion } from "../src/exam_contracts";
 import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
 import {
@@ -155,6 +161,33 @@ test("answer patches must target an alternative in the frozen attempt", () => {
   assert.throws(() => validateAnswerPatch(questions, { "question-1": "alternative-z" }), isInvalidArgument);
 });
 
+test("an exclusive 80 percent requirement needs 9 out of 10 correct answers", () => {
+  const questions = frozenQuestions(10);
+  const keys = frozenKeys(questions);
+  const eightCorrect = Object.fromEntries(
+    questions.map((question, index) => [question.questionId, index < 8 ? "a" : "b"])
+  );
+  const nineCorrect = { ...eightCorrect, "question-9": "a" };
+
+  const failed = gradeFrozenAttempt(questions, eightCorrect, keys, 80);
+  assert.equal(Math.floor((questions.length * 80) / 100) + 1, 9);
+  assert.equal(failed.correctAnswers, 8);
+  assert.equal(failed.percentage, 80);
+  assert.equal(failed.passed, false);
+
+  const passed = gradeFrozenAttempt(questions, nineCorrect, keys, 80);
+  assert.equal(passed.correctAnswers, 9);
+  assert.equal(passed.percentage, 90);
+  assert.equal(passed.passed, true);
+});
+
+test("grading rejects a key that does not belong to the frozen question version", () => {
+  const questions = frozenQuestions(1);
+  const keys = frozenKeys(questions);
+  keys[0] = { ...keys[0]!, correctAlternativeId: "unknown" };
+  assert.throws(() => gradeFrozenAttempt(questions, { "question-1": "a" }, keys, 80));
+});
+
 test("callables reject anonymous callers with a typed error", () => {
   assert.throws(
     () => requireUid({} as Parameters<typeof requireUid>[0]),
@@ -243,4 +276,28 @@ function tomorrow(): Date {
 
 function yesterday(): Date {
   return new Date(Date.now() - 24 * 60 * 60 * 1000);
+}
+
+function frozenQuestions(count: number): AttemptQuestionSnapshot[] {
+  return Array.from({ length: count }, (_, index) => ({
+    questionId: `question-${index + 1}`,
+    version: 1,
+    order: index,
+    content: [],
+    alternatives: [
+      { id: "a", label: "A", content: [] },
+      { id: "b", label: "B", content: [] }
+    ],
+    sourceLabel: "Origen",
+    alternativeOrder: ["a", "b"]
+  }));
+}
+
+function frozenKeys(questions: readonly AttemptQuestionSnapshot[]): FrozenAnswerKey[] {
+  return questions.map((question) => ({
+    questionId: question.questionId,
+    version: question.version,
+    correctAlternativeId: "a",
+    explanation: [{ id: `explanation-${question.questionId}`, type: "text", text: "Explicación" }]
+  }));
 }

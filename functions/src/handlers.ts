@@ -5,9 +5,10 @@ import { db } from "./admin";
 import {
   ExamAttemptService,
   type CreateExamAttemptResponse,
-  type ExamAttemptResponse
+  type ExamAttemptResponse,
+  type SubmittedAttemptResponse
 } from "./attempt_service";
-import { asHttpsError, unauthenticated, workflowNotReady } from "./errors";
+import { asHttpsError, unauthenticated } from "./errors";
 import { safeError, safeLog } from "./logging";
 import {
   parseCreateExamAttempt,
@@ -63,13 +64,14 @@ export function createCallableHandlers(config: BackendConfig) {
         throw asHttpsError(error);
       }
     },
-    async submitExamAttempt(request: CallableRequest<unknown>): Promise<never> {
+    async submitExamAttempt(
+      request: CallableRequest<unknown>
+    ): Promise<SubmittedAttemptResponse> {
       try {
         const uid = requireUid(request);
-        parseSubmitExamAttempt(request.data);
+        const input = parseSubmitExamAttempt(request.data);
         safeLog("exam_attempt_submit_requested", uid);
-        void config;
-        throw workflowNotReady();
+        return attempts.submit(uid, input);
       } catch (error) {
         safeError("exam_attempt_submit_rejected", error);
         throw asHttpsError(error);

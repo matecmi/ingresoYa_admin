@@ -1,4 +1,4 @@
-import type { Firestore, Timestamp } from "firebase-admin/firestore";
+import type { Firestore, Timestamp, Transaction } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
@@ -18,7 +18,11 @@ import {
   shuffle,
   type SelectedQuestion
 } from "./selection";
-import type { CreateExamAttemptInput, SaveExamAnswersInput } from "./validation";
+import type {
+  CreateExamAttemptInput,
+  SaveExamAnswersInput,
+  SubmitExamAttemptInput
+} from "./validation";
 
 const candidateStartsPerBlock = 4;
 const maxCandidatesPerStart = 80;
@@ -52,6 +56,42 @@ export interface AttemptQuestionSnapshot {
   alternatives: { id: string; label: string; content: unknown[] }[];
   sourceLabel: string;
   alternativeOrder: string[];
+}
+
+interface StoredExamResult {
+  total: number;
+  correct: number;
+  passPercentExclusive: number;
+  gradedAtMs: number;
+}
+
+export interface FrozenAnswerKey {
+  questionId: string;
+  version: number;
+  correctAlternativeId: string;
+  explanation: unknown[];
+}
+
+export interface SubmittedAttemptResponse {
+  attemptId: string;
+  status: "submitted";
+  title: string;
+  questionCount: number;
+  correctAnswers: number;
+  percentage: number;
+  requiredCorrectAnswers: number;
+  passed: boolean;
+  review: AttemptReview[];
+}
+
+export interface AttemptReview {
+  questionId: string;
+  version: number;
+  order: number;
+  selectedAlternativeId: string | null;
+  correctAlternativeId: string;
+  isCorrect: boolean;
+  explanation: unknown[];
 }
 
 export class ExamAttemptService {
@@ -199,6 +239,80 @@ export class ExamAttemptService {
     });
   }
 
+  /**
+   * Finalizes exactly once. The answer key is looked up by the question
+   * revision frozen in the attempt, never by the mutable public question.
+   */
+  public async submit(
+    uid: string,
+    input: SubmitExamAttemptInput
+  ): Promise<SubmittedAttemptResponse> {
+    const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
+    return this.db.runTransaction(async (transaction) => {
+      const attempt = await transaction.get(attemptRef);
+      const current = this.readAttempt(uid, input.attemptId, attempt.exists ? attempt.data() : undefined);
+      validateAnswerPatch(current.questions, input.answers);
+      const answerKeys = await this.answerKeys(transaction, current.questions);
+
+      if (current.status === "submitted") {
+        const result = parseStoredResult(attempt.data()?.result, input.attemptId, current.questions.length);
+        return submittedResponse(current, result, answerKeys);
+      }
+      if (current.status !== "in_progress") {
+        throw failedPrecondition("The exam attempt is not open.", {
+          reason: "attempt_not_open",
+          status: current.status
+        });
+      }
+
+      const answers = { ...current.answers, ...input.answers };
+      const passPercentExclusive = numberProperty(
+        attempt.data()?.templateSnapshot,
+        "passPercentExclusive"
+      );
+      if (passPercentExclusive === undefined) {
+        throw failedPrecondition("The stored exam attempt is invalid.");
+      }
+      const grading = gradeFrozenAttempt(
+        current.questions,
+        answers,
+        answerKeys,
+        passPercentExclusive
+      );
+      const expectedRequired = Math.floor(
+        (current.questions.length * passPercentExclusive) / 100
+      ) + 1;
+      if (current.requiredCorrectAnswers !== expectedRequired) {
+        throw failedPrecondition("The stored exam attempt is invalid.");
+      }
+      const result: StoredExamResult = {
+        total: current.questions.length,
+        correct: grading.correctAnswers,
+        passPercentExclusive,
+        gradedAtMs: Date.now()
+      };
+      transaction.update(attemptRef, {
+        answers,
+        status: "submitted",
+        submittedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        result: {
+          schemaVersion: 2,
+          attemptId: input.attemptId,
+          total: result.total,
+          correct: result.correct,
+          passPercentExclusive: result.passPercentExclusive,
+          gradedAtMs: result.gradedAtMs
+        }
+      });
+      return submittedResponse(
+        { ...current, status: "submitted", answers },
+        result,
+        answerKeys
+      );
+    });
+  }
+
   private async responseForExisting(
     uid: string,
     request: Record<string, unknown> | undefined
@@ -245,6 +359,28 @@ export class ExamAttemptService {
   ): ExamAttemptResponse {
     if (data?.userId !== uid) throw notFound("Exam attempt not found.");
     return projectAttemptResponse(attemptId, data);
+  }
+
+  private async answerKeys(
+    transaction: Transaction,
+    questions: readonly AttemptQuestionSnapshot[]
+  ): Promise<FrozenAnswerKey[]> {
+    const snapshots = await Promise.all(
+      questions.map((question) =>
+        transaction.get(
+          this.db
+            .collection(this.config.collections.answerKeys)
+            .doc(`${question.questionId}_${question.version}`)
+        )
+      )
+    );
+    return snapshots.map((snapshot, index) => {
+      const question = questions[index];
+      if (question === undefined || !snapshot.exists) {
+        throw failedPrecondition("A frozen answer key is unavailable.");
+      }
+      return parseFrozenAnswerKey(snapshot.data(), question);
+    });
   }
 
   private async profileUniversity(uid: string): Promise<string> {
@@ -438,6 +574,146 @@ export function projectAttemptResponse(
   };
 }
 
+/**
+ * Calculates from immutable question/answer-key revisions. Missing answers are
+ * deliberately incorrect, matching the shared v2 contract.
+ */
+export function gradeFrozenAttempt(
+  questions: readonly AttemptQuestionSnapshot[],
+  answers: Readonly<Record<string, string>>,
+  answerKeys: readonly FrozenAnswerKey[],
+  passPercentExclusive: number
+): { correctAnswers: number; percentage: number; passed: boolean; review: AttemptReview[] } {
+  if (
+    !Number.isInteger(passPercentExclusive) ||
+    passPercentExclusive < 0 ||
+    passPercentExclusive >= 100 ||
+    questions.length === 0 ||
+    answerKeys.length !== questions.length
+  ) {
+    throw failedPrecondition("The stored exam attempt is invalid.");
+  }
+  const keys = new Map(answerKeys.map((key) => [`${key.questionId}_${key.version}`, key]));
+  if (keys.size !== questions.length) throw failedPrecondition("The frozen answer keys are invalid.");
+
+  let correctAnswers = 0;
+  const review = questions.map((question) => {
+    const key = keys.get(`${question.questionId}_${question.version}`);
+    if (key === undefined || !question.alternativeOrder.includes(key.correctAlternativeId)) {
+      throw failedPrecondition("The frozen answer keys are invalid.");
+    }
+    const selectedAlternativeId = answers[question.questionId] ?? null;
+    const isCorrect = selectedAlternativeId === key.correctAlternativeId;
+    if (isCorrect) correctAnswers += 1;
+    return {
+      questionId: question.questionId,
+      version: question.version,
+      order: question.order,
+      selectedAlternativeId,
+      correctAlternativeId: key.correctAlternativeId,
+      isCorrect,
+      explanation: [...key.explanation]
+    };
+  });
+  return {
+    correctAnswers,
+    percentage: (correctAnswers * 100) / questions.length,
+    passed: correctAnswers * 100 > questions.length * passPercentExclusive,
+    review
+  };
+}
+
+function submittedResponse(
+  attempt: ExamAttemptResponse,
+  result: StoredExamResult,
+  answerKeys: readonly FrozenAnswerKey[]
+): SubmittedAttemptResponse {
+  if (result.total !== attempt.questions.length) {
+    throw failedPrecondition("The stored exam result is invalid.");
+  }
+  const expectedRequired = Math.floor(
+    (attempt.questions.length * result.passPercentExclusive) / 100
+  ) + 1;
+  if (attempt.requiredCorrectAnswers !== expectedRequired) {
+    throw failedPrecondition("The stored exam result is invalid.");
+  }
+  const grading = gradeFrozenAttempt(
+    attempt.questions,
+    attempt.answers,
+    answerKeys,
+    result.passPercentExclusive
+  );
+  if (grading.correctAnswers !== result.correct) {
+    throw failedPrecondition("The stored exam result is invalid.");
+  }
+  return {
+    attemptId: attempt.attemptId,
+    status: "submitted",
+    title: attempt.title,
+    questionCount: attempt.questions.length,
+    correctAnswers: result.correct,
+    percentage: grading.percentage,
+    requiredCorrectAnswers: attempt.requiredCorrectAnswers,
+    passed: grading.passed,
+    review: grading.review
+  };
+}
+
+function parseFrozenAnswerKey(
+  data: Record<string, unknown> | undefined,
+  question: AttemptQuestionSnapshot
+): FrozenAnswerKey {
+  const questionId = stringValue(data?.questionId);
+  const version = numberField(data?.version);
+  const correctAlternativeId = stringValue(data?.correctAlternativeId);
+  const explanation = arrayValue(data?.explanation);
+  if (
+    data?.schemaVersion !== 2 ||
+    questionId !== question.questionId ||
+    version !== question.version ||
+    correctAlternativeId === undefined ||
+    explanation === undefined ||
+    !question.alternativeOrder.includes(correctAlternativeId)
+  ) {
+    throw failedPrecondition("The frozen answer key is invalid.");
+  }
+  return { questionId, version, correctAlternativeId, explanation: [...explanation] };
+}
+
+function parseStoredResult(
+  value: unknown,
+  attemptId: string,
+  expectedTotal: number
+): StoredExamResult {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw failedPrecondition("The stored exam result is invalid.");
+  }
+  const data = value as Record<string, unknown>;
+  const total = numberField(data.total);
+  const correct = numberField(data.correct);
+  const passPercentExclusive = numberField(data.passPercentExclusive);
+  const gradedAtMs = numberField(data.gradedAtMs);
+  if (
+    data.schemaVersion !== 2 ||
+    data.attemptId !== attemptId ||
+    total !== expectedTotal ||
+    correct === undefined ||
+    !Number.isInteger(correct) ||
+    correct < 0 ||
+    correct > total ||
+    passPercentExclusive === undefined ||
+    !Number.isInteger(passPercentExclusive) ||
+    passPercentExclusive < 0 ||
+    passPercentExclusive >= 100 ||
+    gradedAtMs === undefined ||
+    !Number.isInteger(gradedAtMs) ||
+    gradedAtMs < 1
+  ) {
+    throw failedPrecondition("The stored exam result is invalid.");
+  }
+  return { total, correct, passPercentExclusive, gradedAtMs };
+}
+
 function parsePartContext(raw: Record<string, unknown>): PartContext | undefined {
   const partId = typeof raw.partId === "string" ? raw.partId : undefined;
   const courseId = typeof raw.courseId === "string" ? raw.courseId : undefined;
@@ -595,6 +871,11 @@ function arrayValue(value: unknown): unknown[] | undefined {
 
 function numberField(data: unknown): number | undefined {
   return typeof data === "number" ? data : undefined;
+}
+
+function numberProperty(data: unknown, field: string): number | undefined {
+  if (data === null || typeof data !== "object") return undefined;
+  return numberField((data as Record<string, unknown>)[field]);
 }
 
 function stringField(data: unknown, field: string): string | undefined {
