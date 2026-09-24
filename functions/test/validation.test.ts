@@ -4,10 +4,12 @@ import test from "node:test";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { requireUid } from "../src/handlers";
+import { projectAttemptResponse, validateAnswerPatch } from "../src/attempt_service";
 import type { CandidateQuestion } from "../src/exam_contracts";
 import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
 import {
   parseCreateExamAttempt,
+  parseSaveExamAnswers,
   parseSubmitExamAttempt
 } from "../src/validation";
 
@@ -111,6 +113,48 @@ test("submit accepts IDs only and bounds answer payloads", () => {
   );
 });
 
+test("incremental answer saves accept a small ID-only patch", () => {
+  assert.deepEqual(
+    parseSaveExamAnswers({
+      attemptId: "attempt-1",
+      answers: { "question-1": "alternative-a" }
+    }),
+    { attemptId: "attempt-1", answers: { "question-1": "alternative-a" } }
+  );
+  assert.throws(
+    () =>
+      parseSaveExamAnswers({
+        attemptId: "attempt-1",
+        answers: Object.fromEntries(Array.from({ length: 51 }, (_, index) => [`question-${index}`, "a"]))
+      }),
+    isInvalidArgument
+  );
+});
+
+test("recovery projects a frozen public snapshot and saved answers without keys", () => {
+  const response = projectAttemptResponse("attempt-1", attemptRecord("in_progress", tomorrow()));
+  assert.equal(response.status, "in_progress");
+  assert.deepEqual(response.answers, { "question-1": "alternative-a" });
+  assert.equal(response.questions[0]?.questionId, "question-1");
+  assert.equal(response.questions[0]?.alternatives[0]?.id, "alternative-a");
+  const serialized = JSON.stringify(response);
+  assert.equal(serialized.includes("correctAlternativeId"), false);
+  assert.equal(serialized.includes("explanation"), false);
+  assert.equal(serialized.includes("isCorrect"), false);
+});
+
+test("recovery distinguishes expired and submitted attempts", () => {
+  assert.equal(projectAttemptResponse("expired", attemptRecord("in_progress", yesterday())).status, "expired");
+  assert.equal(projectAttemptResponse("submitted", attemptRecord("submitted", yesterday())).status, "submitted");
+});
+
+test("answer patches must target an alternative in the frozen attempt", () => {
+  const questions = projectAttemptResponse("attempt-1", attemptRecord("in_progress", tomorrow())).questions;
+  assert.doesNotThrow(() => validateAnswerPatch(questions, { "question-1": "alternative-a" }));
+  assert.throws(() => validateAnswerPatch(questions, { "question-2": "alternative-a" }), isInvalidArgument);
+  assert.throws(() => validateAnswerPatch(questions, { "question-1": "alternative-z" }), isInvalidArgument);
+});
+
 test("callables reject anonymous callers with a typed error", () => {
   assert.throws(
     () => requireUid({} as Parameters<typeof requireUid>[0]),
@@ -153,4 +197,50 @@ function candidate(
       { id: "b", label: "B", content: [] }
     ]
   };
+}
+
+function attemptRecord(status: string, expiresAt: Date): Record<string, unknown> {
+  return {
+    userId: "user-1",
+    status,
+    expiresAt,
+    requiredCorrectAnswers: 1,
+    templateSnapshot: { title: "Práctica", hiddenPolicy: "private" },
+    answers: { "question-1": "alternative-a", unknown: "alternative-a" },
+    result: { score: 1 },
+    questionSnapshots: [
+      {
+        questionId: "question-1",
+        version: 1,
+        order: 0,
+        content: [{ type: "paragraph", text: "Enunciado" }],
+        sourceLabel: "Origen",
+        correctAlternativeId: "alternative-a",
+        explanation: "Privada",
+        alternatives: [
+          {
+            id: "alternative-a",
+            label: "A",
+            content: [{ type: "paragraph", text: "Una" }],
+            isCorrect: true
+          },
+          {
+            id: "alternative-b",
+            label: "B",
+            content: [{ type: "paragraph", text: "Dos" }],
+            isCorrect: false
+          }
+        ],
+        alternativeOrder: ["alternative-b", "alternative-a"]
+      }
+    ]
+  };
+}
+
+function tomorrow(): Date {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000);
+}
+
+function yesterday(): Date {
+  return new Date(Date.now() - 24 * 60 * 60 * 1000);
 }

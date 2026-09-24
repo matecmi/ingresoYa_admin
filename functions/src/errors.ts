@@ -41,6 +41,11 @@ export const failedPrecondition = (
 export const notFound = (message: string): ExamBackendError =>
   new ExamBackendError("not-found", message);
 
+export const resourceExhausted = (
+  message: string,
+  details?: Record<string, unknown>
+): ExamBackendError => new ExamBackendError("resource-exhausted", message, details);
+
 export function asHttpsError(error: unknown): HttpsError {
   if (error instanceof HttpsError) return error;
   if (error instanceof ExamBackendError) {

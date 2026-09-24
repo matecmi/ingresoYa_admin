@@ -17,7 +17,5 @@ setGlobalOptions({
 
 export const createExamAttempt = onCall(handlers.createExamAttempt);
 export const getExamAttempt = onCall(handlers.getExamAttempt);
-
-// Answers are deliberately persisted only at submit time. Incremental writes
-// would add an attack surface without being required by the current contract.
+export const saveExamAnswers = onCall(handlers.saveExamAnswers);
 export const submitExamAttempt = onCall(handlers.submitExamAttempt);

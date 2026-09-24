@@ -9,7 +9,7 @@ import {
   parseCandidateQuestion,
   parseTemplate
 } from "./exam_contracts";
-import { failedPrecondition, notFound } from "./errors";
+import { failedPrecondition, invalidArgument, notFound, resourceExhausted } from "./errors";
 import {
   bindPartCompletionBlocks,
   chooseQuestions,
@@ -18,21 +18,30 @@ import {
   shuffle,
   type SelectedQuestion
 } from "./selection";
-import type { CreateExamAttemptInput } from "./validation";
+import type { CreateExamAttemptInput, SaveExamAnswersInput } from "./validation";
 
 const candidateStartsPerBlock = 4;
 const maxCandidatesPerStart = 80;
 const recentQuestionLimit = 200;
 const defaultAttemptDurationSeconds = 60 * 60;
+/** One changed incremental answer payload per second per attempt. */
+export const answerSaveIntervalMs = 1_000;
 
 export interface CreateExamAttemptResponse {
   attemptId: string;
-  status: "in_progress";
+  status: AttemptStatus;
   title: string;
   questionCount: number;
   requiredCorrectAnswers: number;
   expiresAt: string;
   questions: AttemptQuestionSnapshot[];
+}
+
+export type AttemptStatus = "in_progress" | "submitted" | "expired";
+
+/** Public recovery response. It intentionally has no score, key or explanation. */
+export interface ExamAttemptResponse extends CreateExamAttemptResponse {
+  answers: Record<string, string>;
 }
 
 export interface AttemptQuestionSnapshot {
@@ -141,6 +150,55 @@ export class ExamAttemptService {
     return response;
   }
 
+  /** Returns the immutable server snapshot only to its owner. */
+  public async get(uid: string, attemptId: string): Promise<ExamAttemptResponse> {
+    const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+    return this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
+  }
+
+  /**
+   * Persists a bounded patch of answer IDs. The transaction makes concurrent
+   * retries safe and never writes after an attempt has been submitted/expired.
+   */
+  public async saveAnswers(
+    uid: string,
+    input: SaveExamAnswersInput
+  ): Promise<ExamAttemptResponse> {
+    const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
+    return this.db.runTransaction(async (transaction) => {
+      const attempt = await transaction.get(attemptRef);
+      const current = this.readAttempt(uid, input.attemptId, attempt.exists ? attempt.data() : undefined);
+      if (current.status !== "in_progress") {
+        throw failedPrecondition("The exam attempt is not open.", {
+          reason: "attempt_not_open",
+          status: current.status
+        });
+      }
+      validateAnswerPatch(current.questions, input.answers);
+      const answers = { ...current.answers, ...input.answers };
+      const hasChanges = Object.entries(input.answers).some(
+        ([questionId, alternativeId]) => current.answers[questionId] !== alternativeId
+      );
+      if (!hasChanges) return current;
+
+      const lastSaveAtMs = timestampToMs(attempt.data()?.lastAnswerSaveAt);
+      const now = Date.now();
+      if (lastSaveAtMs !== undefined && now - lastSaveAtMs < answerSaveIntervalMs) {
+        throw resourceExhausted("Please wait before saving answers again.", {
+          reason: "answer_save_rate_limit",
+          retryAfterMs: answerSaveIntervalMs - (now - lastSaveAtMs)
+        });
+      }
+      transaction.update(attemptRef, {
+        answers,
+        updatedAt: FieldValue.serverTimestamp(),
+        lastAnswerSaveAt: FieldValue.serverTimestamp(),
+        answerRevision: FieldValue.increment(1)
+      });
+      return { ...current, answers };
+    });
+  }
+
   private async responseForExisting(
     uid: string,
     request: Record<string, unknown> | undefined
@@ -168,27 +226,25 @@ export class ExamAttemptService {
     attemptId: string
   ): Promise<CreateExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
-    const data = attempt.data();
-    if (!attempt.exists || data?.userId !== uid) throw notFound("Exam attempt not found.");
-    if (data.status !== "in_progress" || !Array.isArray(data.questionSnapshots)) {
-      throw failedPrecondition("The stored exam attempt is invalid.");
-    }
-    const expiresAt = timestampToIso(data.expiresAt);
-    const questions = data.questionSnapshots as AttemptQuestionSnapshot[];
-    const requiredCorrectAnswers = numberField(data.requiredCorrectAnswers);
-    const title = stringField(data.templateSnapshot, "title");
-    if (expiresAt === undefined || requiredCorrectAnswers === undefined || title === undefined) {
-      throw failedPrecondition("The stored exam attempt is invalid.");
-    }
+    const response = this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
     return {
-      attemptId,
-      status: "in_progress",
-      title,
-      questionCount: questions.length,
-      requiredCorrectAnswers,
-      expiresAt,
-      questions
+      attemptId: response.attemptId,
+      status: response.status,
+      title: response.title,
+      questionCount: response.questionCount,
+      requiredCorrectAnswers: response.requiredCorrectAnswers,
+      expiresAt: response.expiresAt,
+      questions: response.questions
     };
+  }
+
+  private readAttempt(
+    uid: string,
+    attemptId: string,
+    data: Record<string, unknown> | undefined
+  ): ExamAttemptResponse {
+    if (data?.userId !== uid) throw notFound("Exam attempt not found.");
+    return projectAttemptResponse(attemptId, data);
   }
 
   private async profileUniversity(uid: string): Promise<string> {
@@ -350,6 +406,38 @@ export class ExamAttemptService {
   }
 }
 
+/** Pure projection used by recovery. Do not add private attempt fields here. */
+export function projectAttemptResponse(
+  attemptId: string,
+  data: Record<string, unknown>
+): ExamAttemptResponse {
+  const expiresAtMs = timestampToMs(data.expiresAt);
+  const expiresAt = timestampToIso(data.expiresAt);
+  const questions = sanitizeQuestionSnapshots(data.questionSnapshots);
+  const requiredCorrectAnswers = numberField(data.requiredCorrectAnswers);
+  const title = stringField(data.templateSnapshot, "title");
+  if (
+    expiresAtMs === undefined ||
+    expiresAt === undefined ||
+    questions === undefined ||
+    requiredCorrectAnswers === undefined ||
+    title === undefined
+  ) {
+    throw failedPrecondition("The stored exam attempt is invalid.");
+  }
+  const status = attemptStatus(data.status, expiresAtMs);
+  return {
+    attemptId,
+    status,
+    title,
+    questionCount: questions.length,
+    requiredCorrectAnswers,
+    expiresAt,
+    questions,
+    answers: sanitizeAnswers(data.answers, questions)
+  };
+}
+
 function parsePartContext(raw: Record<string, unknown>): PartContext | undefined {
   const partId = typeof raw.partId === "string" ? raw.partId : undefined;
   const courseId = typeof raw.courseId === "string" ? raw.courseId : undefined;
@@ -371,6 +459,138 @@ function timestampToIso(value: unknown): string | undefined {
     return (value as Timestamp).toDate().toISOString();
   }
   return undefined;
+}
+
+function timestampToMs(value: unknown): number | undefined {
+  if (value instanceof Date) return value.getTime();
+  if (value !== null && typeof value === "object" && "toDate" in value) {
+    return (value as Timestamp).toDate().getTime();
+  }
+  return undefined;
+}
+
+function attemptStatus(value: unknown, expiresAtMs: number): AttemptStatus {
+  if (value === "submitted" || value === "graded") return "submitted";
+  if (value === "in_progress") {
+    return expiresAtMs <= Date.now() ? "expired" : "in_progress";
+  }
+  if (value === "expired" || value === "abandoned") return "expired";
+  throw failedPrecondition("The stored exam attempt is invalid.");
+}
+
+/**
+ * Projects persisted snapshots into the client contract. This defensive copy
+ * keeps a malformed legacy value from accidentally exposing a future private
+ * field (for example a correct alternative ID) through recovery.
+ */
+function sanitizeQuestionSnapshots(value: unknown): AttemptQuestionSnapshot[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const result: AttemptQuestionSnapshot[] = [];
+  for (const raw of value) {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const item = raw as Record<string, unknown>;
+    const questionId = stringValue(item.questionId);
+    const version = numberField(item.version);
+    const order = numberField(item.order);
+    const content = arrayValue(item.content);
+    const sourceLabel = stringValue(item.sourceLabel);
+    const alternatives = sanitizeAlternatives(item.alternatives);
+    if (
+      questionId === undefined ||
+      version === undefined ||
+      order === undefined ||
+      content === undefined ||
+      sourceLabel === undefined ||
+      alternatives === undefined
+    ) {
+      return undefined;
+    }
+    const availableIds = new Set(alternatives.map((alternative) => alternative.id));
+    const alternativeOrder = sanitizeAlternativeOrder(item.alternativeOrder, availableIds);
+    if (alternativeOrder === undefined) return undefined;
+    result.push({
+      questionId,
+      version,
+      order,
+      content,
+      alternatives,
+      sourceLabel,
+      alternativeOrder
+    });
+  }
+  const uniqueIds = new Set(result.map((question) => question.questionId));
+  const uniqueOrders = new Set(result.map((question) => question.order));
+  if (uniqueIds.size !== result.length || uniqueOrders.size !== result.length) return undefined;
+  return result.sort((left, right) => left.order - right.order);
+}
+
+function sanitizeAlternatives(
+  value: unknown
+): { id: string; label: string; content: unknown[] }[] | undefined {
+  if (!Array.isArray(value) || value.length < 2) return undefined;
+  const result: { id: string; label: string; content: unknown[] }[] = [];
+  for (const raw of value) {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const item = raw as Record<string, unknown>;
+    const id = stringValue(item.id);
+    const label = stringValue(item.label);
+    const content = arrayValue(item.content);
+    if (id === undefined || label === undefined || content === undefined) return undefined;
+    result.push({ id, label, content });
+  }
+  return new Set(result.map((alternative) => alternative.id)).size === result.length ? result : undefined;
+}
+
+function sanitizeAlternativeOrder(
+  value: unknown,
+  availableIds: ReadonlySet<string>
+): string[] | undefined {
+  if (!Array.isArray(value) || value.length !== availableIds.size) return undefined;
+  const order = value.every((entry) => typeof entry === "string") ? [...value] as string[] : undefined;
+  if (order === undefined || new Set(order).size !== order.length || !order.every((id) => availableIds.has(id))) {
+    return undefined;
+  }
+  return order;
+}
+
+function sanitizeAnswers(
+  value: unknown,
+  questions: readonly AttemptQuestionSnapshot[]
+): Record<string, string> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return {};
+  const allowed = new Map(
+    questions.map((question) => [question.questionId, new Set(question.alternativeOrder)])
+  );
+  const answers: Record<string, string> = {};
+  for (const [questionId, alternativeId] of Object.entries(value)) {
+    if (typeof alternativeId === "string" && allowed.get(questionId)?.has(alternativeId)) {
+      answers[questionId] = alternativeId;
+    }
+  }
+  return answers;
+}
+
+/** Validates against the frozen snapshot rather than the mutable question bank. */
+export function validateAnswerPatch(
+  questions: readonly AttemptQuestionSnapshot[],
+  answers: Readonly<Record<string, string>>
+): void {
+  const alternativesByQuestion = new Map(
+    questions.map((question) => [question.questionId, new Set(question.alternativeOrder)])
+  );
+  for (const [questionId, alternativeId] of Object.entries(answers)) {
+    if (!alternativesByQuestion.get(questionId)?.has(alternativeId)) {
+      throw invalidArgument("An answer does not belong to this exam attempt.");
+    }
+  }
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function arrayValue(value: unknown): unknown[] | undefined {
+  return Array.isArray(value) ? value : undefined;
 }
 
 function numberField(data: unknown): number | undefined {

@@ -16,7 +16,14 @@ export interface SubmitExamAttemptInput {
   answers: Readonly<Record<string, string>>;
 }
 
+export interface SaveExamAnswersInput {
+  attemptId: string;
+  answers: Readonly<Record<string, string>>;
+}
+
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
+export const maxAnswersPerSave = 50;
+const maxAnswersAtSubmit = 200;
 
 function object(value: unknown, name: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -61,12 +68,26 @@ export function parseGetExamAttempt(data: unknown): GetExamAttemptInput {
 }
 
 export function parseSubmitExamAttempt(data: unknown): SubmitExamAttemptInput {
+  const { attemptId, answers } = parseAnswers(data, maxAnswersAtSubmit);
+  return { attemptId, answers };
+}
+
+/** Incremental saves are deliberately smaller than final submission payloads. */
+export function parseSaveExamAnswers(data: unknown): SaveExamAnswersInput {
+  const { attemptId, answers } = parseAnswers(data, maxAnswersPerSave);
+  return { attemptId, answers };
+}
+
+function parseAnswers(
+  data: unknown,
+  maximum: number
+): { attemptId: string; answers: Record<string, string> } {
   const value = object(data, "data");
   onlyKeys(value, ["attemptId", "answers"]);
   const rawAnswers = object(value.answers, "answers");
   const entries = Object.entries(rawAnswers);
-  if (entries.length > 200) {
-    throw invalidArgument("answers exceeds the maximum supported exam size.");
+  if (entries.length > maximum) {
+    throw invalidArgument(`answers exceeds the maximum of ${maximum} entries.`);
   }
   const answers: Record<string, string> = {};
   for (const [questionId, alternativeId] of entries) {

@@ -2,12 +2,17 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 
 import type { BackendConfig } from "./config";
 import { db } from "./admin";
-import { ExamAttemptService, type CreateExamAttemptResponse } from "./attempt_service";
+import {
+  ExamAttemptService,
+  type CreateExamAttemptResponse,
+  type ExamAttemptResponse
+} from "./attempt_service";
 import { asHttpsError, unauthenticated, workflowNotReady } from "./errors";
 import { safeError, safeLog } from "./logging";
 import {
   parseCreateExamAttempt,
   parseGetExamAttempt,
+  parseSaveExamAnswers,
   parseSubmitExamAttempt
 } from "./validation";
 
@@ -36,15 +41,25 @@ export function createCallableHandlers(config: BackendConfig) {
         throw asHttpsError(error);
       }
     },
-    async getExamAttempt(request: CallableRequest<unknown>): Promise<never> {
+    async getExamAttempt(request: CallableRequest<unknown>): Promise<ExamAttemptResponse> {
       try {
         const uid = requireUid(request);
-        parseGetExamAttempt(request.data);
+        const input = parseGetExamAttempt(request.data);
         safeLog("exam_attempt_get_requested", uid);
-        void config;
-        throw workflowNotReady();
+        return attempts.get(uid, input.attemptId);
       } catch (error) {
         safeError("exam_attempt_get_rejected", error);
+        throw asHttpsError(error);
+      }
+    },
+    async saveExamAnswers(request: CallableRequest<unknown>): Promise<ExamAttemptResponse> {
+      try {
+        const uid = requireUid(request);
+        const input = parseSaveExamAnswers(request.data);
+        safeLog("exam_attempt_answers_save_requested", uid);
+        return attempts.saveAnswers(uid, input);
+      } catch (error) {
+        safeError("exam_attempt_answers_save_rejected", error);
         throw asHttpsError(error);
       }
     },

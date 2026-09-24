@@ -35,20 +35,20 @@ El último comando utiliza Auth, Firestore y Functions de la Emulator Suite;
 los puertos se fijan en `firebase.json`. El build y el lint son hooks previos
 al despliegue, pero no se ejecuta `firebase deploy` como parte de este trabajo.
 
-## Superficie callable inicial
+## Superficie callable
 
-Las funciones `createExamAttempt`, `getExamAttempt` y `submitExamAttempt`
-requieren autenticación y aceptan únicamente identificadores acotados. La
-creación recibe `requestId`, `templateId` y `partId` opcional; la entrega
-recibe sólo `attemptId` y el mapa `questionId -> alternativeId`. Se rechazan
-campos extra como `userId`, puntaje, duración, lista de preguntas o versión.
+Las funciones `createExamAttempt`, `getExamAttempt`, `saveExamAnswers` y
+`submitExamAttempt` requieren autenticación y aceptan únicamente
+identificadores acotados. La creación recibe `requestId`, `templateId` y
+`partId`; la recuperación recibe sólo `attemptId`; el guardado incremental y
+la entrega reciben `attemptId` y el mapa `questionId -> alternativeId`. Se
+rechazan campos extra como `userId`, puntaje, duración, lista de preguntas o
+versión.
 
-No se persisten respuestas incrementalmente en esta etapa: `saveExamAnswers`
-no se expone, reduciendo la superficie de escritura. `createExamAttempt` se
-implementa en BACKEND-2; la lectura segura y la calificación llegan en tareas
-posteriores y sus callables continúan devolviendo `failed-precondition`.
-Las futuras escrituras deben usar `serverTimestamp()` de Admin SDK, nunca el
-reloj enviado por el cliente.
+`createExamAttempt`, `getExamAttempt` y `saveExamAnswers` están disponibles;
+la calificación de `submitExamAttempt` se completa en la tarea posterior y por
+ahora continúa devolviendo `failed-precondition`. Las escrituras usan
+`serverTimestamp()` de Admin SDK, nunca el reloj enviado por el cliente.
 
 Los errores se traducen a códigos callable tipados y los logs registran sólo
 el evento, categoría y un hash corto del actor; nunca solicitudes, respuestas,
@@ -90,3 +90,27 @@ pregunta, versión, orden, contenido, alternativas, procedencia y orden de
 alternativas; nunca clave correcta ni explicación. Los timestamps se resuelven
 en servidor y el vencimiento procede de la duración de plantilla (una hora si
 no está definida), nunca del reloj cliente.
+
+## Recuperación y respuestas guardadas
+
+`getExamAttempt` exige autenticación y comprueba que `userId` del intento sea
+el actor autenticado; un intento ajeno responde como no encontrado. Recupera
+la misma instantánea y el mismo orden que se crearon, junto con el mapa de
+respuestas ya guardadas. Su proyección copia sólo `questionId`, versión, orden,
+contenido, alternativas públicas, orden de alternativas y procedencia: nunca
+incluye claves, `isCorrect`, explicaciones ni resultados.
+
+El estado devuelto es `in_progress`, `submitted` o `expired`. Un intento que
+sigue almacenado como `in_progress` pero cuyo `expiresAt` ya pasó se trata como
+`expired` con el reloj del servidor; un intento enviado o calificado se expone
+como `submitted`. La recuperación no reordena ni vuelve a consultar el banco,
+por lo que una edición posterior de una pregunta no afecta al intento.
+
+`saveExamAnswers` está implementada para persistir borradores. Sólo acepta un
+mapa de hasta 50 pares `questionId -> alternativeId`; cada par se comprueba
+contra la instantánea congelada, no contra el banco mutable. Se verifica
+propietario y que el intento permanezca abierto. Los parches idénticos son
+idempotentes y no escriben; un cambio se guarda en una transacción y se limita
+a un parche por intento cada segundo. El límite devuelve `resource-exhausted`
+con `retryAfterMs`. No se escribe ningún campo de resultado y los intentos
+`submitted` o `expired` no se pueden modificar.
