@@ -1,4 +1,9 @@
-import type { Firestore, Timestamp, Transaction } from "firebase-admin/firestore";
+import type {
+  DocumentReference,
+  Firestore,
+  Timestamp,
+  Transaction
+} from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
@@ -11,6 +16,15 @@ import {
 } from "./exam_contracts";
 import { failedPrecondition, invalidArgument, notFound, resourceExhausted } from "./errors";
 import {
+  assessExamApproval,
+  assessSectionCompletion,
+  readPartProgress,
+  type PartProgressAssessment,
+  type PartProgressStatus,
+  type PartSection,
+  type ProgressPartContext
+} from "./part_progress";
+import {
   bindPartCompletionBlocks,
   chooseQuestions,
   randomStarts,
@@ -20,6 +34,7 @@ import {
 } from "./selection";
 import type {
   CreateExamAttemptInput,
+  RecordPartSectionCompletionInput,
   SaveExamAnswersInput,
   SubmitExamAttemptInput
 } from "./validation";
@@ -82,6 +97,7 @@ export interface SubmittedAttemptResponse {
   requiredCorrectAnswers: number;
   passed: boolean;
   review: AttemptReview[];
+  partCompletion?: PartCompletionResponse;
 }
 
 export interface AttemptReview {
@@ -92,6 +108,13 @@ export interface AttemptReview {
   correctAlternativeId: string;
   isCorrect: boolean;
   explanation: unknown[];
+}
+
+export interface PartCompletionResponse {
+  partId: string;
+  status: PartProgressStatus;
+  missingSections: PartSection[];
+  examAttemptId?: string;
 }
 
 export class ExamAttemptService {
@@ -256,7 +279,11 @@ export class ExamAttemptService {
 
       if (current.status === "submitted") {
         const result = parseStoredResult(attempt.data()?.result, input.attemptId, current.questions.length);
-        return submittedResponse(current, result, answerKeys);
+        const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
+        const partCompletion = purpose === "part_completion" && hasPassed(result)
+          ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId)
+          : undefined;
+        return submittedResponse(current, result, answerKeys, partCompletion);
       }
       if (current.status !== "in_progress") {
         throw failedPrecondition("The exam attempt is not open.", {
@@ -291,6 +318,10 @@ export class ExamAttemptService {
         passPercentExclusive,
         gradedAtMs: Date.now()
       };
+      const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
+      const partCompletion = grading.passed && purpose === "part_completion"
+        ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId)
+        : undefined;
       transaction.update(attemptRef, {
         answers,
         status: "submitted",
@@ -308,7 +339,32 @@ export class ExamAttemptService {
       return submittedResponse(
         { ...current, status: "submitted", answers },
         result,
-        answerKeys
+        answerKeys,
+        partCompletion
+      );
+    });
+  }
+
+  /** Records one server-timestamped section event and reconciles a provisional pass. */
+  public async recordPartSectionCompletion(
+    uid: string,
+    input: RecordPartSectionCompletionInput
+  ): Promise<PartCompletionResponse> {
+    const progressRef = this.progressRef(uid);
+    return this.db.runTransaction(async (transaction) => {
+      const progress = await transaction.get(progressRef);
+      if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
+      const context = allowedPartContext(progress.data(), input.partId);
+      if (context === undefined) {
+        throw failedPrecondition("The requested part is not enabled by learning progress.");
+      }
+      return this.applyPartProgress(
+        transaction,
+        progressRef,
+        progress.data(),
+        context,
+        assessSectionCompletion(readPartProgress(partRecord(progress.data(), input.partId), context), input.section),
+        input.section
       );
     });
   }
@@ -381,6 +437,91 @@ export class ExamAttemptService {
       }
       return parseFrozenAnswerKey(snapshot.data(), question);
     });
+  }
+
+  private async recordExamApproval(
+    transaction: Transaction,
+    uid: string,
+    attempt: Record<string, unknown> | undefined,
+    attemptId: string
+  ): Promise<PartCompletionResponse> {
+    const partId = stringValue(attempt?.partId);
+    if (partId === undefined) throw failedPrecondition("The stored exam attempt is invalid.");
+    const progressRef = this.progressRef(uid);
+    const progress = await transaction.get(progressRef);
+    if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
+    const context = allowedPartContext(progress.data(), partId);
+    if (context === undefined) {
+      throw failedPrecondition("The attempted part is no longer enabled by learning progress.");
+    }
+    const state = readPartProgress(partRecord(progress.data(), partId), context);
+    return this.applyPartProgress(
+      transaction,
+      progressRef,
+      progress.data(),
+      context,
+      assessExamApproval(state, attemptId)
+    );
+  }
+
+  private applyPartProgress(
+    transaction: Transaction,
+    progressRef: DocumentReference,
+    progress: Record<string, unknown> | undefined,
+    context: ProgressPartContext,
+    assessment: PartProgressAssessment,
+    newSection?: PartSection
+  ): PartCompletionResponse {
+    const existing = readPartProgress(partRecord(progress, context.partId), context);
+    const sectionIsNew = newSection !== undefined && !existing.completedSections.has(newSection);
+    if (existing.completed || (!assessment.shouldRecordApproval && !assessment.shouldMarkCompleted && !sectionIsNew)) {
+      return progressResponse(context.partId, assessment);
+    }
+    const progressMap = objectMap(progress?.partProgress);
+    const parts = { ...progressMap };
+    const rawPart = objectMap(parts[context.partId]);
+    const sections = { ...objectMap(rawPart.sections) };
+    if (sectionIsNew && newSection !== undefined) {
+      sections[newSection] = { completedAt: FieldValue.serverTimestamp() };
+    }
+    const next: Record<string, unknown> = {
+      ...rawPart,
+      schemaVersion: 2,
+      partId: context.partId,
+      courseId: context.courseId,
+      topicId: context.topicId,
+      subtopicId: context.subtopicId,
+      sections
+    };
+    if (assessment.shouldRecordApproval && assessment.effectiveExamAttemptId !== undefined) {
+      next.approvedExamAttemptId = assessment.effectiveExamAttemptId;
+      next.examApprovedAt = FieldValue.serverTimestamp();
+    }
+    if (assessment.shouldMarkCompleted && assessment.effectiveExamAttemptId !== undefined) {
+      next.completed = true;
+      next.verificationStatus = "verified";
+      next.examAttemptId = assessment.effectiveExamAttemptId;
+      next.completedAt = FieldValue.serverTimestamp();
+    } else if (assessment.effectiveExamAttemptId !== undefined) {
+      next.verificationStatus = "provisional";
+    } else {
+      next.verificationStatus = "not_approved";
+    }
+    parts[context.partId] = next;
+    transaction.set(
+      progressRef,
+      { partProgressSchemaVersion: 2, partProgress: parts, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    return progressResponse(context.partId, assessment);
+  }
+
+  private progressRef(uid: string) {
+    return this.db
+      .collection(this.config.collections.users)
+      .doc(uid)
+      .collection("learningProgress")
+      .doc("current");
   }
 
   private async profileUniversity(uid: string): Promise<string> {
@@ -626,7 +767,8 @@ export function gradeFrozenAttempt(
 function submittedResponse(
   attempt: ExamAttemptResponse,
   result: StoredExamResult,
-  answerKeys: readonly FrozenAnswerKey[]
+  answerKeys: readonly FrozenAnswerKey[],
+  partCompletion?: PartCompletionResponse
 ): SubmittedAttemptResponse {
   if (result.total !== attempt.questions.length) {
     throw failedPrecondition("The stored exam result is invalid.");
@@ -655,7 +797,8 @@ function submittedResponse(
     percentage: grading.percentage,
     requiredCorrectAnswers: attempt.requiredCorrectAnswers,
     passed: grading.passed,
-    review: grading.review
+    review: grading.review,
+    ...(partCompletion === undefined ? {} : { partCompletion })
   };
 }
 
@@ -714,6 +857,10 @@ function parseStoredResult(
   return { total, correct, passPercentExclusive, gradedAtMs };
 }
 
+function hasPassed(result: StoredExamResult): boolean {
+  return result.correct * 100 > result.total * result.passPercentExclusive;
+}
+
 function parsePartContext(raw: Record<string, unknown>): PartContext | undefined {
   const partId = typeof raw.partId === "string" ? raw.partId : undefined;
   const courseId = typeof raw.courseId === "string" ? raw.courseId : undefined;
@@ -722,6 +869,50 @@ function parsePartContext(raw: Record<string, unknown>): PartContext | undefined
   return partId !== undefined && courseId !== undefined && topicId !== undefined && subtopicId !== undefined
     ? { partId, courseId, topicId, subtopicId }
     : undefined;
+}
+
+function allowedPartContext(
+  progress: Record<string, unknown> | undefined,
+  partId: string
+): PartContext | undefined {
+  const allowed: unknown[] = Array.isArray(progress?.allowedParts)
+    ? (progress!.allowedParts as unknown[])
+    : [];
+  const raw = allowed.find(
+    (entry: unknown) => entry !== null && typeof entry === "object" && (entry as { partId?: unknown }).partId === partId
+  ) as Record<string, unknown> | undefined;
+  return raw === undefined ? undefined : parsePartContext(raw);
+}
+
+function partRecord(
+  progress: Record<string, unknown> | undefined,
+  partId: string
+): Record<string, unknown> | undefined {
+  const parts = objectMap(progress?.partProgress);
+  const candidate = parts[partId];
+  return candidate !== null && typeof candidate === "object" && !Array.isArray(candidate)
+    ? candidate as Record<string, unknown>
+    : undefined;
+}
+
+function objectMap(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function progressResponse(
+  partId: string,
+  assessment: PartProgressAssessment
+): PartCompletionResponse {
+  return {
+    partId,
+    status: assessment.status,
+    missingSections: [...assessment.missingSections],
+    ...(assessment.effectiveExamAttemptId === undefined
+      ? {}
+      : { examAttemptId: assessment.effectiveExamAttemptId })
+  };
 }
 
 function isActive(data: Record<string, unknown> | undefined): boolean {

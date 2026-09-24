@@ -1,4 +1,5 @@
 import { invalidArgument } from "./errors";
+import { isPartSection, type PartSection } from "./part_progress";
 
 export interface CreateExamAttemptInput {
   requestId: string;
@@ -19,6 +20,11 @@ export interface SubmitExamAttemptInput {
 export interface SaveExamAnswersInput {
   attemptId: string;
   answers: Readonly<Record<string, string>>;
+}
+
+export interface RecordPartSectionCompletionInput {
+  partId: string;
+  section: PartSection;
 }
 
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
@@ -76,6 +82,17 @@ export function parseSubmitExamAttempt(data: unknown): SubmitExamAttemptInput {
 export function parseSaveExamAnswers(data: unknown): SaveExamAnswersInput {
   const { attemptId, answers } = parseAnswers(data, maxAnswersPerSave);
   return { attemptId, answers };
+}
+
+export function parseRecordPartSectionCompletion(
+  data: unknown
+): RecordPartSectionCompletionInput {
+  const value = object(data, "data");
+  onlyKeys(value, ["partId", "section"]);
+  if (!isPartSection(value.section)) {
+    throw invalidArgument("section must be a supported part section.");
+  }
+  return { partId: id(value.partId, "partId"), section: value.section };
 }
 
 function parseAnswers(

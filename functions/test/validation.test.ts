@@ -5,6 +5,12 @@ import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { requireUid } from "../src/handlers";
 import {
+  assessExamApproval,
+  assessSectionCompletion,
+  readPartProgress,
+  requiredPartSections
+} from "../src/part_progress";
+import {
   gradeFrozenAttempt,
   projectAttemptResponse,
   validateAnswerPatch,
@@ -15,6 +21,7 @@ import type { CandidateQuestion } from "../src/exam_contracts";
 import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
 import {
   parseCreateExamAttempt,
+  parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
   parseSubmitExamAttempt
 } from "../src/validation";
@@ -137,6 +144,17 @@ test("incremental answer saves accept a small ID-only patch", () => {
   );
 });
 
+test("part-section completion accepts only the five server-defined sections", () => {
+  assert.deepEqual(
+    parseRecordPartSectionCompletion({ partId: "part-1", section: "lesson" }),
+    { partId: "part-1", section: "lesson" }
+  );
+  assert.throws(
+    () => parseRecordPartSectionCompletion({ partId: "part-1", section: "clicked" }),
+    isInvalidArgument
+  );
+});
+
 test("recovery projects a frozen public snapshot and saved answers without keys", () => {
   const response = projectAttemptResponse("attempt-1", attemptRecord("in_progress", tomorrow()));
   assert.equal(response.status, "in_progress");
@@ -186,6 +204,52 @@ test("grading rejects a key that does not belong to the frozen question version"
   const keys = frozenKeys(questions);
   keys[0] = { ...keys[0]!, correctAlternativeId: "unknown" };
   assert.throws(() => gradeFrozenAttempt(questions, { "question-1": "a" }, keys, 80));
+});
+
+test("a passed part exam remains provisional until all v2 sections have evidence", () => {
+  const context = partContext();
+  const state = readPartProgress(
+    partProgressRecord(context, ["video", "lesson", "examples"]),
+    context
+  );
+  const assessment = assessExamApproval(state, "attempt-1");
+  assert.equal(assessment.status, "provisional");
+  assert.deepEqual(assessment.missingSections, ["review", "resources"]);
+  assert.equal(assessment.shouldRecordApproval, true);
+  assert.equal(assessment.shouldMarkCompleted, false);
+});
+
+test("a later final section verifies a provisional approved part exactly once", () => {
+  const context = partContext();
+  const state = readPartProgress(
+    partProgressRecord(context, ["video", "lesson", "examples", "review"], "attempt-1"),
+    context
+  );
+  const completion = assessSectionCompletion(state, "resources");
+  assert.equal(completion.status, "verified");
+  assert.deepEqual(completion.missingSections, []);
+  assert.equal(completion.shouldMarkCompleted, true);
+  assert.equal(completion.effectiveExamAttemptId, "attempt-1");
+
+  const verified = readPartProgress(
+    partProgressRecord(context, requiredPartSections, "attempt-1", true),
+    context
+  );
+  const retry = assessExamApproval(verified, "attempt-1");
+  assert.equal(retry.status, "verified");
+  assert.equal(retry.shouldRecordApproval, false);
+  assert.equal(retry.shouldMarkCompleted, false);
+});
+
+test("legacy section clicks never become v2 completion evidence", () => {
+  const context = partContext();
+  const legacy = readPartProgress(
+    { videoViewed: true, lessonClicked: true, sections: { video: { clickedAt: "old" } } },
+    context
+  );
+  const assessment = assessExamApproval(legacy, "attempt-1");
+  assert.equal(assessment.status, "provisional");
+  assert.deepEqual(assessment.missingSections, requiredPartSections);
 });
 
 test("callables reject anonymous callers with a typed error", () => {
@@ -300,4 +364,23 @@ function frozenKeys(questions: readonly AttemptQuestionSnapshot[]): FrozenAnswer
     correctAlternativeId: "a",
     explanation: [{ id: `explanation-${question.questionId}`, type: "text", text: "Explicación" }]
   }));
+}
+
+function partContext() {
+  return { partId: "part-1", courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+}
+
+function partProgressRecord(
+  context: ReturnType<typeof partContext>,
+  sections: readonly string[],
+  approvedExamAttemptId?: string,
+  completed = false
+): Record<string, unknown> {
+  return {
+    schemaVersion: 2,
+    ...context,
+    sections: Object.fromEntries(sections.map((section) => [section, { completedAt: "server" }])),
+    ...(approvedExamAttemptId === undefined ? {} : { approvedExamAttemptId }),
+    ...(completed ? { completed: true, examAttemptId: approvedExamAttemptId } : {})
+  };
 }

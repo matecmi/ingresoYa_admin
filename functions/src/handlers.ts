@@ -6,6 +6,7 @@ import {
   ExamAttemptService,
   type CreateExamAttemptResponse,
   type ExamAttemptResponse,
+  type PartCompletionResponse,
   type SubmittedAttemptResponse
 } from "./attempt_service";
 import { asHttpsError, unauthenticated } from "./errors";
@@ -13,6 +14,7 @@ import { safeError, safeLog } from "./logging";
 import {
   parseCreateExamAttempt,
   parseGetExamAttempt,
+  parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
   parseSubmitExamAttempt
 } from "./validation";
@@ -61,6 +63,19 @@ export function createCallableHandlers(config: BackendConfig) {
         return attempts.saveAnswers(uid, input);
       } catch (error) {
         safeError("exam_attempt_answers_save_rejected", error);
+        throw asHttpsError(error);
+      }
+    },
+    async recordPartSectionCompletion(
+      request: CallableRequest<unknown>
+    ): Promise<PartCompletionResponse> {
+      try {
+        const uid = requireUid(request);
+        const input = parseRecordPartSectionCompletion(request.data);
+        safeLog("part_section_completion_requested", uid);
+        return attempts.recordPartSectionCompletion(uid, input);
+      } catch (error) {
+        safeError("part_section_completion_rejected", error);
         throw asHttpsError(error);
       }
     },

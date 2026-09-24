@@ -18,4 +18,5 @@ setGlobalOptions({
 export const createExamAttempt = onCall(handlers.createExamAttempt);
 export const getExamAttempt = onCall(handlers.getExamAttempt);
 export const saveExamAnswers = onCall(handlers.saveExamAnswers);
+export const recordPartSectionCompletion = onCall(handlers.recordPartSectionCompletion);
 export const submitExamAttempt = onCall(handlers.submitExamAttempt);

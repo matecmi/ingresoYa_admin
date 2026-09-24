@@ -37,15 +37,16 @@ al despliegue, pero no se ejecuta `firebase deploy` como parte de este trabajo.
 
 ## Superficie callable
 
-Las funciones `createExamAttempt`, `getExamAttempt`, `saveExamAnswers` y
-`submitExamAttempt` requieren autenticación y aceptan únicamente
+Las funciones `createExamAttempt`, `getExamAttempt`, `saveExamAnswers`,
+`recordPartSectionCompletion` y `submitExamAttempt` requieren autenticación y
+aceptan únicamente
 identificadores acotados. La creación recibe `requestId`, `templateId` y
 `partId`; la recuperación recibe sólo `attemptId`; el guardado incremental y
 la entrega reciben `attemptId` y el mapa `questionId -> alternativeId`. Se
 rechazan campos extra como `userId`, puntaje, duración, lista de preguntas o
 versión.
 
-Las cuatro callables están disponibles. Las escrituras usan
+Las cinco callables están disponibles. Las escrituras usan
 `serverTimestamp()` de Admin SDK, nunca el reloj enviado por el cliente.
 
 Los errores se traducen a códigos callable tipados y los logs registran sólo
@@ -137,3 +138,31 @@ claves privadas e inmutables. La respuesta callable al dueño incluye la
 revisión por pregunta, alternativa seleccionada, alternativa correcta y
 explicación solamente después de entregar; `getExamAttempt` sigue sin exponer
 esa información antes de la entrega.
+
+## Progreso verificable de partes
+
+Una parte de `part_completion` se completa sólo con dos clases de evidencia
+server-owned: un intento aprobado y las cinco secciones `video`, `lesson`,
+`examples`, `review` y `resources`. La app registra cada sección mediante
+`recordPartSectionCompletion({partId, section})`; la Function confirma que la
+parte sigue en `allowedParts`, escribe la evidencia con timestamp de servidor y
+mantiene los IDs de curso, tema y subtema asociados. No se aceptan secciones
+libres ni timestamps del cliente.
+
+El estado se guarda bajo
+`users/{uid}/learningProgress/current.partProgress.{partId}`. Mientras falte
+una sección, una aprobación registra `approvedExamAttemptId` y
+`examApprovedAt`, con `verificationStatus: provisional`, y la respuesta de
+`submitExamAttempt` devuelve `partCompletion.missingSections`. Si el alumno
+visita después las secciones pendientes, la llamada de sección reconcilia en
+transacción: al registrar la última, escribe una sola vez `completed: true`,
+`examAttemptId`, `completedAt` y `verificationStatus: verified`.
+
+`completed` nunca se restablece a `false`. Una repetición de sección ya
+registrada o de `submitExamAttempt` no reescribe timestamps ni crea XP, logros
+o intentos (el backend no emite esos efectos secundarios). Los viejos campos
+de clics/vistas no se migran ni cuentan: únicamente la evidencia v2 con
+`schemaVersion: 2` y `sections.{section}.completedAt` registrada por la nueva
+callable puede satisfacer requisitos. Esto permite que secciones revisadas
+después de aprobar culminen la parte sin convertir interacciones históricas en
+aprobaciones.
