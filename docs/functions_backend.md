@@ -31,7 +31,7 @@ npm run emulators
 npm run test:emulators
 ```
 
-El último comando utiliza Auth, Firestore y Functions de la Emulator Suite;
+El último comando utiliza Auth, Firestore y Storage de la Emulator Suite;
 los puertos se fijan en `firebase.json`. El build y el lint son hooks previos
 al despliegue, pero no se ejecuta `firebase deploy` como parte de este trabajo.
 
@@ -80,8 +80,9 @@ muestra aleatorizada razonable, no uniformidad matemática perfecta.
 
 Al faltar candidatos, responde `failed-precondition` con `reason:
 insufficient_questions`, `available`, `required` y `blockIndex`. El índice
-`status + partIds CONTAINS + randomKey` está declarado para los tres entornos,
-sin despliegue.
+`status + courseId + topicId + subtopicId + partIds CONTAINS + randomKey` y su
+variante con `sourceType` están declarados para los tres entornos, sin
+despliegue.
 
 `requestId` se reserva transaccionalmente bajo el usuario: dobles pulsaciones y
 reintentos simultáneos devuelven el mismo intento. La instantánea guarda
