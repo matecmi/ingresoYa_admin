@@ -28,7 +28,6 @@ class QuestionFormSheet extends ConsumerStatefulWidget {
 class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController numberCtrl;
   late final TextEditingController originalNumberCtrl;
   late final TextEditingController courseId;
   late final TextEditingController courseName;
@@ -61,7 +60,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     final q = widget.question;
     admissionExam = q?.admissionExam;
 
-    numberCtrl = TextEditingController(text: (q?.number ?? 1).toString());
     originalNumberCtrl = TextEditingController(
       text: q?.originalNumber?.toString() ?? '',
     );
@@ -95,7 +93,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
 
   @override
   void dispose() {
-    numberCtrl.dispose();
     originalNumberCtrl.dispose();
     courseId.dispose();
     courseName.dispose();
@@ -201,23 +198,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                 _sectionTitle('Datos'),
                 const SizedBox(height: 10),
 
-                _row2(
-                  _tf(
-                    numberCtrl,
-                    'Número *',
-                    keyboardType: TextInputType.number,
-                    requiredField: true,
-                  ),
-                  _activePill(),
-                ),
-                _row2(
-                  _tf(
-                    originalNumberCtrl,
-                    'Número original',
-                    keyboardType: TextInputType.number,
-                  ),
-                  _difficultySelect(),
-                ),
+                _row2(_activePill(), _difficultySelect()),
                 _editorialStatusCard(),
                 if (publicationIssues.isNotEmpty) ...[
                   _publicationErrorsCard(),
@@ -240,9 +221,26 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                       widget.question != null &&
                       widget.question!.admissionExam == null,
                   onExamChanged: (exam) {
-                    admissionExam = exam;
+                    setState(() {
+                      admissionExam = exam;
+                      // The original ordinal only has meaning for a selected
+                      // source exam. Do not keep a stale value when its
+                      // provenance is removed or changed.
+                      if (exam == null) originalNumberCtrl.clear();
+                    });
                   },
                 ),
+
+                if (admissionExam != null) ...[
+                  const SizedBox(height: 4),
+                  _tf(
+                    originalNumberCtrl,
+                    'Número en el examen de origen',
+                    helperText:
+                        'Opcional. Es el número impreso en el examen seleccionado.',
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
 
                 const SizedBox(height: 12),
                 _contentBox(),
@@ -307,6 +305,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     TextEditingController c,
     String label, {
     bool requiredField = false,
+    String? helperText,
     TextInputType? keyboardType,
   }) {
     return Padding(
@@ -320,6 +319,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         ),
         decoration: InputDecoration(
           labelText: label,
+          helperText: helperText,
           labelStyle: TextStyle(color: Colors.white.withValues(alpha: .70)),
           filled: true,
           fillColor: Colors.white.withValues(alpha: .05),
@@ -852,13 +852,6 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     final repo = ref.read(questionRepoProvider);
     final publicRepo = ref.read(publishableQuestionRepoProvider);
 
-    final number = int.tryParse(numberCtrl.text.trim()) ?? 0;
-    if (number <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Número debe ser > 0')));
-      return;
-    }
     final originalNumber = originalNumberCtrl.text.trim().isEmpty
         ? null
         : int.tryParse(originalNumberCtrl.text.trim());
@@ -870,6 +863,13 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       return;
     }
     final act = active ? 'Y' : 'N';
+    // `number` is a legacy administrative ordinal. The UUID is the real
+    // identifier, so new v2 questions receive an opaque, time-based value
+    // instead of asking editors to maintain a second, ambiguous number.
+    final savedLegacyNumber = widget.question?.number;
+    final legacyNumber = savedLegacyNumber != null && savedLegacyNumber > 0
+        ? savedLegacyNumber
+        : DateTime.now().microsecondsSinceEpoch;
     setState(() => saving = true);
     try {
       var questionId = widget.question?.id;
@@ -881,7 +881,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         questionId = await repo.createQuestion(
           editorContent: content,
           admissionExam: admissionExam,
-          number: number,
+          number: legacyNumber,
           statementText: statementRaw,
           active: act,
           topicId: topicId.text.trim(),
@@ -904,7 +904,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           requireCompleteAcademic: false,
           patch: {
             ...content.toFields(),
-            'number': number,
+            'number': legacyNumber,
             'statementText': statementRaw,
             'active': act,
             'topicId': topicId.text.trim(),

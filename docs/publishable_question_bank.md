@@ -129,6 +129,13 @@ no cambia el UUID. Se exige un mínimo configurable de dos (actualmente dos) y
 exactamente una correcta para publicar. Borradores incompletos se pueden
 guardar para terminar después.
 
+El campo legacy `number` se conserva únicamente para compatibilidad con el
+administrador anterior y se genera internamente al crear una pregunta nueva;
+no es el identificador de la pregunta (lo es `questionId`) ni se solicita al
+editor. El único ordinal editable es `originalNumber`, mostrado como **Número
+en el examen de origen** solo después de seleccionar un examen de origen. Es
+opcional y representa el número impreso en esa fuente.
+
 La clave y la explicación se escriben en `questionAnswerKeys` con la misma
 versión del documento público. Al editar una publicación, el repositorio crea
 la siguiente versión en borrador antes de permitir cambios; la versión

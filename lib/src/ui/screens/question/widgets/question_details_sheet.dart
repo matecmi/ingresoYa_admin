@@ -83,7 +83,9 @@ class QuestionDetailsSheet extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              'Pregunta #${q.number}',
+              q.originalNumber == null
+                  ? 'Pregunta'
+                  : 'Pregunta N.º ${q.originalNumber} del examen de origen',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .92),
                 fontWeight: FontWeight.w900,

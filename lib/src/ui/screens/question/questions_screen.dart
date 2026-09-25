@@ -221,7 +221,9 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     final ok = await _confirmPro(
       context,
       title: 'Eliminar pregunta',
-      message: 'Se eliminará la pregunta #${q.number} y sus alternativas.',
+      message: q.originalNumber == null
+          ? 'Se eliminará la pregunta y sus alternativas.'
+          : 'Se eliminará la pregunta N.º ${q.originalNumber} de su examen de origen y sus alternativas.',
       primary: 'Eliminar',
     );
     if (!ok) return;
@@ -240,7 +242,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
       context,
       title: 'Retirar pregunta',
       message:
-          'La pregunta #${q.number} dejará de entrar en nuevos exámenes. Los intentos existentes conservarán su versión congelada.',
+          '${q.originalNumber == null ? 'La pregunta' : 'La pregunta N.º ${q.originalNumber} de su examen de origen'} dejará de entrar en nuevos exámenes. Los intentos existentes conservarán su versión congelada.',
       primary: 'Retirar',
     );
     if (!ok) return;
@@ -329,13 +331,18 @@ class _QuestionCard extends StatelessWidget {
                     border: Border.all(color: Colors.white.withOpacity(.10)),
                   ),
                   child: Center(
-                    child: Text(
-                      '${q.number}',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(.92),
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+                    child: q.originalNumber == null
+                        ? Icon(
+                            Icons.quiz_outlined,
+                            color: Colors.white.withValues(alpha: .92),
+                          )
+                        : Text(
+                            '${q.originalNumber}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .92),
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
