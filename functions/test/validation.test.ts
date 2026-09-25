@@ -18,6 +18,7 @@ import {
   type FrozenAnswerKey
 } from "../src/attempt_service";
 import type { CandidateQuestion } from "../src/exam_contracts";
+import { parseTemplate } from "../src/exam_contracts";
 import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
 import {
   parseCreateExamAttempt,
@@ -34,6 +35,12 @@ test("maps each declared deployment environment to isolated collections", () => 
 
 test("requires an explicit environment outside tests and emulators", () => {
   assert.throws(() => readBackendConfig({}), /INGRESOYA_ENV/);
+});
+
+test("inactive templates cannot be used to create new attempts", () => {
+  const active = templateRecord();
+  assert.equal(parseTemplate(active, "template-1").id, "template-1");
+  assert.throws(() => parseTemplate({ ...active, active: false }, "template-1"));
 });
 
 test("create input rejects client-controlled attempt fields", () => {
@@ -293,6 +300,24 @@ function candidate(
       { id: "a", label: "A", content: [] },
       { id: "b", label: "B", content: [] }
     ]
+  };
+}
+
+function templateRecord(): Record<string, unknown> {
+  return {
+    schemaVersion: 2,
+    id: "template-1",
+    version: 1,
+    title: "Plantilla",
+    status: "published",
+    active: true,
+    purpose: "part_completion",
+    mode: "dynamic",
+    selectionPolicy: "strict",
+    allowedFallbackSources: [],
+    questionCount: 1,
+    passPercentExclusive: 80,
+    blocks: [{ count: 1, filter: { partId: "part-1" } }]
   };
 }
 

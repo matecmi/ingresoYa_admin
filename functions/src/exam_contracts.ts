@@ -168,6 +168,7 @@ export function parseTemplate(
   if (
     data.schemaVersion !== 2 ||
     data.status !== "published" ||
+    data.active === false ||
     id !== expectedId ||
     version === undefined ||
     title === undefined ||

@@ -14,7 +14,7 @@ class DashboardShell extends StatelessWidget {
     final isUni = loc.startsWith('/universities');
     final isCourse = loc.startsWith('/courses');
     final isQ = loc.startsWith('/questions');
-    
+    final isTemplates = loc.startsWith('/exam-templates');
 
     int bottomIndex() {
       if (isCourse) return 1;
@@ -94,12 +94,17 @@ class DashboardShell extends StatelessWidget {
                         onTap: () => context.go('/courses'),
                       ),
                       _SideItem(
-  active: isQ,
-  icon: Icons.quiz_rounded,
-  label: 'Preguntas',
-  onTap: () => context.go('/questions'),
-),
-                      
+                        active: isQ,
+                        icon: Icons.quiz_rounded,
+                        label: 'Preguntas',
+                        onTap: () => context.go('/questions'),
+                      ),
+                      _SideItem(
+                        active: isTemplates,
+                        icon: Icons.assignment_rounded,
+                        label: 'Plantillas',
+                        onTap: () => context.go('/exam-templates'),
+                      ),
 
                       const Spacer(),
 
@@ -132,66 +137,74 @@ class DashboardShell extends StatelessWidget {
       ),
 
       // ✅ Bottom bar (mobile)
-bottomNavigationBar: LayoutBuilder(
-  builder: (context, c) {
-    final wide = c.maxWidth > 900;
-    if (wide) return const SizedBox.shrink();
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, c) {
+          final wide = c.maxWidth > 900;
+          if (wide) return const SizedBox.shrink();
 
-    int indexFromLocation(String loc) {
-      // ✅ soporta rutas hijas: /courses/xyz, /questions/new, etc.
-      if (loc.startsWith('/universities')) return 0;
-      if (loc.startsWith('/courses')) return 1;
-      if (loc.startsWith('/questions')) return 2;
-      return 0;
-    }
-
-    final loc = GoRouterState.of(context).matchedLocation;
-    final currentIndex = indexFromLocation(loc);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.card,
-        border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(.08)),
-        ),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/universities');
-              break;
-            case 1:
-              context.go('/courses');
-              break;
-            case 2:
-              context.go('/questions');
-              break;
+          int indexFromLocation(String loc) {
+            // ✅ soporta rutas hijas: /courses/xyz, /questions/new, etc.
+            if (loc.startsWith('/universities')) return 0;
+            if (loc.startsWith('/courses')) return 1;
+            if (loc.startsWith('/questions')) return 2;
+            if (loc.startsWith('/exam-templates')) return 3;
+            return 0;
           }
+
+          final loc = GoRouterState.of(context).matchedLocation;
+          final currentIndex = indexFromLocation(loc);
+
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              border: Border(
+                top: BorderSide(color: Colors.white.withOpacity(.08)),
+              ),
+            ),
+            child: BottomNavigationBar(
+              currentIndex: currentIndex,
+              onTap: (i) {
+                switch (i) {
+                  case 0:
+                    context.go('/universities');
+                    break;
+                  case 1:
+                    context.go('/courses');
+                    break;
+                  case 2:
+                    context.go('/questions');
+                    break;
+                  case 3:
+                    context.go('/exam-templates');
+                    break;
+                }
+              },
+              backgroundColor: AppTheme.card,
+              selectedItemColor: Colors.white.withOpacity(.92),
+              unselectedItemColor: Colors.white.withOpacity(.55),
+              type: BottomNavigationBarType.fixed,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.school_rounded),
+                  label: 'Universidades',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.menu_book_rounded),
+                  label: 'Cursos',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.quiz_rounded),
+                  label: 'Preguntas',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.assignment_rounded),
+                  label: 'Plantillas',
+                ),
+              ],
+            ),
+          );
         },
-        backgroundColor: AppTheme.card,
-        selectedItemColor: Colors.white.withOpacity(.92),
-        unselectedItemColor: Colors.white.withOpacity(.55),
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school_rounded),
-            label: 'Universidades',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_rounded),
-            label: 'Cursos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.quiz_rounded),
-            label: 'Preguntas',
-          ),
-        ],
       ),
-    );
-  },
-),
     );
   }
 }

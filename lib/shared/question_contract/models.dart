@@ -271,6 +271,13 @@ class ExamTemplate {
     : id = idField(json, 'id'),
       version = intField(json, 'version', min: 1),
       title = idField(json, 'title'),
+      description = stringField(json, 'description', fallback: ''),
+      priorityUniversityId = stringField(
+        json,
+        'priorityUniversityId',
+        fallback: '',
+      ),
+      active = _templateActive(json['active']),
       purpose = enumField(json, 'purpose', [
         'practice',
         'part_completion',
@@ -333,7 +340,9 @@ class ExamTemplate {
     }
   }
   final String id, title, purpose, mode, selectionPolicy;
+  final String description, priorityUniversityId;
   final int version, questionCount, passPercentExclusive;
+  final bool active;
   final int? durationSeconds;
   final List<String> allowedFallbackSources;
   final List<ExamTemplateBlock> blocks;
@@ -345,6 +354,10 @@ class ExamTemplate {
     'id': id,
     'version': version,
     'title': title,
+    if (description.isNotEmpty) 'description': description,
+    if (priorityUniversityId.isNotEmpty)
+      'priorityUniversityId': priorityUniversityId,
+    if (!active) 'active': false,
     'purpose': purpose,
     'mode': mode,
     'selectionPolicy': selectionPolicy,
@@ -355,6 +368,12 @@ class ExamTemplate {
     'blocks': blocks.map((b) => b.toJson()).toList(),
     'fixedQuestions': fixedQuestions.map((q) => q.toJson()).toList(),
   };
+}
+
+bool _templateActive(dynamic value) {
+  if (value == null) return true;
+  if (value is bool) return value;
+  throw const FormatException('active must be a boolean');
 }
 
 class AttemptQuestion {

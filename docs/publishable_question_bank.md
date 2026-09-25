@@ -45,6 +45,29 @@ documento antes de entregar una respuesta.
 publicadas. Los bloques dinámicos y las referencias fijas se almacenan tal
 cual exige el contrato compartido.
 
+## Plantillas de examen
+
+El administrador crea plantillas desde **Plantillas**. Cada formulario incluye
+título, descripción, propósito, cantidad, duración, porcentaje exclusivo de
+aprobación y el número derivado de respuestas correctas requeridas. También
+configura una universidad prioritaria, política (`strict` o
+`prefer_profile_university`), fuentes complementarias autorizadas y el estado
+activo/inactivo. La prioridad es metadato editorial; para restringir las
+preguntas a una universidad concreta se usa `universityId` en cada bloque.
+
+Una plantilla puede ser dinámica, con bloques por tipo de fuente, modalidad,
+examen, intervalo de años, dificultad y curso/tema/subtema/parte, o fija, con
+referencias `{questionId, version}`. El editor exige que la suma de bloques o
+la lista fija coincida con `questionCount`; el contrato impide preguntas fijas
+repetidas. Antes de guardar, una transacción comprueba IDs y estado activo de
+catálogos, jerarquía académica, examen/modalidad y revisiones publicadas.
+
+Cada guardado aumenta `version`, escribe una nueva snapshot inmutable en
+`versions/{version}` y reemplaza sólo la proyección vigente. Las snapshots y
+los intentos anteriores no se modifican. `active: false` impide que Functions
+cree intentos nuevos; volver a activar también crea una versión nueva y exige
+la misma validación. No se elimina ninguna plantilla desde el panel.
+
 `examAttempts/{attemptId}` contiene el `ExamAttempt` v2 completo pero sin
 claves de respuesta. La Function es la única que lo crea, congela, recibe y
 califica. El alumno puede leer solamente su intento seguro ya creado.
