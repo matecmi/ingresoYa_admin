@@ -15,8 +15,13 @@ setGlobalOptions({
   memory: "256MiB"
 });
 
-export const createExamAttempt = onCall(handlers.createExamAttempt);
-export const getExamAttempt = onCall(handlers.getExamAttempt);
-export const saveExamAnswers = onCall(handlers.saveExamAnswers);
-export const recordPartSectionCompletion = onCall(handlers.recordPartSectionCompletion);
-export const submitExamAttempt = onCall(handlers.submitExamAttempt);
+const callableOptions = { enforceAppCheck: config.enforceAppCheck };
+
+export const createExamAttempt = onCall(callableOptions, handlers.createExamAttempt);
+export const getExamAttempt = onCall(callableOptions, handlers.getExamAttempt);
+export const saveExamAnswers = onCall(callableOptions, handlers.saveExamAnswers);
+export const recordPartSectionCompletion = onCall(
+  callableOptions,
+  handlers.recordPartSectionCompletion
+);
+export const submitExamAttempt = onCall(callableOptions, handlers.submitExamAttempt);

@@ -33,6 +33,35 @@ test("maps each declared deployment environment to isolated collections", () => 
   expectConfig("production", "iya-questions");
 });
 
+test("App Check is enforced in production and can be explicitly configured per environment", () => {
+  assert.equal(
+    readBackendConfig({ INGRESOYA_ENV: "production" }).enforceAppCheck,
+    true
+  );
+  assert.equal(
+    readBackendConfig({
+      INGRESOYA_ENV: "staging",
+      FUNCTIONS_ENFORCE_APP_CHECK: "true"
+    }).enforceAppCheck,
+    true
+  );
+  assert.equal(
+    readBackendConfig({
+      INGRESOYA_ENV: "test",
+      FUNCTIONS_ENFORCE_APP_CHECK: "false"
+    }).enforceAppCheck,
+    false
+  );
+  assert.throws(
+    () => readBackendConfig({ INGRESOYA_ENV: "test", FUNCTIONS_ENFORCE_APP_CHECK: "yes" }),
+    /FUNCTIONS_ENFORCE_APP_CHECK/
+  );
+  assert.throws(
+    () => readBackendConfig({ INGRESOYA_ENV: "production", FUNCTIONS_ENFORCE_APP_CHECK: "false" }),
+    /cannot be false in production/
+  );
+});
+
 test("requires an explicit environment outside tests and emulators", () => {
   assert.throws(() => readBackendConfig({}), /INGRESOYA_ENV/);
 });

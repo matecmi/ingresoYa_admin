@@ -1,13 +1,42 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /question-editor/{fileName} {
-      allow read: if request.auth != null && request.auth.token.admin == true;
-      allow create: if request.auth != null && request.auth.token.admin == true
-        && request.resource.size <= 5 * 1024 * 1024
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.keys().hasAll(['admin'])
+        && request.auth.token.admin == true;
+    }
+
+    function isValidQuestionImage() {
+      return request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+
+    // Public question content is still authenticated-only. The Flutter client
+    // persists this path, not a long-lived download URL/token, so private paths
+    // cannot accidentally become public through a serialized question.
+    match /question-public/{path=**} {
+      allow read: if signedIn();
+      allow create: if isAdmin() && isValidQuestionImage();
+      // Immutable object names protect content referenced by frozen attempts.
+      allow update, delete: if false;
+    }
+
+    // Transitional uploads from the visual editor remain private. They are not
+    // referenced by new content; retain the explicit rule for old documents
+    // without making their download tokens a public access mechanism.
+    match /question-editor/{fileName} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidQuestionImage();
       // Immutable names preserve existing questions and undo history.
       allow update, delete: if false;
     }
+
+    // There is intentionally no catch-all read rule. Any future private
+    // prefixes require an explicit access policy before they can be exposed.
   }
 }

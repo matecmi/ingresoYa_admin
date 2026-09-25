@@ -11,7 +11,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
+      return signedIn()
+        && request.auth.token.keys().hasAll(['admin'])
+        && request.auth.token.admin == true;
     }
 
     function isCatalog(collectionName) {
@@ -78,15 +80,17 @@ service cloud.firestore {
 
     // Conventional catalogs, including nested course/university catalogs.
     match /{catalog}/{document=**} {
-      allow read: if isCatalog(catalog);
+      // Catalogs are needed by a signed-in learner to browse published
+      // questions, but are not an anonymous data export surface.
+      allow read: if signedIn() && isCatalog(catalog);
       allow write: if isCatalog(catalog) && isAdmin();
     }
 
-    // Current public projection. A draft or retired root is not visible to
-    // students; top-level answer data is forbidden even to an admin client.
+    // Question-bank roots are an editor/server surface. Learners receive only
+    // their frozen, safe question snapshot from their own attempt; allowing
+    // direct reads here would make the full bank enumerable.
     match /{collectionName}/{questionId} {
-      allow read: if isQuestionsCollection(collectionName)
-        && (isAdmin() || resource.data.status == 'published');
+      allow read: if isQuestionsCollection(collectionName) && isAdmin();
       allow create, update: if isQuestionsCollection(collectionName) && isAdmin()
         && !request.resource.data.keys().hasAny([
           'correctAlternativeId', 'isCorrect', 'explanation'
@@ -158,8 +162,9 @@ service cloud.firestore {
     }
 
     match /{collectionName}/{templateId} {
-      allow read: if isTemplateCollection(collectionName)
-        && (isAdmin() || resource.data.status == 'published');
+      // The server owns template selection and constraints. A learner cannot
+      // enumerate templates or infer bank composition from the client.
+      allow read: if isTemplateCollection(collectionName) && isAdmin();
       allow write: if isTemplateCollection(collectionName) && isAdmin();
     }
 

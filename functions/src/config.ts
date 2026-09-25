@@ -12,6 +12,7 @@ export interface BackendCollections {
 export interface BackendConfig {
   environment: DeploymentEnvironment;
   region: string;
+  enforceAppCheck: boolean;
   collections: BackendCollections;
 }
 
@@ -48,6 +49,13 @@ const allowedEnvironments = new Set<DeploymentEnvironment>([
   "production"
 ]);
 
+function readOptionalBoolean(value: string | undefined, name: string): boolean | undefined {
+  if (value === undefined || value.trim() === "") return undefined;
+  if (value.trim().toLowerCase() === "true") return true;
+  if (value.trim().toLowerCase() === "false") return false;
+  throw new Error(`${name} must be true or false when set.`);
+}
+
 /**
  * Production deployments must name their environment explicitly. The local
  * Emulator Suite and unit tests default to `test` so they can never target a
@@ -71,9 +79,20 @@ export function readBackendConfig(
   if (!/^[a-z]+-[a-z]+\d$/.test(region)) {
     throw new Error("FUNCTIONS_REGION is not a supported region identifier.");
   }
+  // The emulator cannot mint production App Check tokens. Production protects
+  // every callable by default; non-production must opt in deliberately once
+  // its App Check provider is configured.
+  const configuredAppCheck = readOptionalBoolean(
+    env.FUNCTIONS_ENFORCE_APP_CHECK,
+    "FUNCTIONS_ENFORCE_APP_CHECK"
+  );
+  if (environment === "production" && configuredAppCheck === false) {
+    throw new Error("FUNCTIONS_ENFORCE_APP_CHECK cannot be false in production.");
+  }
   return {
     environment: environment as DeploymentEnvironment,
     region,
+    enforceAppCheck: configuredAppCheck ?? environment === "production",
     collections: collectionsByEnvironment[environment as DeploymentEnvironment]
   };
 }
