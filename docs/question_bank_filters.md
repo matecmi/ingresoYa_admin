@@ -32,7 +32,7 @@ pregunta.
 
 ## Índices declarados
 
-`firestore.indexes.json` declara las mismas siete familias para `test`,
+`firestore.indexes.json` declara las mismas diez familias para `test`,
 `staging` y producción:
 
 | Familia de índice | Filtros cubiertos |
@@ -45,6 +45,8 @@ pregunta.
 | `searchTokens CONTAINS, updatedAt` | texto o identificador por token/prefijo |
 | `partSearchTokens CONTAINS, updatedAt` | combinación de parte y texto en una sola consulta |
 | `year, updatedAt` | rango de año sin otra procedencia |
+| `status, courseId, topicId, subtopicId, partIds CONTAINS, randomKey` | selección acotada de examen por parte y punto aleatorio |
+| `status, courseId, topicId, subtopicId, sourceType, partIds CONTAINS, randomKey` | selección anterior con tipo de fuente específico |
 
 Firestore combina filtros de igualdad con estas rutas. Las familias con rango
 (`year`) y con arreglo (`partIds`, `searchTokens` o `partSearchTokens`) se declaran explícitamente

@@ -13,6 +13,11 @@ export interface BackendConfig {
   environment: DeploymentEnvironment;
   region: string;
   enforceAppCheck: boolean;
+  selection: {
+    candidateStartsPerBlock: number;
+    maxCandidatesPerStart: number;
+    recentQuestionLimit: number;
+  };
   collections: BackendCollections;
 }
 
@@ -56,6 +61,21 @@ function readOptionalBoolean(value: string | undefined, name: string): boolean |
   throw new Error(`${name} must be true or false when set.`);
 }
 
+function readBoundedPositiveInteger(
+  value: string | undefined,
+  name: string,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number {
+  if (value === undefined || value.trim() === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`);
+  }
+  return parsed;
+}
+
 /**
  * Production deployments must name their environment explicitly. The local
  * Emulator Suite and unit tests default to `test` so they can never target a
@@ -93,6 +113,29 @@ export function readBackendConfig(
     environment: environment as DeploymentEnvironment,
     region,
     enforceAppCheck: configuredAppCheck ?? environment === "production",
+    selection: {
+      candidateStartsPerBlock: readBoundedPositiveInteger(
+        env.EXAM_CANDIDATE_STARTS_PER_BLOCK,
+        "EXAM_CANDIDATE_STARTS_PER_BLOCK",
+        4,
+        1,
+        8
+      ),
+      maxCandidatesPerStart: readBoundedPositiveInteger(
+        env.EXAM_MAX_CANDIDATES_PER_START,
+        "EXAM_MAX_CANDIDATES_PER_START",
+        80,
+        20,
+        80
+      ),
+      recentQuestionLimit: readBoundedPositiveInteger(
+        env.EXAM_RECENT_QUESTION_LIMIT,
+        "EXAM_RECENT_QUESTION_LIMIT",
+        200,
+        1,
+        200
+      )
+    },
     collections: collectionsByEnvironment[environment as DeploymentEnvironment]
   };
 }

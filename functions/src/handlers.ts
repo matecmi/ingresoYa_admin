@@ -11,6 +11,7 @@ import {
 } from "./attempt_service";
 import { asHttpsError, unauthenticated } from "./errors";
 import { safeError, safeLog } from "./logging";
+import { OperationMetrics } from "./operation_metrics";
 import {
   parseCreateExamAttempt,
   parseGetExamAttempt,
@@ -34,61 +35,76 @@ export function createCallableHandlers(config: BackendConfig) {
     async createExamAttempt(
       request: CallableRequest<unknown>
     ): Promise<CreateExamAttemptResponse> {
+      const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseCreateExamAttempt(request.data);
         safeLog("exam_attempt_create_requested", uid);
-        return attempts.create(uid, input);
+        const response = await attempts.create(uid, input, metrics);
+        safeLog("exam_attempt_create_completed", uid, metrics.logFields());
+        return response;
       } catch (error) {
-        safeError("exam_attempt_create_rejected", error);
+        safeError("exam_attempt_create_rejected", error, metrics.logFields());
         throw asHttpsError(error);
       }
     },
     async getExamAttempt(request: CallableRequest<unknown>): Promise<ExamAttemptResponse> {
+      const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseGetExamAttempt(request.data);
         safeLog("exam_attempt_get_requested", uid);
-        return attempts.get(uid, input.attemptId);
+        const response = await attempts.get(uid, input.attemptId, metrics);
+        safeLog("exam_attempt_get_completed", uid, metrics.logFields());
+        return response;
       } catch (error) {
-        safeError("exam_attempt_get_rejected", error);
+        safeError("exam_attempt_get_rejected", error, metrics.logFields());
         throw asHttpsError(error);
       }
     },
     async saveExamAnswers(request: CallableRequest<unknown>): Promise<ExamAttemptResponse> {
+      const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseSaveExamAnswers(request.data);
         safeLog("exam_attempt_answers_save_requested", uid);
-        return attempts.saveAnswers(uid, input);
+        const response = await attempts.saveAnswers(uid, input, metrics);
+        safeLog("exam_attempt_answers_save_completed", uid, metrics.logFields());
+        return response;
       } catch (error) {
-        safeError("exam_attempt_answers_save_rejected", error);
+        safeError("exam_attempt_answers_save_rejected", error, metrics.logFields());
         throw asHttpsError(error);
       }
     },
     async recordPartSectionCompletion(
       request: CallableRequest<unknown>
     ): Promise<PartCompletionResponse> {
+      const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseRecordPartSectionCompletion(request.data);
         safeLog("part_section_completion_requested", uid);
-        return attempts.recordPartSectionCompletion(uid, input);
+        const response = await attempts.recordPartSectionCompletion(uid, input, metrics);
+        safeLog("part_section_completion_completed", uid, metrics.logFields());
+        return response;
       } catch (error) {
-        safeError("part_section_completion_rejected", error);
+        safeError("part_section_completion_rejected", error, metrics.logFields());
         throw asHttpsError(error);
       }
     },
     async submitExamAttempt(
       request: CallableRequest<unknown>
     ): Promise<SubmittedAttemptResponse> {
+      const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseSubmitExamAttempt(request.data);
         safeLog("exam_attempt_submit_requested", uid);
-        return attempts.submit(uid, input);
+        const response = await attempts.submit(uid, input, metrics);
+        safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
+        return response;
       } catch (error) {
-        safeError("exam_attempt_submit_rejected", error);
+        safeError("exam_attempt_submit_rejected", error, metrics.logFields());
         throw asHttpsError(error);
       }
     }

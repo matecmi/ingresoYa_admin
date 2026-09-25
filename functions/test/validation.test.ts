@@ -4,6 +4,7 @@ import test from "node:test";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { requireUid } from "../src/handlers";
+import { OperationMetrics } from "../src/operation_metrics";
 import {
   assessExamApproval,
   assessSectionCompletion,
@@ -31,6 +32,34 @@ test("maps each declared deployment environment to isolated collections", () => 
   expectConfig("test", "iya-questions-test");
   expectConfig("staging", "iya-questions-staging");
   expectConfig("production", "iya-questions");
+});
+
+test("selection cost limits have bounded, versioned defaults", () => {
+  const defaults = readBackendConfig({ INGRESOYA_ENV: "test" }).selection;
+  assert.deepEqual(defaults, {
+    candidateStartsPerBlock: 4,
+    maxCandidatesPerStart: 80,
+    recentQuestionLimit: 200
+  });
+  assert.throws(
+    () => readBackendConfig({ INGRESOYA_ENV: "test", EXAM_MAX_CANDIDATES_PER_START: "81" }),
+    /EXAM_MAX_CANDIDATES_PER_START/
+  );
+});
+
+test("operation telemetry reports only aggregate work counts", () => {
+  const metrics = new OperationMetrics();
+  metrics.readDocument(3);
+  metrics.readQuery(5);
+  metrics.writeDocument(2);
+  metrics.transactionAttempt();
+  const fields = metrics.logFields();
+  assert.equal(fields.observedDocumentReads, 8);
+  assert.equal(fields.directDocumentReads, 3);
+  assert.equal(fields.queryCalls, 1);
+  assert.equal(fields.queryDocuments, 5);
+  assert.equal(fields.plannedDocumentWrites, 2);
+  assert.equal(fields.transactionAttempts, 1);
 });
 
 test("App Check is enforced in production and can be explicitly configured per environment", () => {

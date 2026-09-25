@@ -32,6 +32,7 @@ import {
   shuffle,
   type SelectedQuestion
 } from "./selection";
+import { OperationMetrics } from "./operation_metrics";
 import type {
   CreateExamAttemptInput,
   RecordPartSectionCompletionInput,
@@ -39,9 +40,6 @@ import type {
   SubmitExamAttemptInput
 } from "./validation";
 
-const candidateStartsPerBlock = 4;
-const maxCandidatesPerStart = 80;
-const recentQuestionLimit = 200;
 const defaultAttemptDurationSeconds = 60 * 60;
 /** One changed incremental answer payload per second per attempt. */
 export const answerSaveIntervalMs = 1_000;
@@ -125,7 +123,8 @@ export class ExamAttemptService {
 
   public async create(
     uid: string,
-    input: CreateExamAttemptInput
+    input: CreateExamAttemptInput,
+    metrics: OperationMetrics = new OperationMetrics()
   ): Promise<CreateExamAttemptResponse> {
     const requestRef = this.db
       .collection(this.config.collections.users)
@@ -133,19 +132,28 @@ export class ExamAttemptService {
       .collection("examRequestKeys")
       .doc(input.requestId);
     const previous = await requestRef.get();
-    if (previous.exists) return this.responseForExisting(uid, previous.data());
+    metrics.readDocument();
+    if (previous.exists) return this.responseForExisting(uid, previous.data(), metrics);
 
     const [profile, context, template, recentExposure] = await Promise.all([
-      this.profileUniversity(uid),
-      this.partContext(uid, input.partId),
-      this.template(input.templateId),
-      this.recentExposure(uid)
+      this.profileUniversity(uid, metrics),
+      this.partContext(uid, input.partId, metrics),
+      this.template(input.templateId, metrics),
+      this.recentExposure(uid, metrics)
     ]);
     if (template.purpose !== input.purpose || template.mode !== "dynamic") {
       throw failedPrecondition("The template cannot create this type of attempt.");
     }
     const blocks = bindPartCompletionBlocks(template.blocks, context);
-    const selected = await this.select(template, blocks, profile, recentExposure, uid, input.requestId);
+    const selected = await this.select(
+      template,
+      blocks,
+      profile,
+      recentExposure,
+      uid,
+      input.requestId,
+      metrics
+    );
     const ordered = shuffle(selected, `${uid}:${input.requestId}:questions`);
     const attemptRef = this.db.collection(this.config.collections.attempts).doc();
     const now = Date.now();
@@ -159,7 +167,9 @@ export class ExamAttemptService {
     );
 
     const created = await this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
       const existing = await transaction.get(requestRef);
+      metrics.readDocument();
       if (existing.exists) return false;
       transaction.set(attemptRef, {
         schemaVersion: 2,
@@ -209,13 +219,20 @@ export class ExamAttemptService {
       }
       return true;
     });
-    if (!created) return this.responseForRequest(uid, input.requestId);
+    if (!created) return this.responseForRequest(uid, input.requestId, metrics);
+    // Attempt, idempotency key and one recent-question record per selected item.
+    metrics.writeDocument(2 + response.questions.length);
     return response;
   }
 
   /** Returns the immutable server snapshot only to its owner. */
-  public async get(uid: string, attemptId: string): Promise<ExamAttemptResponse> {
+  public async get(
+    uid: string,
+    attemptId: string,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<ExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+    metrics.readDocument();
     return this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
   }
 
@@ -225,11 +242,14 @@ export class ExamAttemptService {
    */
   public async saveAnswers(
     uid: string,
-    input: SaveExamAnswersInput
+    input: SaveExamAnswersInput,
+    metrics: OperationMetrics = new OperationMetrics()
   ): Promise<ExamAttemptResponse> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
     return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
       const attempt = await transaction.get(attemptRef);
+      metrics.readDocument();
       const current = this.readAttempt(uid, input.attemptId, attempt.exists ? attempt.data() : undefined);
       if (current.status !== "in_progress") {
         throw failedPrecondition("The exam attempt is not open.", {
@@ -258,6 +278,7 @@ export class ExamAttemptService {
         lastAnswerSaveAt: FieldValue.serverTimestamp(),
         answerRevision: FieldValue.increment(1)
       });
+      metrics.writeDocument();
       return { ...current, answers };
     });
   }
@@ -268,20 +289,23 @@ export class ExamAttemptService {
    */
   public async submit(
     uid: string,
-    input: SubmitExamAttemptInput
+    input: SubmitExamAttemptInput,
+    metrics: OperationMetrics = new OperationMetrics()
   ): Promise<SubmittedAttemptResponse> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
     return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
       const attempt = await transaction.get(attemptRef);
+      metrics.readDocument();
       const current = this.readAttempt(uid, input.attemptId, attempt.exists ? attempt.data() : undefined);
       validateAnswerPatch(current.questions, input.answers);
-      const answerKeys = await this.answerKeys(transaction, current.questions);
+      const answerKeys = await this.answerKeys(transaction, current.questions, metrics);
 
       if (current.status === "submitted") {
         const result = parseStoredResult(attempt.data()?.result, input.attemptId, current.questions.length);
         const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
         const partCompletion = purpose === "part_completion" && hasPassed(result)
-          ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId)
+          ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, metrics)
           : undefined;
         return submittedResponse(current, result, answerKeys, partCompletion);
       }
@@ -320,7 +344,7 @@ export class ExamAttemptService {
       };
       const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
       const partCompletion = grading.passed && purpose === "part_completion"
-        ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId)
+        ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, metrics)
         : undefined;
       transaction.update(attemptRef, {
         answers,
@@ -336,6 +360,7 @@ export class ExamAttemptService {
           gradedAtMs: result.gradedAtMs
         }
       });
+      metrics.writeDocument();
       return submittedResponse(
         { ...current, status: "submitted", answers },
         result,
@@ -348,11 +373,14 @@ export class ExamAttemptService {
   /** Records one server-timestamped section event and reconciles a provisional pass. */
   public async recordPartSectionCompletion(
     uid: string,
-    input: RecordPartSectionCompletionInput
+    input: RecordPartSectionCompletionInput,
+    metrics: OperationMetrics = new OperationMetrics()
   ): Promise<PartCompletionResponse> {
     const progressRef = this.progressRef(uid);
     return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
       const progress = await transaction.get(progressRef);
+      metrics.readDocument();
       if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
       const context = allowedPartContext(progress.data(), input.partId);
       if (context === undefined) {
@@ -364,23 +392,26 @@ export class ExamAttemptService {
         progress.data(),
         context,
         assessSectionCompletion(readPartProgress(partRecord(progress.data(), input.partId), context), input.section),
-        input.section
+        input.section,
+        metrics
       );
     });
   }
 
   private async responseForExisting(
     uid: string,
-    request: Record<string, unknown> | undefined
+    request: Record<string, unknown> | undefined,
+    metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attemptId = typeof request?.attemptId === "string" ? request.attemptId : "";
     if (attemptId.length === 0) throw failedPrecondition("The idempotency record is invalid.");
-    return this.responseForAttempt(uid, attemptId);
+    return this.responseForAttempt(uid, attemptId, metrics);
   }
 
   private async responseForRequest(
     uid: string,
-    requestId: string
+    requestId: string,
+    metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const request = await this.db
       .collection(this.config.collections.users)
@@ -388,14 +419,17 @@ export class ExamAttemptService {
       .collection("examRequestKeys")
       .doc(requestId)
       .get();
-    return this.responseForExisting(uid, request.data());
+    metrics.readDocument();
+    return this.responseForExisting(uid, request.data(), metrics);
   }
 
   private async responseForAttempt(
     uid: string,
-    attemptId: string
+    attemptId: string,
+    metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+    metrics.readDocument();
     const response = this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
     return {
       attemptId: response.attemptId,
@@ -419,17 +453,19 @@ export class ExamAttemptService {
 
   private async answerKeys(
     transaction: Transaction,
-    questions: readonly AttemptQuestionSnapshot[]
+    questions: readonly AttemptQuestionSnapshot[],
+    metrics: OperationMetrics
   ): Promise<FrozenAnswerKey[]> {
-    const snapshots = await Promise.all(
-      questions.map((question) =>
-        transaction.get(
-          this.db
-            .collection(this.config.collections.answerKeys)
-            .doc(`${question.questionId}_${question.version}`)
-        )
+    // One batched Firestore call avoids an N+1 network pattern. It still reads
+    // one answer-key document per frozen question, which the telemetry reports.
+    const snapshots = await transaction.getAll(
+      ...questions.map((question) =>
+        this.db
+          .collection(this.config.collections.answerKeys)
+          .doc(`${question.questionId}_${question.version}`)
       )
     );
+    metrics.readDocument(snapshots.length);
     return snapshots.map((snapshot, index) => {
       const question = questions[index];
       if (question === undefined || !snapshot.exists) {
@@ -443,12 +479,14 @@ export class ExamAttemptService {
     transaction: Transaction,
     uid: string,
     attempt: Record<string, unknown> | undefined,
-    attemptId: string
+    attemptId: string,
+    metrics: OperationMetrics
   ): Promise<PartCompletionResponse> {
     const partId = stringValue(attempt?.partId);
     if (partId === undefined) throw failedPrecondition("The stored exam attempt is invalid.");
     const progressRef = this.progressRef(uid);
     const progress = await transaction.get(progressRef);
+    metrics.readDocument();
     if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
     const context = allowedPartContext(progress.data(), partId);
     if (context === undefined) {
@@ -460,7 +498,9 @@ export class ExamAttemptService {
       progressRef,
       progress.data(),
       context,
-      assessExamApproval(state, attemptId)
+      assessExamApproval(state, attemptId),
+      undefined,
+      metrics
     );
   }
 
@@ -470,7 +510,8 @@ export class ExamAttemptService {
     progress: Record<string, unknown> | undefined,
     context: ProgressPartContext,
     assessment: PartProgressAssessment,
-    newSection?: PartSection
+    newSection?: PartSection,
+    metrics?: OperationMetrics
   ): PartCompletionResponse {
     const existing = readPartProgress(partRecord(progress, context.partId), context);
     const sectionIsNew = newSection !== undefined && !existing.completedSections.has(newSection);
@@ -513,6 +554,7 @@ export class ExamAttemptService {
       { partProgressSchemaVersion: 2, partProgress: parts, updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     );
+    metrics?.writeDocument();
     return progressResponse(context.partId, assessment);
   }
 
@@ -524,8 +566,9 @@ export class ExamAttemptService {
       .doc("current");
   }
 
-  private async profileUniversity(uid: string): Promise<string> {
+  private async profileUniversity(uid: string, metrics: OperationMetrics): Promise<string> {
     const profile = await this.db.collection(this.config.collections.users).doc(uid).get();
+    metrics.readDocument();
     const universityId = profile.data()?.universityId;
     if (!profile.exists || typeof universityId !== "string" || universityId.trim().length === 0) {
       throw failedPrecondition("The profile needs a selected university.");
@@ -533,13 +576,18 @@ export class ExamAttemptService {
     return universityId;
   }
 
-  private async partContext(uid: string, partId: string): Promise<PartContext> {
+  private async partContext(
+    uid: string,
+    partId: string,
+    metrics: OperationMetrics
+  ): Promise<PartContext> {
     const progress = await this.db
       .collection(this.config.collections.users)
       .doc(uid)
       .collection("learningProgress")
       .doc("current")
       .get();
+    metrics.readDocument();
     const allowed: unknown[] = Array.isArray(progress.data()?.allowedParts)
       ? (progress.data()!.allowedParts as unknown[])
       : [];
@@ -550,15 +598,19 @@ export class ExamAttemptService {
     if (context === undefined) {
       throw failedPrecondition("The requested part is not enabled by learning progress.");
     }
-    await this.validateCatalogPart(context);
+    await this.validateCatalogPart(context, metrics);
     return context;
   }
 
-  private async validateCatalogPart(context: PartContext): Promise<void> {
+  private async validateCatalogPart(
+    context: PartContext,
+    metrics: OperationMetrics
+  ): Promise<void> {
     const course = this.db.collection(this.config.collections.courses).doc(context.courseId);
     const topic = course.collection("topics").doc(context.topicId);
     const subtopic = topic.collection("subtopics").doc(context.subtopicId);
     const [courseDoc, topicDoc, subtopicDoc] = await Promise.all([course.get(), topic.get(), subtopic.get()]);
+    metrics.readDocument(3);
     const parts: unknown[] = Array.isArray(subtopicDoc.data()?.listPart)
       ? (subtopicDoc.data()!.listPart as unknown[])
       : [];
@@ -581,19 +633,21 @@ export class ExamAttemptService {
     }
   }
 
-  private async template(templateId: string): Promise<ExamTemplateRecord> {
+  private async template(templateId: string, metrics: OperationMetrics): Promise<ExamTemplateRecord> {
     const snapshot = await this.db.collection(this.config.collections.templates).doc(templateId).get();
+    metrics.readDocument();
     if (!snapshot.exists) throw notFound("Exam template not found.");
     return parseTemplate(snapshot.data()!, templateId);
   }
 
-  private async recentExposure(uid: string): Promise<Map<string, number>> {
+  private async recentExposure(uid: string, metrics: OperationMetrics): Promise<Map<string, number>> {
     const snapshots = await this.db
       .collection(this.config.collections.users)
       .doc(uid)
       .collection("recentQuestions")
-      .limit(recentQuestionLimit)
+      .limit(this.config.selection.recentQuestionLimit)
       .get();
+    metrics.readQuery(snapshots.size);
     return new Map(
       snapshots.docs.map((document) => [
         document.id,
@@ -608,12 +662,18 @@ export class ExamAttemptService {
     profileUniversityId: string,
     recentExposure: ReadonlyMap<string, number>,
     uid: string,
-    requestId: string
+    requestId: string,
+    metrics: OperationMetrics
   ): Promise<SelectedQuestion[]> {
     const selected: SelectedQuestion[] = [];
     const selectedIds = new Set<string>();
     for (const [index, block] of blocks.entries()) {
-      const candidates = await this.candidates(block.filter, `${uid}:${requestId}:${index}`, block.count);
+      const candidates = await this.candidates(
+        block.filter,
+        `${uid}:${requestId}:${index}`,
+        block.count,
+        metrics
+      );
       const picked = chooseQuestions({
         candidates,
         selectedIds,
@@ -635,19 +695,32 @@ export class ExamAttemptService {
   private async candidates(
     filter: ReturnType<typeof bindPartCompletionBlocks>[number]["filter"],
     seed: string,
-    required: number
+    required: number,
+    metrics: OperationMetrics
   ): Promise<CandidateQuestion[]> {
-    const limit = Math.min(maxCandidatesPerStart, Math.max(20, required * 8));
+    const limit = Math.min(
+      this.config.selection.maxCandidatesPerStart,
+      Math.max(20, required * 8)
+    );
     const found = new Map<string, CandidateQuestion>();
-    for (const start of randomStarts(seed, candidateStartsPerBlock)) {
-      const snapshot = await this.db
+    for (const start of randomStarts(seed, this.config.selection.candidateStartsPerBlock)) {
+      let query = this.db
         .collection(this.config.collections.questions)
         .where("status", "==", "published")
+        .where("courseId", "==", filter.courseId)
+        .where("topicId", "==", filter.topicId)
+        .where("subtopicId", "==", filter.subtopicId)
         .where("partIds", "array-contains", filter.partId)
         .where("randomKey", ">=", start)
-        .orderBy("randomKey")
-        .limit(limit)
-        .get();
+        .orderBy("randomKey");
+      // Source type is a compact, indexed equality filter. Other optional
+      // source metadata remains a bounded in-memory predicate to avoid a
+      // combinatorial index matrix.
+      if (filter.sourceType !== "any") {
+        query = query.where("sourceType", "==", filter.sourceType);
+      }
+      const snapshot = await query.limit(limit).get();
+      metrics.readQuery(snapshot.size);
       for (const document of snapshot.docs) {
         const parsed = parseCandidateQuestion(document.id, document.data());
         if (parsed !== undefined) found.set(parsed.questionId, parsed);
