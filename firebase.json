@@ -3,26 +3,28 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "ingresoya-fb6a6",
-          "appId": "1:576761570066:android:82d1b6ac6ec56b3d88c9cb",
+          "projectId": "ingresoya-e5115",
+          "appId": "1:377388184823:android:ed9023b54142b537d98ff2",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "ingresoya-fb6a6",
+          "projectId": "ingresoya-e5115",
           "configurations": {
-            "android": "1:576761570066:android:82d1b6ac6ec56b3d88c9cb",
-            "ios": "1:576761570066:ios:137b610fbe62b01d88c9cb",
-            "macos": "1:576761570066:ios:137b610fbe62b01d88c9cb",
-            "web": "1:576761570066:web:e6f66177a94638cc88c9cb",
-            "windows": "1:576761570066:web:5f3ebfaa067d28be88c9cb"
+            "android": "1:377388184823:android:ed9023b54142b537d98ff2",
+            "ios": "1:377388184823:ios:ee3156ca1e5ee343d98ff2",
+            "macos": "1:377388184823:ios:ee3156ca1e5ee343d98ff2",
+            "web": "1:377388184823:web:b20f322549797fd4d98ff2",
+            "windows": "1:377388184823:web:2ee0da49c7cfda88d98ff2"
           }
         }
       }
     }
   },
-  "storage": { "rules": "storage.rules" },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "functions": [
     {
       "source": "functions",
@@ -39,11 +41,22 @@
     "indexes": "firestore.indexes.json"
   },
   "emulators": {
-    "auth": { "port": 9099 },
-    "firestore": { "port": 8080 },
-    "storage": { "port": 9199 },
-    "functions": { "port": 5001 },
-    "ui": { "enabled": true, "port": 4000 },
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "functions": {
+      "port": 5001
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
     "singleProjectMode": true
   }
 }
