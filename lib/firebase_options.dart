@@ -41,48 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCJgKqlqgny9peLHRbXhpPiGhOfWXFQ_dQ',
-    appId: '1:576761570066:web:e6f66177a94638cc88c9cb',
-    messagingSenderId: '576761570066',
-    projectId: 'ingresoya-fb6a6',
-    authDomain: 'ingresoya-fb6a6.firebaseapp.com',
-    storageBucket: 'ingresoya-fb6a6.firebasestorage.app',
-    measurementId: 'G-YLK4DY6F49',
+    apiKey: 'AIzaSyCvv5hAu77EL7VIXkmt54BdHx_53W9J9cQ',
+    appId: '1:377388184823:web:b20f322549797fd4d98ff2',
+    messagingSenderId: '377388184823',
+    projectId: 'ingresoya-e5115',
+    authDomain: 'ingresoya-e5115.firebaseapp.com',
+    storageBucket: 'ingresoya-e5115.firebasestorage.app',
+    measurementId: 'G-KDP155BQR8',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCP_36m3MFnfJ-MQLmyGcB--OK85yKgD7Y',
-    appId: '1:576761570066:android:82d1b6ac6ec56b3d88c9cb',
-    messagingSenderId: '576761570066',
-    projectId: 'ingresoya-fb6a6',
-    storageBucket: 'ingresoya-fb6a6.firebasestorage.app',
+    apiKey: 'AIzaSyBVpgV8_PlZGACefITx9fmhQZKU8yoPXjo',
+    appId: '1:377388184823:android:ed9023b54142b537d98ff2',
+    messagingSenderId: '377388184823',
+    projectId: 'ingresoya-e5115',
+    storageBucket: 'ingresoya-e5115.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB3-tVf1rinQYZ8l3iB6dBfm3l9bHxGgRM',
-    appId: '1:576761570066:ios:137b610fbe62b01d88c9cb',
-    messagingSenderId: '576761570066',
-    projectId: 'ingresoya-fb6a6',
-    storageBucket: 'ingresoya-fb6a6.firebasestorage.app',
+    apiKey: 'AIzaSyCalkid6O8DdZqXRTSNdts6w7JnkI4unc8',
+    appId: '1:377388184823:ios:ee3156ca1e5ee343d98ff2',
+    messagingSenderId: '377388184823',
+    projectId: 'ingresoya-e5115',
+    storageBucket: 'ingresoya-e5115.firebasestorage.app',
     iosBundleId: 'com.example.ingresoyaAdmin',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB3-tVf1rinQYZ8l3iB6dBfm3l9bHxGgRM',
-    appId: '1:576761570066:ios:137b610fbe62b01d88c9cb',
-    messagingSenderId: '576761570066',
-    projectId: 'ingresoya-fb6a6',
-    storageBucket: 'ingresoya-fb6a6.firebasestorage.app',
+    apiKey: 'AIzaSyCalkid6O8DdZqXRTSNdts6w7JnkI4unc8',
+    appId: '1:377388184823:ios:ee3156ca1e5ee343d98ff2',
+    messagingSenderId: '377388184823',
+    projectId: 'ingresoya-e5115',
+    storageBucket: 'ingresoya-e5115.firebasestorage.app',
     iosBundleId: 'com.example.ingresoyaAdmin',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCJgKqlqgny9peLHRbXhpPiGhOfWXFQ_dQ',
-    appId: '1:576761570066:web:5f3ebfaa067d28be88c9cb',
-    messagingSenderId: '576761570066',
-    projectId: 'ingresoya-fb6a6',
-    authDomain: 'ingresoya-fb6a6.firebaseapp.com',
-    storageBucket: 'ingresoya-fb6a6.firebasestorage.app',
-    measurementId: 'G-39Z5PY4R4J',
+    apiKey: 'AIzaSyCvv5hAu77EL7VIXkmt54BdHx_53W9J9cQ',
+    appId: '1:377388184823:web:2ee0da49c7cfda88d98ff2',
+    messagingSenderId: '377388184823',
+    projectId: 'ingresoya-e5115',
+    authDomain: 'ingresoya-e5115.firebaseapp.com',
+    storageBucket: 'ingresoya-e5115.firebasestorage.app',
+    measurementId: 'G-2JL6YZ28HY',
   );
 }
