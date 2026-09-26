@@ -102,103 +102,106 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               ),
             ],
           ),
-          child: ListView(
-            controller: scroll,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              _topBar(isEdit),
-              const SizedBox(height: 10),
-
-              // ✅ Compact sections
-              _sectionTitle('Datos principales'),
-              const SizedBox(height: 10),
-
-              LayoutBuilder(
-                builder: (context, c) {
-                  final twoCols = c.maxWidth >= 720; // web/tablet
-                  if (!twoCols) {
-                    return Column(
+          child: Form(
+             key: _formKey,
+            child: ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                _topBar(isEdit),
+                const SizedBox(height: 10),
+            
+                // ✅ Compact sections
+                _sectionTitle('Datos principales'),
+                const SizedBox(height: 10),
+            
+                LayoutBuilder(
+                  builder: (context, c) {
+                    final twoCols = c.maxWidth >= 720; // web/tablet
+                    if (!twoCols) {
+                      return Column(
+                        children: [
+                          _tf(name, 'Nombre *', requiredField: true),
+                          _row2(
+                            _tf(acronym, 'Sigla', requiredField: false),
+                            _activePill(),
+                          ),
+                          _tf(slogan, 'Slogan'),
+                        ],
+                      );
+                    }
+            
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _tf(name, 'Nombre *', requiredField: true),
-                        _row2(
-                          _tf(acronym, 'Sigla', requiredField: false),
-                          _activePill(),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _tf(name, 'Nombre *', requiredField: true),
+                              _tf(slogan, 'Slogan'),
+                            ],
+                          ),
                         ),
-                        _tf(slogan, 'Slogan'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _tf(acronym, 'Sigla'),
+                              _activePill(),
+                            ],
+                          ),
+                        ),
                       ],
                     );
-                  }
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _tf(name, 'Nombre *', requiredField: true),
-                            _tf(slogan, 'Slogan'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _tf(acronym, 'Sigla'),
-                            _activePill(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-              _sectionTitle('Ubicación'),
-              const SizedBox(height: 10),
-
-              LayoutBuilder(
-                builder: (context, c) {
-                  final twoCols = c.maxWidth >= 720;
-                  if (!twoCols) {
+                  },
+                ),
+            
+                const SizedBox(height: 12),
+                _sectionTitle('Ubicación'),
+                const SizedBox(height: 10),
+            
+                LayoutBuilder(
+                  builder: (context, c) {
+                    final twoCols = c.maxWidth >= 720;
+                    if (!twoCols) {
+                      return Column(
+                        children: [
+                          _tf(department, 'Departamento'),
+                          _tf(province, 'Provincia'),
+                          _tf(district, 'Distrito'),
+                          _tf(ubigeo, 'Ubigeo'),
+                          _tf(location, 'Location'),
+                        ],
+                      );
+                    }
+            
                     return Column(
                       children: [
-                        _tf(department, 'Departamento'),
-                        _tf(province, 'Provincia'),
-                        _tf(district, 'Distrito'),
-                        _tf(ubigeo, 'Ubigeo'),
+                        _row2(_tf(department, 'Departamento'), _tf(province, 'Provincia')),
+                        _row2(_tf(district, 'Distrito'), _tf(ubigeo, 'Ubigeo')),
                         _tf(location, 'Location'),
                       ],
                     );
-                  }
-
-                  return Column(
-                    children: [
-                      _row2(_tf(department, 'Departamento'), _tf(province, 'Provincia')),
-                      _row2(_tf(district, 'Distrito'), _tf(ubigeo, 'Ubigeo')),
-                      _tf(location, 'Location'),
-                    ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-              _sectionTitle('Contacto / Media'),
-              const SizedBox(height: 10),
-              _tf(address, 'Dirección'),
-              _tf(urlImage, 'URL Imagen'),
-
-              const SizedBox(height: 12),
-              _linksEditor(),
-
-              const SizedBox(height: 16),
-              _primaryActions(isEdit),
-
-              const SizedBox(height: 18),
-              _jsonImportSection(isEdit),
-            ],
+                  },
+                ),
+            
+                const SizedBox(height: 12),
+                _sectionTitle('Contacto / Media'),
+                const SizedBox(height: 10),
+                _tf(address, 'Dirección'),
+                _tf(urlImage, 'URL Imagen'),
+            
+                const SizedBox(height: 12),
+                _linksEditor(),
+            
+                const SizedBox(height: 16),
+                _primaryActions(isEdit),
+            
+                const SizedBox(height: 18),
+                _jsonImportSection(isEdit),
+              ],
+            ),
           ),
         );
       },
@@ -689,6 +692,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
   }
 
   Future<void> _save() async {
+    debugPrint('_formKey.currentState = ${_formKey.currentState}');
     if (!_formKey.currentState!.validate()) return;
 
     final repo = ref.read(universityRepoProvider);
