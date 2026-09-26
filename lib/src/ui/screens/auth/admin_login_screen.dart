@@ -12,45 +12,8 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
   var _saving = false;
   var _error = '';
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  Future<void> _signIn() async {
-    final email = _email.text.trim();
-    final password = _password.text;
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Ingresa tu correo y contraseña.');
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _error = '';
-    });
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-    } on FirebaseAuthException catch (error) {
-      setState(() => _error = _messageFor(error));
-    } catch (_) {
-      setState(
-        () => _error = 'No fue posible iniciar sesión. Inténtalo otra vez.',
-      );
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
 
   Future<void> _signInWithGoogle() async {
     setState(() {
@@ -92,12 +55,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   String _messageFor(FirebaseAuthException error) {
     switch (error.code) {
-      case 'invalid-email':
-        return 'El correo no tiene un formato válido.';
-      case 'invalid-credential':
-      case 'user-not-found':
-      case 'wrong-password':
-        return 'El correo o la contraseña son incorrectos.';
       case 'too-many-requests':
         return 'Demasiados intentos. Espera unos minutos e inténtalo otra vez.';
       case 'popup-closed-by-user':
@@ -138,33 +95,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Inicia sesión con una cuenta administradora.',
+                    'Ingresa con Google. Solo las cuentas autorizadas pueden acceder al panel.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .65),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.username],
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _password,
-                    obscureText: true,
-                    onSubmitted: (_) => _saving ? null : _signIn(),
-                    autofillHints: const [AutofillHints.password],
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: Icon(Icons.lock_outline_rounded),
-                    ),
-                  ),
                   if (_error.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
@@ -173,31 +110,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: _saving ? null : _signIn,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.login_rounded),
-                    label: Text(_saving ? 'Ingresando...' : 'Ingresar'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
                   if (kIsWeb) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
+                    ElevatedButton.icon(
                       onPressed: _saving ? null : _signInWithGoogle,
-                      icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-                      label: const Text('Continuar con Google'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.g_mobiledata_rounded, size: 28),
+                      label: Text(
+                        _saving ? 'Abriendo Google...' : 'Continuar con Google',
                       ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppTheme.accent,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ] else ...[
+                    const Text(
+                      'El acceso administrativo con Google está disponible en la versión web.',
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ],
