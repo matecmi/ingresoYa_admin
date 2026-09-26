@@ -26,6 +26,7 @@ class CourseRepo {
           name: (x['name'] ?? '').toString(),
           description: (x['description'] ?? '').toString(),
           topics: const [],
+          active: _toBool(x['active']),
         );
       }).toList();
     });
@@ -90,6 +91,7 @@ class CourseRepo {
               : int.tryParse(x['order'].toString()) ?? 0,
           summary: (x['summary'] ?? '').toString(),
           subtopics: const [],
+          active: _toBool(x['active']),
         );
       }).toList();
     });
@@ -172,6 +174,7 @@ class CourseRepo {
                 externalLinks: _toMapList(p['externalLinks']),
                 flashcards: _toMapList(p['flashcards']),
                 quizQuestions: _toMapList(p['quizQuestions']),
+                active: _toBool(p['active']),
               ),
             )
             .toList();
@@ -184,6 +187,7 @@ class CourseRepo {
           order: (x['order'] ?? '').toString(),
           linkVideo: (x['linkVideo'] ?? '').toString(),
           listPart: parts,
+          active: _toBool(x['active']),
         );
       }).toList();
     });

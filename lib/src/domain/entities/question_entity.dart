@@ -14,10 +14,27 @@ class QuestionEntity {
   final String topicId;
   final String topicName;
 
+  final String subtopicId;
+  final String subtopicName;
+  final List<String> partIds;
+  final Map<String, String> partNames;
+
   final String courseId;
   final String courseName;
 
   final String examId; // puede ser ""
+  final String difficulty;
+  final int? originalNumber;
+  final String editorialStatus;
+  final int version;
+  final String sourceType;
+  final String sourceLabel;
+  final String universityId;
+  final String modalityId;
+  final int? year;
+  final String period;
+  final DateTime? updatedAt;
+  final List<String> editorialWarnings;
 
   final List<AlternativeEntity> alternatives; // en lista lo dejamos vacío
 
@@ -32,6 +49,22 @@ class QuestionEntity {
     required this.courseName,
     required this.examId,
     required this.alternatives,
+    this.difficulty = 'unknown',
+    this.originalNumber,
+    this.editorialStatus = 'draft',
+    this.version = 1,
+    this.sourceType = 'unknown',
+    this.sourceLabel = '',
+    this.universityId = '',
+    this.modalityId = '',
+    this.year,
+    this.period = '',
+    this.updatedAt,
+    this.editorialWarnings = const [],
+    this.subtopicId = '',
+    this.subtopicName = '',
+    this.partIds = const [],
+    this.partNames = const {},
     this.label,
     this.editorContent,
     this.admissionExam,

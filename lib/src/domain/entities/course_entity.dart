@@ -5,6 +5,7 @@ class CourseEntity {
   final String idDoc;
   final String name;
   final String description;
+  final bool active;
   final List<TopicEntity> topics;
 
   const CourseEntity({
@@ -13,5 +14,6 @@ class CourseEntity {
     required this.name,
     required this.description,
     required this.topics,
+    this.active = true,
   });
 }

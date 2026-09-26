@@ -26,11 +26,13 @@ class QuestionImageStore {
     frame.image.dispose();
     codec.dispose();
     final ref = FirebaseStorage.instance.ref(
-      'question-editor/${const Uuid().v4()}.$ext',
+      // Persist a Storage path in v2 content. Download URLs carry a token and
+      // would bypass Storage Rules if copied into a public question document.
+      'question-public/drafts/${const Uuid().v4()}.$ext',
     );
     await ref.putData(bytes, SettableMetadata(contentType: mime));
     return {
-      'url': await ref.getDownloadURL(),
+      'storagePath': ref.fullPath,
       'width': width,
       'height': height,
     };

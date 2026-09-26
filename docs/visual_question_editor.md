@@ -42,13 +42,18 @@
 
 ## Imágenes e infraestructura
 
-La carga usa Firebase Storage en `question-editor/<uuid>.<ext>` y conserva una URL
-de descarga en el bloque (permitida por el contrato). Los nombres son inmutables para
-que reemplazar y deshacer no rompan otras preguntas. La URL es de acceso por token;
-no debe tratarse como un secreto o como protección de la respuesta.
+Las imágenes nuevas se cargan en Firebase Storage bajo
+`question-public/drafts/<uuid>.<ext>` y el bloque v2 conserva solo `storagePath`.
+La vista obtiene la URL temporal en tiempo de lectura, después de que Storage Rules
+autorice al usuario autenticado. Así no se persiste un token de descarga que pudiera
+convertir una ruta privada en pública. Los nombres son inmutables para que reemplazar
+y deshacer no rompan otras preguntas. Las rutas históricas `question-editor/<uuid>`
+permanecen privadas y solo se muestran a administradores durante la migración.
 
-Se incluyen `storage.rules` (carga exclusiva de administradores con claim `admin`)
-y reglas Firestore para la colección editorial privada. **No se despliegan reglas
+Se incluyen `storage.rules`: carga exclusiva de administradores con claim `admin`,
+PNG/JPEG/WebP y máximo 5 MB; lectura de contenido público solo para usuarios
+autenticados; y sin regla genérica para archivos privados. También hay reglas
+Firestore para la colección editorial privada. **No se despliegan reglas
 automáticamente.** Es necesario habilitar Storage y revisar/desplegar estas reglas
 en el entorno Firebase elegido antes de verificar cargas reales.
 Si el proyecto ya tiene reglas de Storage para otras carpetas, integrar esta regla

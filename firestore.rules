@@ -11,7 +11,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
+      return signedIn()
+        && request.auth.token.keys().hasAll(['admin'])
+        && request.auth.token.admin == true;
     }
 
     function isCatalog(collectionName) {
@@ -35,6 +37,14 @@ service cloud.firestore {
         'iya-question-answer-keys-test',
         'iya-question-answer-keys-staging',
         'iya-question-answer-keys'
+      ];
+    }
+
+    function isQuestionMigrationRunCollection(collectionName) {
+      return collectionName in [
+        'iya-question-migration-runs-test',
+        'iya-question-migration-runs-staging',
+        'iya-question-migration-runs'
       ];
     }
 
@@ -70,15 +80,17 @@ service cloud.firestore {
 
     // Conventional catalogs, including nested course/university catalogs.
     match /{catalog}/{document=**} {
-      allow read: if isCatalog(catalog);
+      // Catalogs are needed by a signed-in learner to browse published
+      // questions, but are not an anonymous data export surface.
+      allow read: if signedIn() && isCatalog(catalog);
       allow write: if isCatalog(catalog) && isAdmin();
     }
 
-    // Current public projection. A draft or retired root is not visible to
-    // students; top-level answer data is forbidden even to an admin client.
+    // Question-bank roots are an editor/server surface. Learners receive only
+    // their frozen, safe question snapshot from their own attempt; allowing
+    // direct reads here would make the full bank enumerable.
     match /{collectionName}/{questionId} {
-      allow read: if isQuestionsCollection(collectionName)
-        && (isAdmin() || resource.data.status == 'published');
+      allow read: if isQuestionsCollection(collectionName) && isAdmin();
       allow create, update: if isQuestionsCollection(collectionName) && isAdmin()
         && !request.resource.data.keys().hasAny([
           'correctAlternativeId', 'isCorrect', 'explanation'
@@ -114,21 +126,45 @@ service cloud.firestore {
         && request.resource.data.version is int
         && (
           (collectionName == 'iya-question-answer-keys-test'
-            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions-test/$(request.resource.data.questionId)).data.version == request.resource.data.version)
           || (collectionName == 'iya-question-answer-keys-staging'
-            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions-staging/$(request.resource.data.questionId)).data.version == request.resource.data.version)
           || (collectionName == 'iya-question-answer-keys'
-            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
-            && get(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
+            && getAfter(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.status == 'draft'
+            && getAfter(/databases/$(database)/documents/iya-questions/$(request.resource.data.questionId)).data.version == request.resource.data.version)
         );
-      allow delete: if false;
+      // Clearing the correct answer is allowed only while the corresponding
+      // draft is still current. Published and historical keys stay immutable.
+      allow delete: if isAnswerKeyCollection(collectionName)
+        && resource.data.questionId is string
+        && resource.data.version is int
+        && (
+          (collectionName == 'iya-question-answer-keys-test'
+            && get(/databases/$(database)/documents/iya-questions-test/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-test/$(resource.data.questionId)).data.version == resource.data.version)
+          || (collectionName == 'iya-question-answer-keys-staging'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions-staging/$(resource.data.questionId)).data.version == resource.data.version)
+          || (collectionName == 'iya-question-answer-keys'
+            && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.status == 'draft'
+            && get(/databases/$(database)/documents/iya-questions/$(resource.data.questionId)).data.version == resource.data.version)
+        );
+    }
+
+    // Dry-run reports contain editorial diagnostics and logical-backup
+    // metadata. They are never visible to learners and can only be changed by
+    // an authenticated admin running the migration process.
+    match /{collectionName}/{runId}/{document=**} {
+      allow read, write: if isQuestionMigrationRunCollection(collectionName)
+        && isAdmin();
     }
 
     match /{collectionName}/{templateId} {
-      allow read: if isTemplateCollection(collectionName)
-        && (isAdmin() || resource.data.status == 'published');
+      // The server owns template selection and constraints. A learner cannot
+      // enumerate templates or infer bank composition from the client.
+      allow read: if isTemplateCollection(collectionName) && isAdmin();
       allow write: if isTemplateCollection(collectionName) && isAdmin();
     }
 
@@ -156,7 +192,8 @@ service cloud.firestore {
       allow read, create, update, delete:
         if isProfileCollection(profiles) && isOwner(userId)
           && subcollection != 'examRequestKeys'
-          && subcollection != 'recentQuestions';
+          && subcollection != 'recentQuestions'
+          && subcollection != 'learningProgress';
     }
 
     // These records are server-owned: request IDs provide idempotency and
@@ -166,6 +203,12 @@ service cloud.firestore {
     }
 
     match /{profiles}/{userId}/recentQuestions/{questionId} {
+      allow read, write: if false;
+    }
+
+    // Learning unlocks are server-owned. The exam generator validates the
+    // allowed part context against this progress and the course hierarchy.
+    match /{profiles}/{userId}/learningProgress/{document=**} {
       allow read, write: if false;
     }
   }

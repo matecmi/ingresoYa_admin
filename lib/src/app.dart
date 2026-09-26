@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ingresoya_admin/src/ui/screens/auth/admin_login_screen.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/courses_screen.dart';
 import 'package:ingresoya_admin/src/ui/screens/question/questions_screen.dart';
+import 'package:ingresoya_admin/src/ui/screens/templates/exam_templates_screen.dart';
 
 import 'ui/screens/dashboard_shell.dart';
 import 'ui/screens/universities/universities_screen.dart';
@@ -84,6 +85,11 @@ class _AdminRouter extends StatelessWidget {
               path: '/questions',
               pageBuilder: (context, state) =>
                   const NoTransitionPage(child: QuestionsScreen()),
+            ),
+            GoRoute(
+              path: '/exam-templates',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: ExamTemplatesScreen()),
             ),
           ],
         ),

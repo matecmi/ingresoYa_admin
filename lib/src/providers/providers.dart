@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/repo/admission_exam_repo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/data/repo/course_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/exam_template_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/profession_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/question_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/publishable_question_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/university_repo.dart';
 
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
@@ -30,6 +32,16 @@ final questionRepoProvider = Provider<QuestionRepo>((ref) {
   return QuestionRepo(ref.watch(firestoreProvider));
 });
 
+final publishableQuestionRepoProvider = Provider<PublishableQuestionRepo>((
+  ref,
+) {
+  return PublishableQuestionRepo(ref.watch(firestoreProvider));
+});
+
 final admissionExamRepoProvider = Provider<AdmissionExamRepo>(
   (ref) => AdmissionExamRepo(ref.watch(firestoreProvider)),
+);
+
+final examTemplateRepoProvider = Provider<ExamTemplateRepo>(
+  (ref) => ExamTemplateRepo(ref.watch(firestoreProvider)),
 );

@@ -249,6 +249,19 @@ void main() {
       ],
     });
     expect(fixed.fixedQuestions.single.version, 1);
+    final editorial = ExamTemplate.fromJson({
+      ...t,
+      'description': 'Razonamiento Matemático UNPRG',
+      'priorityUniversityId': 'university-demo',
+      'active': false,
+    });
+    expect(editorial.description, 'Razonamiento Matemático UNPRG');
+    expect(editorial.priorityUniversityId, 'university-demo');
+    expect(editorial.active, isFalse);
+    expect(
+      () => ExamTemplate.fromJson({...t, 'active': 'yes'}),
+      throwsFormatException,
+    );
   });
 
   test('8/10 fails, 9/10 passes without rounding threshold errors', () {

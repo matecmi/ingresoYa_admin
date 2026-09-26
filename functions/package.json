@@ -1,0 +1,29 @@
+{
+  "name": "ingresoya-exam-functions",
+  "private": true,
+  "main": "lib/src/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint --max-warnings=0 src test",
+    "test": "npm run build && node --test lib/test/validation.test.js",
+    "fixtures:emulators": "npm run build && node lib/scripts/load_emulator_fixtures.js",
+    "emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:start --only auth,firestore,storage,functions",
+    "test:emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:exec --only auth,firestore,storage \"node --test --test-concurrency=1 lib/test/rules.emulator.test.js lib/test/attempt_service.emulator.test.js\""
+  },
+  "dependencies": {
+    "firebase-admin": "13.6.0",
+    "firebase-functions": "7.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@types/node": "22.19.7",
+    "eslint": "10.11.0",
+    "firebase": "^12.9.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.56.1"
+  }
+}
