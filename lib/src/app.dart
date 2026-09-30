@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ingresoya_admin/src/ui/screens/auth/admin_login_screen.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/courses_screen.dart';
+import 'package:ingresoya_admin/src/ui/screens/professions/professions_screen.dart';
 import 'package:ingresoya_admin/src/ui/screens/question/questions_screen.dart';
 import 'package:ingresoya_admin/src/ui/screens/templates/exam_templates_screen.dart';
 
@@ -80,6 +81,11 @@ class _AdminRouter extends StatelessWidget {
               path: '/courses',
               pageBuilder: (context, state) =>
                   const NoTransitionPage(child: CoursesScreen()),
+            ),
+            GoRoute(
+              path: '/professions',
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: ProfessionsScreen()),
             ),
             GoRoute(
               path: '/questions',
