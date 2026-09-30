@@ -569,9 +569,21 @@ export class ExamAttemptService {
   private async profileUniversity(uid: string, metrics: OperationMetrics): Promise<string> {
     const profile = await this.db.collection(this.config.collections.users).doc(uid).get();
     metrics.readDocument();
-    const universityId = profile.data()?.universityId;
-    if (!profile.exists || typeof universityId !== "string" || universityId.trim().length === 0) {
-      throw failedPrecondition("The profile needs a selected university.");
+    const data = profile.data();
+    const nested = asRecord(data?.profile);
+    // The app historically stored its editable profile inside `profile` while
+    // Functions originally expected a server projection at the document root.
+    // Prefer the Firestore document ID, since question classifications use it.
+    const universityId = firstIdentifier(
+      data?.universityIdDoc,
+      data?.universityId,
+      nested?.universityIdDoc,
+      nested?.universityId
+    );
+    if (!profile.exists || universityId === undefined) {
+      throw failedPrecondition("The profile needs a selected university.", {
+        reason: "profile_incomplete"
+      });
     }
     return universityId;
   }
@@ -588,18 +600,74 @@ export class ExamAttemptService {
       .doc("current")
       .get();
     metrics.readDocument();
-    const allowed: unknown[] = Array.isArray(progress.data()?.allowedParts)
-      ? (progress.data()!.allowedParts as unknown[])
-      : [];
-    const raw = allowed.find(
-      (entry: unknown) => entry !== null && typeof entry === "object" && (entry as { partId?: unknown }).partId === partId
-    ) as Record<string, unknown> | undefined;
-    const context = raw === undefined ? undefined : parsePartContext(raw);
-    if (context === undefined) {
-      throw failedPrecondition("The requested part is not enabled by learning progress.");
+    const rawAllowedParts = progress.data()?.allowedParts;
+    if (Array.isArray(rawAllowedParts)) {
+      const raw = rawAllowedParts.find(
+        (entry: unknown) =>
+          entry !== null &&
+          typeof entry === "object" &&
+          (entry as { partId?: unknown }).partId === partId
+      ) as Record<string, unknown> | undefined;
+      const context = raw === undefined ? undefined : parsePartContext(raw);
+      if (context === undefined) {
+        throw failedPrecondition("The requested part is not enabled by learning progress.", {
+          reason: "part_not_enabled"
+        });
+      }
+      await this.validateCatalogPart(context, metrics);
+      return context;
     }
+
+    // Legacy profiles do not yet have a server-owned allowedParts projection.
+    // Derive its context exclusively from a published public question and then
+    // validate the active catalog hierarchy. No academic IDs are accepted from
+    // the client, and an explicitly configured allowedParts list remains a
+    // strict authorization boundary.
+    const context = await this.legacyPartContext(partId, metrics);
     await this.validateCatalogPart(context, metrics);
     return context;
+  }
+
+  private async legacyPartContext(
+    partId: string,
+    metrics: OperationMetrics
+  ): Promise<PartContext> {
+    const snapshot = await this.db
+      .collection(this.config.collections.questions)
+      .where("partIds", "array-contains", partId)
+      .limit(20)
+      .get();
+    metrics.readQuery(snapshot.size);
+
+    const contexts = new Map<string, PartContext>();
+    for (const document of snapshot.docs) {
+      const question = parseCandidateQuestion(document.id, document.data());
+      if (
+        question === undefined ||
+        !question.partIds.includes(partId) ||
+        question.courseId.length === 0 ||
+        question.topicId.length === 0 ||
+        question.subtopicId.length === 0
+      ) {
+        continue;
+      }
+      const context = {
+        partId,
+        courseId: question.courseId,
+        topicId: question.topicId,
+        subtopicId: question.subtopicId
+      };
+      contexts.set(
+        `${context.courseId}:${context.topicId}:${context.subtopicId}`,
+        context
+      );
+    }
+    if (contexts.size !== 1) {
+      throw failedPrecondition("The requested part is not available in the published catalog.", {
+        reason: contexts.size === 0 ? "part_not_available" : "part_context_ambiguous"
+      });
+    }
+    return [...contexts.values()][0]!;
   }
 
   private async validateCatalogPart(
@@ -1127,6 +1195,19 @@ export function validateAnswerPatch(
 
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function firstIdentifier(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  }
+  return undefined;
 }
 
 function arrayValue(value: unknown): unknown[] | undefined {
