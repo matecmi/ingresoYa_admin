@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,6 +41,8 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
   final _jsonCtrl = TextEditingController();
   int _jsonValidCount = 0;
   String? _jsonError;
+  bool _saving = false;
+  String? _saveError;
 
   @override
   void initState() {
@@ -103,7 +106,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             ],
           ),
           child: Form(
-             key: _formKey,
+            key: _formKey,
             child: ListView(
               controller: scroll,
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
@@ -111,11 +114,11 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               children: [
                 _topBar(isEdit),
                 const SizedBox(height: 10),
-            
+
                 // ✅ Compact sections
                 _sectionTitle('Datos principales'),
                 const SizedBox(height: 10),
-            
+
                 LayoutBuilder(
                   builder: (context, c) {
                     final twoCols = c.maxWidth >= 720; // web/tablet
@@ -131,7 +134,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         ],
                       );
                     }
-            
+
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -146,21 +149,18 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            children: [
-                              _tf(acronym, 'Sigla'),
-                              _activePill(),
-                            ],
+                            children: [_tf(acronym, 'Sigla'), _activePill()],
                           ),
                         ),
                       ],
                     );
                   },
                 ),
-            
+
                 const SizedBox(height: 12),
                 _sectionTitle('Ubicación'),
                 const SizedBox(height: 10),
-            
+
                 LayoutBuilder(
                   builder: (context, c) {
                     final twoCols = c.maxWidth >= 720;
@@ -175,29 +175,37 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         ],
                       );
                     }
-            
+
                     return Column(
                       children: [
-                        _row2(_tf(department, 'Departamento'), _tf(province, 'Provincia')),
+                        _row2(
+                          _tf(department, 'Departamento'),
+                          _tf(province, 'Provincia'),
+                        ),
                         _row2(_tf(district, 'Distrito'), _tf(ubigeo, 'Ubigeo')),
                         _tf(location, 'Location'),
                       ],
                     );
                   },
                 ),
-            
+
                 const SizedBox(height: 12),
                 _sectionTitle('Contacto / Media'),
                 const SizedBox(height: 10),
                 _tf(address, 'Dirección'),
                 _tf(urlImage, 'URL Imagen'),
-            
+
                 const SizedBox(height: 12),
                 _linksEditor(),
-            
+
                 const SizedBox(height: 16),
                 _primaryActions(isEdit),
-            
+
+                if (_saveError != null) ...[
+                  const SizedBox(height: 12),
+                  _saveErrorBanner(),
+                ],
+
                 const SizedBox(height: 18),
                 _jsonImportSection(isEdit),
               ],
@@ -270,7 +278,10 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
           ),
           isDense: true, // ✅ compacto
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
         validator: (v) {
           if (!requiredField) return null;
@@ -334,7 +345,10 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
 
   Widget _linksEditor() {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 20, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 20,
+        color: Colors.white.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,14 +410,21 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                     filled: true,
                     fillColor: Colors.white.withOpacity(.05),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: Colors.white.withOpacity(.10),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: Colors.white.withOpacity(.10),
+                      ),
                     ),
                   ),
                 ),
@@ -433,10 +454,18 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save_rounded, size: 18),
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_rounded, size: 18),
             label: Text(
-              isEdit ? 'Guardar cambios' : 'Crear universidad',
+              _saving
+                  ? 'Guardando...'
+                  : (isEdit ? 'Guardar cambios' : 'Crear universidad'),
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             style: ElevatedButton.styleFrom(
@@ -450,6 +479,24 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _saveErrorBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444).withOpacity(.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFEF4444).withOpacity(.35)),
+      ),
+      child: Text(
+        _saveError!,
+        style: TextStyle(
+          color: Colors.white.withOpacity(.92),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 
@@ -480,7 +527,10 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
     }
 
     return Container(
-      decoration: AppTheme.cardDeco(radius: 20, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 20,
+        color: Colors.white.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,7 +604,9 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFEF4444).withOpacity(.12),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFEF4444).withOpacity(.35)),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withOpacity(.35),
+                  ),
                 ),
                 child: Text(
                   _jsonError!,
@@ -570,7 +622,9 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF22C55E).withOpacity(.12),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFF22C55E).withOpacity(.35)),
+                  border: Border.all(
+                    color: const Color(0xFF22C55E).withOpacity(.35),
+                  ),
                 ),
                 child: Text(
                   'JSON válido ✅ Items: $_jsonValidCount',
@@ -676,13 +730,13 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
   Future<void> _importJson() async {
     try {
       final list = _parseJsonListOrThrow(_jsonCtrl.text.trim());
-      await ref.read(universityRepoProvider).bulkUpsertUniversitiesFromJsonList(list);
+      await ref
+          .read(universityRepoProvider)
+          .bulkUpsertUniversitiesFromJsonList(list);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Importadas/actualizadas: ${list.length} ✅'),
-        ),
+        SnackBar(content: Text('Importadas/actualizadas: ${list.length} ✅')),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -692,44 +746,64 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
   }
 
   Future<void> _save() async {
-    debugPrint('_formKey.currentState = ${_formKey.currentState}');
     if (!_formKey.currentState!.validate()) return;
 
-    final repo = ref.read(universityRepoProvider);
-
-    if (widget.university == null) {
-      await repo.createUniversity(
-        name: name.text,
-        acronym: acronym.text,
-        active: active,
-        slogan: slogan.text,
-        address: address.text,
-        urlImage: urlImage.text,
-        location: location.text,
-        ubigeo: ubigeo.text,
-        department: department.text,
-        province: province.text,
-        district: district.text,
-        links: links,
-      );
-    } else {
-      await repo.updateUniversity(widget.university!.id, patch: {
-        'name': name.text.trim(),
-        'acronym': acronym.text.trim(),
-        'active': active,
-        'slogan': slogan.text.trim(),
-        'address': address.text.trim(),
-        'urlImage': urlImage.text.trim(),
-        'location': location.text.trim(),
-        'ubigeo': ubigeo.text.trim(),
-        'department': department.text.trim(),
-        'province': province.text.trim(),
-        'district': district.text.trim(),
-        'links': links,
+    setState(() {
+      _saving = true;
+      _saveError = null;
+    });
+    try {
+      final repo = ref.read(universityRepoProvider);
+      if (widget.university == null) {
+        await repo.createUniversity(
+          name: name.text,
+          acronym: acronym.text,
+          active: active,
+          slogan: slogan.text,
+          address: address.text,
+          urlImage: urlImage.text,
+          location: location.text,
+          ubigeo: ubigeo.text,
+          department: department.text,
+          province: province.text,
+          district: district.text,
+          links: links,
+        );
+      } else {
+        await repo.updateUniversity(
+          widget.university!.id,
+          patch: {
+            'name': name.text.trim(),
+            'acronym': acronym.text.trim(),
+            'active': active,
+            'slogan': slogan.text.trim(),
+            'address': address.text.trim(),
+            'urlImage': urlImage.text.trim(),
+            'location': location.text.trim(),
+            'ubigeo': ubigeo.text.trim(),
+            'department': department.text.trim(),
+            'province': province.text.trim(),
+            'district': district.text.trim(),
+            'links': links,
+          },
+        );
+      }
+      if (mounted) Navigator.pop(context);
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saveError = error.code == 'permission-denied'
+            ? 'Tu cuenta no tiene permiso para crear universidades. Inicia sesión con un correo autorizado y verifica el claim admin.'
+            : 'No se pudo guardar la universidad. Revisa tu conexión y vuelve a intentarlo.';
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saveError =
+            'No se pudo guardar la universidad. Revisa tu conexión y vuelve a intentarlo.';
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-
-    if (!mounted) return;
-    Navigator.pop(context);
   }
 }
