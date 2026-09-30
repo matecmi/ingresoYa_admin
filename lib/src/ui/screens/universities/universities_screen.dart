@@ -6,6 +6,8 @@ import 'package:ingresoya_admin/src/ui/screens/universities/widgets/university_d
 import 'package:ingresoya_admin/src/ui/screens/universities/widgets/university_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
+
+
 class UniversitiesScreen extends ConsumerStatefulWidget {
   const UniversitiesScreen({super.key});
 
@@ -49,7 +51,7 @@ class _UniversitiesScreenState extends ConsumerState<UniversitiesScreen> {
                 ),
                 _GlassBtn(
                   icon: Icons.add_rounded,
-                  label: 'Nueva',
+                  label: 'Crear',
                   onTap: () => _openUniversityForm(context),
                 ),
               ],
@@ -89,34 +91,17 @@ class _UniversitiesScreenState extends ConsumerState<UniversitiesScreen> {
                       }).toList();
 
                 if (filtered.isEmpty) {
-                  final isSearching = _q.trim().isNotEmpty;
                   return Padding(
                     padding: const EdgeInsets.all(16),
                     child: Container(
                       decoration: AppTheme.cardDeco(radius: 22),
                       padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isSearching
-                                ? 'Tu búsqueda no encontró universidades.'
-                                : 'Aún no hay universidades registradas.',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(.75),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (!isSearching) ...[
-                            const SizedBox(height: 14),
-                            FilledButton.icon(
-                              onPressed: () => _openUniversityForm(context),
-                              icon: const Icon(Icons.add_rounded),
-                              label: const Text('Crear primera universidad'),
-                            ),
-                          ],
-                        ],
+                      child: Text(
+                        'No hay universidades (o tu búsqueda no encontró resultados).',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(.75),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   );
@@ -145,10 +130,7 @@ class _UniversitiesScreenState extends ConsumerState<UniversitiesScreen> {
     );
   }
 
-  Future<void> _deleteUniversity(
-    BuildContext context,
-    UniversityEntity u,
-  ) async {
+  Future<void> _deleteUniversity(BuildContext context, UniversityEntity u) async {
     final ok = await _confirm(
       context,
       title: 'Eliminar universidad',
@@ -160,15 +142,12 @@ class _UniversitiesScreenState extends ConsumerState<UniversitiesScreen> {
     await ref.read(universityRepoProvider).deleteUniversity(u.id);
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Eliminada ✅')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Eliminada ✅')),
+    );
   }
 
-  Future<void> _openUniversityForm(
-    BuildContext context, {
-    UniversityEntity? u,
-  }) async {
+  Future<void> _openUniversityForm(BuildContext context, {UniversityEntity? u}) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -178,10 +157,7 @@ class _UniversitiesScreenState extends ConsumerState<UniversitiesScreen> {
     );
   }
 
-  Future<void> _openUniversityDetails(
-    BuildContext context,
-    UniversityEntity u,
-  ) async {
+  Future<void> _openUniversityDetails(BuildContext context, UniversityEntity u) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -266,10 +242,7 @@ class _UniversityCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 _IconMiniBtn(icon: Icons.edit_rounded, onTap: onEdit),
                 const SizedBox(width: 8),
-                _IconMiniBtn(
-                  icon: Icons.delete_outline_rounded,
-                  onTap: onDelete,
-                ),
+                _IconMiniBtn(icon: Icons.delete_outline_rounded, onTap: onDelete),
               ],
             ),
           ),
@@ -486,10 +459,7 @@ Future<bool> _confirm(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(
-              primary,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
+            child: Text(primary, style: const TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       );
