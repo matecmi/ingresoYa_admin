@@ -59,6 +59,12 @@ export type AttemptStatus = "in_progress" | "submitted" | "expired";
 /** Public recovery response. It intentionally has no score, key or explanation. */
 export interface ExamAttemptResponse extends CreateExamAttemptResponse {
   answers: Record<string, string>;
+  /** Frozen public metadata required to rebuild an attempt after app restart. */
+  requestId: string;
+  templateId: string;
+  templateVersion: number;
+  partId: string;
+  createdAtMs: number;
 }
 
 export interface AttemptQuestionSnapshot {
@@ -834,12 +840,22 @@ export function projectAttemptResponse(
   const questions = sanitizeQuestionSnapshots(data.questionSnapshots);
   const requiredCorrectAnswers = numberField(data.requiredCorrectAnswers);
   const title = stringField(data.templateSnapshot, "title");
+  const requestId = stringValue(data.requestId);
+  const templateId = stringValue(data.templateId);
+  const templateVersion = numberField(data.templateVersion);
+  const partId = stringValue(data.partId);
+  const createdAtMs = numberField(data.createdAtMs);
   if (
     expiresAtMs === undefined ||
     expiresAt === undefined ||
     questions === undefined ||
     requiredCorrectAnswers === undefined ||
-    title === undefined
+    title === undefined ||
+    requestId === undefined ||
+    templateId === undefined ||
+    templateVersion === undefined ||
+    partId === undefined ||
+    createdAtMs === undefined
   ) {
     throw failedPrecondition("The stored exam attempt is invalid.");
   }
@@ -852,7 +868,12 @@ export function projectAttemptResponse(
     requiredCorrectAnswers,
     expiresAt,
     questions,
-    answers: sanitizeAnswers(data.answers, questions)
+    answers: sanitizeAnswers(data.answers, questions),
+    requestId,
+    templateId,
+    templateVersion,
+    partId,
+    createdAtMs
   };
 }
 
