@@ -94,7 +94,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
   final _count = TextEditingController(text: '10');
   final _duration = TextEditingController();
   final _threshold = TextEditingController(text: '80');
-  late String _id;
+  late final TextEditingController _id;
   String _purpose = 'practice';
   String _mode = 'dynamic';
   String _policy = 'strict';
@@ -108,7 +108,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
   void initState() {
     super.initState();
     final template = widget.record?.template;
-    _id = template?.id ?? const Uuid().v4();
+    _id = TextEditingController(text: template?.id ?? const Uuid().v4());
     if (template == null) {
       _blocks.add(_BlockDraft());
       return;
@@ -133,6 +133,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
 
   @override
   void dispose() {
+    _id.dispose();
     _title.dispose();
     _description.dispose();
     _priorityUniversity.dispose();
@@ -196,6 +197,16 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
               ),
               const SizedBox(height: 20),
               _section('Datos generales', [
+                _text(
+                  _id,
+                  'ID técnico de plantilla',
+                  required: true,
+                  readOnly: widget.record != null,
+                  helperText: widget.record == null
+                      ? 'Ejemplo: part-exam-v1. La app usa este identificador para solicitar la plantilla.'
+                      : 'El identificador no se puede cambiar después de publicar la plantilla.',
+                  validator: _validateTechnicalId,
+                ),
                 _text(_title, 'Título', required: true),
                 _text(_description, 'Descripción', maxLines: 3),
                 _enum('Propósito', _purpose, const {
@@ -409,7 +420,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
     try {
       final template = ExamTemplate.fromJson({
         'schemaVersion': 2,
-        'id': _id,
+        'id': _id.text.trim(),
         'version': widget.record?.template.version ?? 1,
         'title': _title.text.trim(),
         'description': _description.text.trim(),
@@ -467,19 +478,34 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
     String label, {
     bool required = false,
     int maxLines = 1,
+    bool readOnly = false,
+    String? helperText,
+    String? Function(String?)? validator,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextFormField(
       controller: controller,
       maxLines: maxLines,
-      decoration: InputDecoration(labelText: label),
-      validator: required
-          ? (value) => value == null || value.trim().isEmpty
-                ? 'Este campo es obligatorio.'
-                : null
-          : null,
+      readOnly: readOnly,
+      decoration: InputDecoration(labelText: label, helperText: helperText),
+      validator:
+          validator ??
+          (required
+              ? (value) => value == null || value.trim().isEmpty
+                    ? 'Este campo es obligatorio.'
+                    : null
+              : null),
     ),
   );
+
+  String? _validateTechnicalId(String? value) {
+    final id = value?.trim() ?? '';
+    if (id.isEmpty) return 'El ID técnico es obligatorio.';
+    if (id.contains('/')) {
+      return 'El ID técnico no puede contener barras inclinadas.';
+    }
+    return null;
+  }
 
   Widget _number(
     TextEditingController controller,
