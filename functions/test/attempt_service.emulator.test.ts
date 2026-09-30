@@ -78,6 +78,23 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(stored.examAttemptId, passing.attemptId);
 });
 
+test("legacy app profiles derive a safe part context from published questions", async () => {
+  await seed();
+  const users = db.collection(config.collections.users);
+  await users.doc(uid).set({ profile: { universityIdDoc: "university-1" } });
+  await users.doc(uid).collection("learningProgress").doc("current").delete();
+
+  const attempt = await service.create(uid, {
+    requestId: "request-legacy-profile",
+    purpose: "part_completion",
+    partId,
+    templateId
+  });
+
+  assert.equal(attempt.questions.length, 10);
+  assert.equal(attempt.questions.every((question) => question.questionId.startsWith("attempt-fixture-question-")), true);
+});
+
 async function seed(): Promise<void> {
   const batch = db.batch();
   const users = db.collection(config.collections.users);

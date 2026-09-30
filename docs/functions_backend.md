@@ -63,7 +63,18 @@ La Function lee la universidad del perfil y el documento server-owned
 `users/{uid}/learningProgress/current`, cuyo arreglo `allowedParts` contiene
 `{partId, courseId, topicId, subtopicId}`. Verifica otra vez esa jerarquía en
 el catálogo y exige que curso, tema, subtema y parte permanezcan activos. Las
-reglas niegan al cliente la escritura de progreso.
+reglas niegan al cliente la escritura de progreso. La universidad se acepta
+desde la proyección de servidor (`universityIdDoc` primero, luego
+`universityId`) o, para perfiles de la app existente, desde `profile` con los
+mismos campos; se prefiere siempre el ID de documento de Firestore.
+
+Mientras un perfil anterior todavía no tenga `allowedParts`, el servidor
+deriva el único contexto posible de preguntas publicadas de esa parte y lo
+valida en el catálogo antes de seleccionar. No recibe IDs académicos del
+cliente ni escribe progreso. Si hay cero o más de un contexto publicado,
+rechaza la creación con `part_not_available` o `part_context_ambiguous`.
+Cuando `allowedParts` exista, sigue siendo la frontera de autorización y una
+parte ausente se rechaza con `part_not_enabled`.
 
 La plantilla debe ser v2, publicada, de propósito `part_completion` y modo
 dinámico. Cada bloque queda restringido al contexto de la parte solicitada; un
