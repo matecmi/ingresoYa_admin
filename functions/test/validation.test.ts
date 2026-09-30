@@ -226,6 +226,9 @@ test("recovery projects a frozen public snapshot and saved answers without keys"
   assert.deepEqual(response.answers, { "question-1": "alternative-a" });
   assert.equal(response.questions[0]?.questionId, "question-1");
   assert.equal(response.questions[0]?.alternatives[0]?.id, "alternative-a");
+  assert.equal(response.requestId, "request-1");
+  assert.equal(response.templateId, "template-1");
+  assert.equal(response.partId, "part-1");
   const serialized = JSON.stringify(response);
   assert.equal(serialized.includes("correctAlternativeId"), false);
   assert.equal(serialized.includes("explanation"), false);
@@ -382,6 +385,11 @@ function templateRecord(): Record<string, unknown> {
 function attemptRecord(status: string, expiresAt: Date): Record<string, unknown> {
   return {
     userId: "user-1",
+    requestId: "request-1",
+    templateId: "template-1",
+    templateVersion: 1,
+    partId: "part-1",
+    createdAtMs: 1,
     status,
     expiresAt,
     requiredCorrectAnswers: 1,
