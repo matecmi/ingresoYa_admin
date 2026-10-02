@@ -186,7 +186,9 @@ export function parseTemplate(
     (data.mode === "dynamic" && blocks.reduce((sum, block) => sum + block.count, 0) !== questionCount) ||
     (data.selectionPolicy === "strict" && fallback.length > 0)
   ) {
-    throw failedPrecondition("The selected template is not publishable.");
+    throw failedPrecondition("The selected template is not publishable.", {
+      reason: "template_not_published"
+    });
   }
   return {
     id,

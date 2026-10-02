@@ -36,7 +36,7 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   );
   await assert.rejects(
     service.get("another-student", first.attemptId),
-    isCode("not-found")
+    hasReason("not-found", "attempt_not_found")
   );
   await assert.rejects(
     service.saveAnswers(uid, { attemptId: first.attemptId, answers: { missing: "a" } }),
@@ -76,6 +76,26 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(stored.completed, true);
   assert.equal(stored.verificationStatus, "verified");
   assert.equal(stored.examAttemptId, passing.attemptId);
+});
+
+test("create distinguishes a missing template from an orphaned request key", async () => {
+  await seed();
+  const request = {
+    requestId: "request-error-diagnostics",
+    purpose: "part_completion" as const,
+    partId,
+    templateId
+  };
+  await assert.rejects(
+    service.create(uid, { ...request, templateId: "missing-template" }),
+    hasReason("not-found", "template_not_found")
+  );
+  const created = await service.create(uid, request);
+  await db.collection(config.collections.attempts).doc(created.attemptId).delete();
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "request_key_orphaned")
+  );
 });
 
 test("legacy app profiles derive a safe part context from published questions", async () => {
@@ -173,4 +193,9 @@ function answers(
 
 function isCode(code: ExamBackendError["code"]) {
   return (error: unknown): boolean => error instanceof ExamBackendError && error.code === code;
+}
+
+function hasReason(code: ExamBackendError["code"], reason: string) {
+  return (error: unknown): boolean =>
+    error instanceof ExamBackendError && error.code === code && error.details?.reason === reason;
 }

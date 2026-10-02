@@ -148,7 +148,9 @@ export class ExamAttemptService {
       this.recentExposure(uid, metrics)
     ]);
     if (template.purpose !== input.purpose || template.mode !== "dynamic") {
-      throw failedPrecondition("The template cannot create this type of attempt.");
+      throw failedPrecondition("The template cannot create this type of attempt.", {
+        reason: "template_incompatible"
+      });
     }
     const blocks = bindPartCompletionBlocks(template.blocks, context);
     const selected = await this.select(
@@ -328,7 +330,9 @@ export class ExamAttemptService {
         "passPercentExclusive"
       );
       if (passPercentExclusive === undefined) {
-        throw failedPrecondition("The stored exam attempt is invalid.");
+        throw failedPrecondition("The stored exam attempt is invalid.", {
+          reason: "attempt_data_invalid"
+        });
       }
       const grading = gradeFrozenAttempt(
         current.questions,
@@ -340,7 +344,9 @@ export class ExamAttemptService {
         (current.questions.length * passPercentExclusive) / 100
       ) + 1;
       if (current.requiredCorrectAnswers !== expectedRequired) {
-        throw failedPrecondition("The stored exam attempt is invalid.");
+        throw failedPrecondition("The stored exam attempt is invalid.", {
+          reason: "attempt_data_invalid"
+        });
       }
       const result: StoredExamResult = {
         total: current.questions.length,
@@ -387,10 +393,14 @@ export class ExamAttemptService {
       metrics.transactionAttempt();
       const progress = await transaction.get(progressRef);
       metrics.readDocument();
-      if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
+      if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.", {
+        reason: "progress_unavailable"
+      });
       const context = allowedPartContext(progress.data(), input.partId);
       if (context === undefined) {
-        throw failedPrecondition("The requested part is not enabled by learning progress.");
+        throw failedPrecondition("The requested part is not enabled by learning progress.", {
+          reason: "part_not_enabled"
+        });
       }
       return this.applyPartProgress(
         transaction,
@@ -410,7 +420,9 @@ export class ExamAttemptService {
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attemptId = typeof request?.attemptId === "string" ? request.attemptId : "";
-    if (attemptId.length === 0) throw failedPrecondition("The idempotency record is invalid.");
+    if (attemptId.length === 0) throw failedPrecondition("The idempotency record is invalid.", {
+      reason: "request_key_invalid"
+    });
     return this.responseForAttempt(uid, attemptId, metrics);
   }
 
@@ -436,6 +448,11 @@ export class ExamAttemptService {
   ): Promise<CreateExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
     metrics.readDocument();
+    if (!attempt.exists) {
+      throw failedPrecondition("The idempotency record points to an unavailable attempt.", {
+        reason: "request_key_orphaned"
+      });
+    }
     const response = this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
     return {
       attemptId: response.attemptId,
@@ -453,7 +470,8 @@ export class ExamAttemptService {
     attemptId: string,
     data: Record<string, unknown> | undefined
   ): ExamAttemptResponse {
-    if (data?.userId !== uid) throw notFound("Exam attempt not found.");
+    // Do not distinguish another user's attempt from a missing one publicly.
+    if (data?.userId !== uid) throw notFound("Exam attempt not found.", "attempt_not_found");
     return projectAttemptResponse(attemptId, data);
   }
 
@@ -475,7 +493,9 @@ export class ExamAttemptService {
     return snapshots.map((snapshot, index) => {
       const question = questions[index];
       if (question === undefined || !snapshot.exists) {
-        throw failedPrecondition("A frozen answer key is unavailable.");
+        throw failedPrecondition("A frozen answer key is unavailable.", {
+          reason: "answer_key_unavailable"
+        });
       }
       return parseFrozenAnswerKey(snapshot.data(), question);
     });
@@ -489,14 +509,20 @@ export class ExamAttemptService {
     metrics: OperationMetrics
   ): Promise<PartCompletionResponse> {
     const partId = stringValue(attempt?.partId);
-    if (partId === undefined) throw failedPrecondition("The stored exam attempt is invalid.");
+    if (partId === undefined) throw failedPrecondition("The stored exam attempt is invalid.", {
+      reason: "attempt_data_invalid"
+    });
     const progressRef = this.progressRef(uid);
     const progress = await transaction.get(progressRef);
     metrics.readDocument();
-    if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.");
+    if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.", {
+      reason: "progress_unavailable"
+    });
     const context = allowedPartContext(progress.data(), partId);
     if (context === undefined) {
-      throw failedPrecondition("The attempted part is no longer enabled by learning progress.");
+      throw failedPrecondition("The attempted part is no longer enabled by learning progress.", {
+        reason: "part_not_enabled"
+      });
     }
     const state = readPartProgress(partRecord(progress.data(), partId), context);
     return this.applyPartProgress(
@@ -703,14 +729,16 @@ export class ExamAttemptService {
       part === undefined ||
       !isActive(part)
     ) {
-      throw failedPrecondition("The requested academic part is unavailable.");
+      throw failedPrecondition("The requested academic part is unavailable.", {
+        reason: "part_not_available"
+      });
     }
   }
 
   private async template(templateId: string, metrics: OperationMetrics): Promise<ExamTemplateRecord> {
     const snapshot = await this.db.collection(this.config.collections.templates).doc(templateId).get();
     metrics.readDocument();
-    if (!snapshot.exists) throw notFound("Exam template not found.");
+    if (!snapshot.exists) throw notFound("Exam template not found.", "template_not_found");
     return parseTemplate(snapshot.data()!, templateId);
   }
 

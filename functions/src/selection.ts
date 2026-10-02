@@ -38,7 +38,11 @@ export function bindPartCompletionBlocks(
       ["part", context.partId, filter.partId]
     ] as const) {
       if (actual.length > 0 && actual !== expected) {
-        throw failedPrecondition(`Template block ${index + 1} does not target the requested ${name}.`);
+        throw failedPrecondition(`Template block ${index + 1} does not target the requested ${name}.`, {
+          reason: "template_part_mismatch",
+          blockIndex: index + 1,
+          field: name
+        });
       }
     }
     return {
