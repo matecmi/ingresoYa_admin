@@ -44,7 +44,10 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_create_completed", uid, metrics.logFields());
         return response;
       } catch (error) {
-        safeError("exam_attempt_create_rejected", error, metrics.logFields());
+        safeError("exam_attempt_create_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
         throw asHttpsError(error);
       }
     },
@@ -58,7 +61,10 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_get_completed", uid, metrics.logFields());
         return response;
       } catch (error) {
-        safeError("exam_attempt_get_rejected", error, metrics.logFields());
+        safeError("exam_attempt_get_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
         throw asHttpsError(error);
       }
     },
@@ -72,7 +78,10 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_answers_save_completed", uid, metrics.logFields());
         return response;
       } catch (error) {
-        safeError("exam_attempt_answers_save_rejected", error, metrics.logFields());
+        safeError("exam_attempt_answers_save_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
         throw asHttpsError(error);
       }
     },
@@ -88,7 +97,10 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("part_section_completion_completed", uid, metrics.logFields());
         return response;
       } catch (error) {
-        safeError("part_section_completion_rejected", error, metrics.logFields());
+        safeError("part_section_completion_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
         throw asHttpsError(error);
       }
     },
@@ -104,7 +116,10 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
         return response;
       } catch (error) {
-        safeError("exam_attempt_submit_rejected", error, metrics.logFields());
+        safeError("exam_attempt_submit_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
         throw asHttpsError(error);
       }
     }

@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { readBackendConfig } from "../src/config";
-import { ExamBackendError } from "../src/errors";
+import { asHttpsError, ExamBackendError, notFound } from "../src/errors";
 import { requireUid } from "../src/handlers";
+import { errorDiagnostic } from "../src/logging";
 import { OperationMetrics } from "../src/operation_metrics";
 import {
   assessExamApproval,
@@ -60,6 +61,20 @@ test("operation telemetry reports only aggregate work counts", () => {
   assert.equal(fields.queryDocuments, 5);
   assert.equal(fields.plannedDocumentWrites, 2);
   assert.equal(fields.transactionAttempts, 1);
+});
+
+test("callable errors expose a stable reason without leaking private data to logs", () => {
+  const error = notFound("Exam template not found.", "template_not_found");
+  assert.deepEqual(asHttpsError(error).details, { reason: "template_not_found" });
+  const diagnostic = errorDiagnostic(error, { environment: "test", uid: "private-user-id" });
+  assert.equal(diagnostic.errorCode, "not-found");
+  assert.equal(diagnostic.reason, "template_not_found");
+  assert.equal(diagnostic.environment, "test");
+  assert.match(diagnostic.actor ?? "", /^[a-f0-9]{12}$/);
+  assert.equal(JSON.stringify(diagnostic).includes("private-user-id"), false);
+  assert.equal(JSON.stringify(diagnostic).includes("Exam template not found"), false);
+  assert.equal(errorDiagnostic(new Error("secret answer"), { environment: "test" }).reason,
+    "unexpected_server_error");
 });
 
 test("App Check is enforced in production and can be explicitly configured per environment", () => {
