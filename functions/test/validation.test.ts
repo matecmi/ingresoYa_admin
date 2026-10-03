@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { readBackendConfig } from "../src/config";
+import {
+  emptyAchievementSummary,
+  includeAchievement,
+  summaryFromAwards
+} from "../src/achievement_summary";
 import { asHttpsError, ExamBackendError, notFound } from "../src/errors";
 import { requireUid } from "../src/handlers";
 import { errorDiagnostic } from "../src/logging";
@@ -28,10 +33,32 @@ import {
 } from "../src/subtopic_achievement";
 import {
   parseCreateExamAttempt,
+  parseGetAchievementSummary,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
   parseSubmitExamAttempt
 } from "../src/validation";
+
+test("achievement projection keeps one badge per subtopic across requirement versions", () => {
+  const base = {
+    courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1"
+  };
+  const first = includeAchievement(emptyAchievementSummary(), {
+    ...base, requirementVersion: "v1", awardedAtMs: 10
+  });
+  const next = includeAchievement(first, {
+    ...base, requirementVersion: "v2", awardedAtMs: 20
+  });
+  assert.equal(next.totalCompletedSubtopics, 1);
+  assert.equal(next.recent.length, 1);
+  assert.equal(next.recent[0]?.requirementVersion, "v2");
+  assert.equal(summaryFromAwards([]).totalCompletedSubtopics, 0);
+});
+
+test("achievement summary callable accepts no client-controlled scope", () => {
+  assert.doesNotThrow(() => parseGetAchievementSummary({}));
+  assert.throws(() => parseGetAchievementSummary({ uid: "other-user" }), ExamBackendError);
+});
 
 test("maps each declared deployment environment to isolated collections", () => {
   expectConfig("test", "iya-questions-test");

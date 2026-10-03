@@ -9,6 +9,7 @@ import {
 } from "../src/attempt_service";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
+import { OperationMetrics } from "../src/operation_metrics";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
 const service = new ExamAttemptService(db, config);
@@ -51,6 +52,7 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(failed.passed, false);
   assert.equal((await db.collection(config.collections.users).doc(uid)
     .collection("learningProgress").doc("current").collection("achievements").get()).size, 0);
+  assert.equal((await service.getAchievementSummary(uid)).totalCompletedSubtopics, 0);
 
   const passing = await service.create(uid, { ...request, requestId: "request-passing" });
   const passed = await service.submit(uid, {
@@ -86,6 +88,14 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(awarded.size, 1);
   assert.equal(awarded.docs[0]?.data().type, "subtopic_completed");
   assert.deepEqual(awarded.docs[0]?.data().requiredPartIds, [partId]);
+  const summaryRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current")
+    .collection("achievementSummary").doc("current");
+  const summary = await service.getAchievementSummary(uid);
+  assert.equal(summary.totalCompletedSubtopics, 1);
+  assert.equal(summary.recent[0]?.subtopicId, "subtopic-1");
+  assert.equal(summary.completedSubtopicKeys.length, 1);
+  const summaryBeforeRetry = (await summaryRef.get()).data();
   const verified = await service.submit(uid, {
     attemptId: passing.attemptId,
     answers: answers(passing.questions, 9)
@@ -94,6 +104,11 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   const repeatedAward = await awardsRef.get();
   assert.equal(repeatedAward.size, 1);
   assert.deepEqual(repeatedAward.docs[0]?.data(), awarded.docs[0]?.data());
+  assert.deepEqual((await summaryRef.get()).data(), summaryBeforeRetry);
+  const metrics = new OperationMetrics();
+  assert.deepEqual(await service.getAchievementSummary(uid, metrics), summary);
+  assert.equal(metrics.logFields().directDocumentReads, 1);
+  assert.equal(metrics.logFields().queryCalls, 0);
 });
 
 test("an award snapshots all active parts and survives a later catalog expansion", async () => {
@@ -140,6 +155,7 @@ test("an award snapshots all active parts and survives a later catalog expansion
   const original = (await awardsRef.get()).docs[0];
   assert.ok(original);
   assert.deepEqual(original.data().requiredPartIds, [partId, "part-2"]);
+  assert.equal((await service.getAchievementSummary(uid)).totalCompletedSubtopics, 1);
 
   await subtopicRef.update({
     listPart: [{ id: partId, active: true }, { id: "part-2", active: true }, { id: "part-3", active: true }]
@@ -162,6 +178,62 @@ test("an award snapshots all active parts and survives a later catalog expansion
     awards.docs.map((doc) => doc.data().requiredPartIds.length).sort(),
     [2, 3]
   );
+  const summary = await service.getAchievementSummary(uid);
+  assert.equal(summary.totalCompletedSubtopics, 1);
+  assert.equal(summary.recent.length, 1);
+  assert.equal(summary.recent[0]?.requirementVersion, awards.docs.find(
+    (doc) => doc.data().requiredPartIds.length === 3
+  )?.id);
+});
+
+test("older awards are projected once without reading exam attempts on Profile", async () => {
+  await seed();
+  const progressRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current");
+  await progressRef.collection("achievements").doc("parts-v1-legacy-fixture").set({
+    schemaVersion: 1,
+    type: "subtopic_completed",
+    courseId: "course-1",
+    topicId: "topic-1",
+    subtopicId: "subtopic-1",
+    requirementVersion: "parts-v1-legacy-fixture",
+    awardedAt: FieldValue.serverTimestamp()
+  });
+  const firstMetrics = new OperationMetrics();
+  const first = await service.getAchievementSummary(uid, firstMetrics);
+  assert.equal(first.totalCompletedSubtopics, 1);
+  assert.equal(firstMetrics.logFields().queryCalls, 1);
+  const secondMetrics = new OperationMetrics();
+  assert.deepEqual(await service.getAchievementSummary(uid, secondMetrics), first);
+  assert.equal(secondMetrics.logFields().directDocumentReads, 1);
+  assert.equal(secondMetrics.logFields().queryCalls, 0);
+});
+
+test("a new award incorporates earlier awards even before Profile reads the summary", async () => {
+  await seed();
+  const progressRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current");
+  await progressRef.collection("achievements").doc("parts-v1-earlier-subtopic").set({
+    schemaVersion: 1,
+    type: "subtopic_completed",
+    courseId: "course-1",
+    topicId: "topic-1",
+    subtopicId: "earlier-subtopic",
+    requirementVersion: "parts-v1-earlier-subtopic",
+    awardedAt: FieldValue.serverTimestamp()
+  });
+  const attempt = await service.create(uid, {
+    requestId: "request-after-older-award", purpose: "part_completion", partId, templateId
+  });
+  await service.submit(uid, {
+    attemptId: attempt.attemptId, answers: answers(attempt.questions, 9)
+  });
+  await service.recordPartSectionCompletion(uid, {
+    partId, sections: ["video", "lesson", "examples", "review", "resources"]
+  });
+  const summary = await service.getAchievementSummary(uid);
+  assert.equal(summary.totalCompletedSubtopics, 2);
+  assert.equal(summary.completedSubtopicKeys.length, 2);
 });
 
 test("one batch confirms five sections and a repeated batch does not rewrite progress", async () => {
@@ -322,6 +394,9 @@ async function seed(): Promise<void> {
     .collection("learningProgress").doc("current").collection("achievements").get();
   const batch = db.batch();
   for (const award of awards.docs) batch.delete(award.ref);
+  batch.delete(db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current")
+    .collection("achievementSummary").doc("current"));
   const users = db.collection(config.collections.users);
   const courses = db.collection(config.collections.courses);
   const questions = db.collection(config.collections.questions);

@@ -1,6 +1,7 @@
 import type { CallableRequest } from "firebase-functions/v2/https";
 
 import type { BackendConfig } from "./config";
+import type { AchievementSummary } from "./achievement_summary";
 import { db } from "./admin";
 import {
   ExamAttemptService,
@@ -14,6 +15,7 @@ import { safeError, safeLog } from "./logging";
 import { OperationMetrics } from "./operation_metrics";
 import {
   parseCreateExamAttempt,
+  parseGetAchievementSummary,
   parseGetExamAttempt,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
@@ -32,6 +34,22 @@ export function requireUid(request: CallableRequest<unknown>): string {
 export function createCallableHandlers(config: BackendConfig) {
   const attempts = new ExamAttemptService(db, config);
   return {
+    async getAchievementSummary(request: CallableRequest<unknown>): Promise<AchievementSummary> {
+      const metrics = new OperationMetrics();
+      try {
+        const uid = requireUid(request);
+        parseGetAchievementSummary(request.data);
+        const response = await attempts.getAchievementSummary(uid, metrics);
+        safeLog("achievement_summary_get_completed", uid, metrics.logFields());
+        return response;
+      } catch (error) {
+        safeError("achievement_summary_get_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
+        throw asHttpsError(error);
+      }
+    },
     async createExamAttempt(
       request: CallableRequest<unknown>
     ): Promise<CreateExamAttemptResponse> {

@@ -78,6 +78,11 @@ export function parseGetExamAttempt(data: unknown): GetExamAttemptInput {
   return { attemptId: id(value.attemptId, "attemptId") };
 }
 
+export function parseGetAchievementSummary(data: unknown): void {
+  const value = object(data, "data");
+  onlyKeys(value, []);
+}
+
 export function parseSubmitExamAttempt(data: unknown): SubmitExamAttemptInput {
   const { attemptId, answers } = parseAnswers(data, maxAnswersAtSubmit);
   return { attemptId, answers };
