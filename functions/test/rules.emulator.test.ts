@@ -124,6 +124,11 @@ test("learner cannot publish questions or complete learning progress directly", 
   await assertFails(
     learner.doc("iya-profile-test/student-1/learningProgress/part-1").set({ completed: true })
   );
+  const award = learner.doc(
+    "iya-profile-test/student-1/learningProgress/current/achievements/parts-v1-fixture"
+  );
+  await assertFails(award.get());
+  await assertFails(award.set({ type: "subtopic_completed" }));
 });
 
 test("admin claim can administer the bank while answer keys remain student-private", async () => {

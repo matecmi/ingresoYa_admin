@@ -187,8 +187,12 @@ compatibilidad con la app. Un resultado aprobado puede ser `provisional`
 cuando aún quedan secciones; la app no debe presentarlo como parte completada.
 
 `completed` nunca se restablece a `false`. Una repetición de sección ya
-registrada o de `submitExamAttempt` no reescribe timestamps ni crea XP, logros
-o intentos (el backend no emite esos efectos secundarios). Los viejos campos
+registrada o de `submitExamAttempt` no reescribe timestamps ni crea XP,
+logros o intentos adicionales. Al confirmar una parte, la Function puede
+conceder una sola vez el logro versionado `subtopic_completed` si todas las
+partes activas del subtema tienen evidencia v2 verificada. La definición,
+persistencia y límites están en [subtopic_achievement_rule.md](subtopic_achievement_rule.md).
+Los viejos campos
 de clics/vistas no se migran ni cuentan: únicamente la evidencia v2 con
 `schemaVersion: 2` y `sections.{section}.completedAt` registrada por la nueva
 callable puede satisfacer requisitos. Esto permite que secciones revisadas

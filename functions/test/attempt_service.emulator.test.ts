@@ -49,6 +49,8 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(failed.correctAnswers, 8);
   assert.equal(failed.requiredCorrectAnswers, 9);
   assert.equal(failed.passed, false);
+  assert.equal((await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").collection("achievements").get()).size, 0);
 
   const passing = await service.create(uid, { ...request, requestId: "request-passing" });
   const passed = await service.submit(uid, {
@@ -78,11 +80,88 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(stored.completed, true);
   assert.equal(stored.verificationStatus, "verified");
   assert.equal(stored.examAttemptId, passing.attemptId);
+  const awardsRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").collection("achievements");
+  const awarded = await awardsRef.get();
+  assert.equal(awarded.size, 1);
+  assert.equal(awarded.docs[0]?.data().type, "subtopic_completed");
+  assert.deepEqual(awarded.docs[0]?.data().requiredPartIds, [partId]);
   const verified = await service.submit(uid, {
     attemptId: passing.attemptId,
     answers: answers(passing.questions, 9)
   });
   assert.deepEqual(verified.progressUpdate, { partId, completed: true });
+  const repeatedAward = await awardsRef.get();
+  assert.equal(repeatedAward.size, 1);
+  assert.deepEqual(repeatedAward.docs[0]?.data(), awarded.docs[0]?.data());
+});
+
+test("an award snapshots all active parts and survives a later catalog expansion", async () => {
+  await seed();
+  const profile = db.collection(config.collections.users).doc(uid);
+  const progressRef = profile.collection("learningProgress").doc("current");
+  const awardsRef = progressRef.collection("achievements");
+  const subtopicRef = db.collection(config.collections.courses).doc("course-1")
+    .collection("topics").doc("topic-1").collection("subtopics").doc("subtopic-1");
+  const batch = db.batch();
+  batch.update(progressRef, {
+    allowedParts: [partId, "part-2", "part-3"].map((id) => ({
+      partId: id, courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1"
+    }))
+  });
+  batch.update(subtopicRef, {
+    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }]
+  });
+  batch.update(db.collection(config.collections.templates).doc(templateId), {
+    blocks: [{ count: 10, filter: {} }]
+  });
+  for (let index = 1; index <= 80; index += 1) {
+    batch.update(
+      db.collection(config.collections.questions).doc(`attempt-fixture-question-${index}`),
+      { partIds: [partId, "part-2", "part-3"] }
+    );
+  }
+  await batch.commit();
+
+  for (const id of [partId, "part-2"]) {
+    const attempt = await service.create(uid, {
+      requestId: `request-achievement-${id}`,
+      purpose: "part_completion",
+      partId: id,
+      templateId
+    });
+    await service.submit(uid, { attemptId: attempt.attemptId, answers: answers(attempt.questions, 9) });
+    await service.recordPartSectionCompletion(uid, {
+      partId: id,
+      sections: ["video", "lesson", "examples", "review", "resources"]
+    });
+    assert.equal((await awardsRef.get()).size, id === partId ? 0 : 1);
+  }
+  const original = (await awardsRef.get()).docs[0];
+  assert.ok(original);
+  assert.deepEqual(original.data().requiredPartIds, [partId, "part-2"]);
+
+  await subtopicRef.update({
+    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }, { id: "part-3", active: true }]
+  });
+  const attempt = await service.create(uid, {
+    requestId: "request-achievement-part-3",
+    purpose: "part_completion",
+    partId: "part-3",
+    templateId
+  });
+  await service.submit(uid, { attemptId: attempt.attemptId, answers: answers(attempt.questions, 9) });
+  await service.recordPartSectionCompletion(uid, {
+    partId: "part-3",
+    sections: ["video", "lesson", "examples", "review", "resources"]
+  });
+  const awards = await awardsRef.get();
+  assert.equal(awards.size, 2);
+  assert.deepEqual((await original.ref.get()).data(), original.data());
+  assert.deepEqual(
+    awards.docs.map((doc) => doc.data().requiredPartIds.length).sort(),
+    [2, 3]
+  );
 });
 
 test("one batch confirms five sections and a repeated batch does not rewrite progress", async () => {
@@ -112,6 +191,29 @@ test("one batch confirms five sections and a repeated batch does not rewrite pro
   const second = (await progressRef.get()).data()?.partProgress?.[partId];
   assert.deepEqual(repeated, confirmed);
   assert.deepEqual(second, first);
+});
+
+test("passing after all sections are reviewed grants the award during submit", async () => {
+  await seed();
+  await service.recordPartSectionCompletion(uid, {
+    partId,
+    sections: ["video", "lesson", "examples", "review", "resources"]
+  });
+  const attempt = await service.create(uid, {
+    requestId: "request-award-on-submit",
+    purpose: "part_completion",
+    partId,
+    templateId
+  });
+  const submitted = await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+  assert.equal(submitted.partCompletion?.status, "verified");
+  const awards = await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").collection("achievements").get();
+  assert.equal(awards.size, 1);
+  assert.equal(awards.docs[0]?.data().examAttemptId, attempt.attemptId);
 });
 
 test("create distinguishes a missing template from an orphaned request key", async () => {
@@ -216,7 +318,10 @@ test("legacy app profiles derive a safe part context from published questions", 
 });
 
 async function seed(): Promise<void> {
+  const awards = await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").collection("achievements").get();
   const batch = db.batch();
+  for (const award of awards.docs) batch.delete(award.ref);
   const users = db.collection(config.collections.users);
   const courses = db.collection(config.collections.courses);
   const questions = db.collection(config.collections.questions);

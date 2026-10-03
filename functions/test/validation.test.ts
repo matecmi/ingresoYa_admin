@@ -23,6 +23,10 @@ import type { CandidateQuestion } from "../src/exam_contracts";
 import { parseTemplate } from "../src/exam_contracts";
 import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
 import {
+  assessSubtopicCompletion,
+  publishedSubtopicRequirement
+} from "../src/subtopic_achievement";
+import {
   parseCreateExamAttempt,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
@@ -347,6 +351,69 @@ test("legacy section clicks never become v2 completion evidence", () => {
   const assessment = assessExamApproval(legacy, "attempt-1");
   assert.equal(assessment.status, "provisional");
   assert.deepEqual(assessment.missingSections, requiredPartSections);
+});
+
+test("a subtopic award requirement versions the active part set, not its order or labels", () => {
+  const context = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+  const active = { active: true };
+  const original = publishedSubtopicRequirement(context, active, active, {
+    active: true,
+    listPart: [{ id: "part-2", name: "Second" }, { id: "part-1", name: "First" }]
+  });
+  const reordered = publishedSubtopicRequirement(context, active, active, {
+    active: true,
+    listPart: [{ id: "part-1", name: "Renamed" }, { id: "part-2" }]
+  });
+  const expanded = publishedSubtopicRequirement(context, active, active, {
+    active: true,
+    listPart: [{ id: "part-1" }, { id: "part-2" }, { id: "part-3" }]
+  });
+  assert.ok(original);
+  assert.ok(reordered);
+  assert.ok(expanded);
+  assert.deepEqual(original.requiredPartIds, ["part-1", "part-2"]);
+  assert.equal(original.requirementVersion, reordered.requirementVersion);
+  assert.notEqual(original.requirementVersion, expanded.requirementVersion);
+  assert.equal(
+    publishedSubtopicRequirement(context, active, active, {
+      active: true,
+      listPart: [{ id: "part-1" }, { id: "part-2", active: false }]
+    })?.requiredPartIds.length,
+    1
+  );
+});
+
+test("subtopic completion accepts only verified v2 parts and fails closed on invalid catalogs", () => {
+  const context = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+  const active = { active: true };
+  const catalog = { active: true, listPart: [{ id: "part-1" }, { id: "part-2" }] };
+  const requirement = publishedSubtopicRequirement(context, active, active, catalog);
+  assert.ok(requirement);
+  const firstContext = { ...context, partId: "part-1" };
+  const progress = {
+    "part-1": partProgressRecord(firstContext, requiredPartSections, "attempt-1", true),
+    "part-2": { completed: true, score: 100 }
+  };
+  assert.deepEqual(assessSubtopicCompletion(requirement, progress), {
+    complete: false,
+    missingPartIds: ["part-2"]
+  });
+  assert.deepEqual(assessSubtopicCompletion(requirement, progress, "part-2"), {
+    complete: true,
+    missingPartIds: []
+  });
+  assert.deepEqual(assessSubtopicCompletion(requirement, {
+    "part-1": { ...progress["part-1"], subtopicId: "other-subtopic" },
+    "part-2": progress["part-2"]
+  }), { complete: false, missingPartIds: ["part-1", "part-2"] });
+  assert.equal(publishedSubtopicRequirement(context, active, active, { listPart: [] }), undefined);
+  assert.equal(
+    publishedSubtopicRequirement(context, active, active, {
+      listPart: [{ id: "part-1" }, { id: "part-1" }]
+    }),
+    undefined
+  );
+  assert.equal(publishedSubtopicRequirement(context, active, { active: false }, catalog), undefined);
 });
 
 test("callables reject anonymous callers with a typed error", () => {
