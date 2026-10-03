@@ -129,6 +129,11 @@ test("learner cannot publish questions or complete learning progress directly", 
   );
   await assertFails(award.get());
   await assertFails(award.set({ type: "subtopic_completed" }));
+  const summary = learner.doc(
+    "iya-profile-test/student-1/learningProgress/current/achievementSummary/current"
+  );
+  await assertFails(summary.get());
+  await assertFails(summary.set({ totalCompletedSubtopics: 99 }));
 });
 
 test("admin claim can administer the bank while answer keys remain student-private", async () => {

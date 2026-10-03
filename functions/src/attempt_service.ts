@@ -8,6 +8,13 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
 import {
+  emptyAchievementSummary,
+  includeAchievement,
+  readAchievementSummary,
+  summaryFromAwards,
+  type AchievementSummary
+} from "./achievement_summary";
+import {
   type CandidateQuestion,
   type ExamTemplateRecord,
   type PartContext,
@@ -131,6 +138,8 @@ export interface PartCompletionResponse {
 interface PendingSubtopicAward {
   ref: DocumentReference;
   requirement: SubtopicRequirement;
+  summaryRef: DocumentReference;
+  previousSummary: AchievementSummary;
 }
 
 export class ExamAttemptService {
@@ -138,6 +147,32 @@ export class ExamAttemptService {
     private readonly db: Firestore,
     private readonly config: BackendConfig
   ) {}
+
+  /** Profile reads one small projection, never the exam-attempt collection. */
+  public async getAchievementSummary(
+    uid: string,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<AchievementSummary> {
+    const ref = this.achievementSummaryRef(uid);
+    const snapshot = await ref.get();
+    metrics.readDocument();
+    const existing = readAchievementSummary(snapshot.data());
+    if (existing !== undefined) return existing;
+    // One-time repair for awards granted by the earlier Functions release.
+    const awards = await this.progressRef(uid).collection("achievements").get();
+    metrics.readQuery(awards.size);
+    const rebuilt = summaryFromAwards(awards.docs.map((award) => award.data()));
+    return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
+      const current = await transaction.get(ref);
+      metrics.readDocument();
+      const concurrent = readAchievementSummary(current.data());
+      if (concurrent !== undefined) return concurrent;
+      transaction.set(ref, rebuilt);
+      metrics.writeDocument();
+      return rebuilt;
+    });
+  }
 
   public async create(
     uid: string,
@@ -612,10 +647,24 @@ export class ExamAttemptService {
       context.partId
     );
     if (!completion.complete) return undefined;
-    const ref = this.progressRef(uid).collection("achievements").doc(requirement.requirementVersion);
+    const awardsRef = this.progressRef(uid).collection("achievements");
+    const ref = awardsRef.doc(requirement.requirementVersion);
     const existing = await transaction.get(ref);
     metrics.readDocument();
-    return existing.exists ? undefined : { ref, requirement };
+    if (existing.exists) return undefined;
+    const summaryRef = this.achievementSummaryRef(uid);
+    const summary = await transaction.get(summaryRef);
+    metrics.readDocument();
+    let previousSummary = readAchievementSummary(summary.data());
+    if (previousSummary === undefined) {
+      // A deployed v1 award may predate the projection. Rebuild only once.
+      const olderAwards = await transaction.get(awardsRef);
+      metrics.readQuery(olderAwards.size);
+      previousSummary = olderAwards.empty
+        ? emptyAchievementSummary()
+        : summaryFromAwards(olderAwards.docs.map((award) => award.data()));
+    }
+    return { ref, requirement, summaryRef, previousSummary };
   }
 
   private writeSubtopicAward(
@@ -638,6 +687,14 @@ export class ExamAttemptService {
       examAttemptId: assessment.effectiveExamAttemptId,
       awardedAt: FieldValue.serverTimestamp()
     });
+    metrics.writeDocument();
+    transaction.set(award.summaryRef, includeAchievement(award.previousSummary, {
+      courseId: award.requirement.courseId,
+      topicId: award.requirement.topicId,
+      subtopicId: award.requirement.subtopicId,
+      requirementVersion: award.requirement.requirementVersion,
+      awardedAtMs: Date.now()
+    }));
     metrics.writeDocument();
   }
 
@@ -701,6 +758,10 @@ export class ExamAttemptService {
       .doc(uid)
       .collection("learningProgress")
       .doc("current");
+  }
+
+  private achievementSummaryRef(uid: string) {
+    return this.progressRef(uid).collection("achievementSummary").doc("current");
   }
 
   private async profileUniversity(uid: string, metrics: OperationMetrics): Promise<string> {

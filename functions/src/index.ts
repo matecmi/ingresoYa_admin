@@ -26,6 +26,7 @@ const callableOptions = { enforceAppCheck: config.enforceAppCheck };
 
 export const createExamAttempt = onCall(callableOptions, handlers.createExamAttempt);
 export const getExamAttempt = onCall(callableOptions, handlers.getExamAttempt);
+export const getAchievementSummary = onCall(callableOptions, handlers.getAchievementSummary);
 export const saveExamAnswers = onCall(callableOptions, handlers.saveExamAnswers);
 export const recordPartSectionCompletion = onCall(
   callableOptions,

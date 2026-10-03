@@ -1,7 +1,7 @@
 # Regla de «Subtema completado» (v1)
 
-Esta fase implementa la **concesión server-owned** del logro. Todavía no
-agrega pantallas ni una API pública para listar logros en la app.
+Esta fase implementa la **concesión server-owned** del logro y una proyección
+de lectura para Perfil. Todavía no agrega pantallas en la app.
 
 ## Requisito publicado
 
@@ -34,11 +34,28 @@ El documento congela `requiredPartIds`, `requirementVersion`, IDs académicos,
 ilegible e inmodificable directamente para el alumno; la futura UI recibirá
 una proyección segura desde el backend.
 
+La misma transacción actualiza
+`{users}/{uid}/learningProgress/current/achievementSummary/current` con
+`schemaVersion: 1`, `totalCompletedSubtopics`, `completedSubtopicKeys` y
+`recent` (máximo cinco). La clave de subtema combina curso, tema y subtema;
+una versión nueva de requisitos actualiza el elemento reciente pero no cuenta
+otra insignia del mismo subtema. El resumen no contiene notas, intentos,
+respuestas ni claves. También está protegido contra lecturas y escrituras
+directas del alumno.
+
+La callable autenticada `getAchievementSummary({})` devuelve ese resumen.
+Sólo usa el `uid` del token, no acepta IDs proporcionados por la app. En el
+caso habitual lee un solo documento; nunca recorre los intentos. Si existían
+logros de la versión anterior sin resumen, la primera lectura reconstruye la
+proyección desde los documentos de logros y la guarda; las siguientes vuelven
+a leer sólo el resumen. También se hace esa reconstrucción si la primera
+concesión nueva ocurre antes de que Perfil consulte la callable.
+
 La concesión es idempotente: repetir `submitExamAttempt` o la confirmación de
 secciones no reescribe el logro. Si el admin añade una parte más tarde, la
 versión y el documento anterior permanecen intactos. El alumno podrá ganar
-la nueva versión al verificar la parte nueva; la presentación futura deberá
-mostrar una sola insignia vigente y conservar el historial de versiones.
+la nueva versión al verificar la parte nueva; Perfil mostrará una sola insignia
+por subtema y el historial de versiones seguirá en los documentos de logros.
 
 ## Límites de esta fase
 
@@ -51,3 +68,7 @@ mostrar una sola insignia vigente y conservar el historial de versiones.
 - Las lecturas adicionales del catálogo ocurren sólo cuando una parte queda
   verificada por primera vez; los guardados ordinarios y reintentos no pagan
   ese costo.
+- `completedSubtopicKeys` es una lista compacta de claves de subtema dentro de
+  un solo documento Firestore. Si el catálogo crece hasta acercarse al límite
+  de 1 MiB por documento, habrá que paginar esa proyección antes de alcanzar
+  el límite; no se deben consultar intentos desde Perfil.

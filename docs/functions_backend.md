@@ -191,7 +191,8 @@ registrada o de `submitExamAttempt` no reescribe timestamps ni crea XP,
 logros o intentos adicionales. Al confirmar una parte, la Function puede
 conceder una sola vez el logro versionado `subtopic_completed` si todas las
 partes activas del subtema tienen evidencia v2 verificada. La definición,
-persistencia y límites están en [subtopic_achievement_rule.md](subtopic_achievement_rule.md).
+persistencia, callable `getAchievementSummary({})` y límites están en
+[subtopic_achievement_rule.md](subtopic_achievement_rule.md).
 Los viejos campos
 de clics/vistas no se migran ni cuentan: únicamente la evidencia v2 con
 `schemaVersion: 2` y `sections.{section}.completedAt` registrada por la nueva
