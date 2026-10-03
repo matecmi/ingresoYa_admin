@@ -102,6 +102,8 @@ export interface SubmittedAttemptResponse {
   passed: boolean;
   review: AttemptReview[];
   partCompletion?: PartCompletionResponse;
+  /** Compatibility projection consumed by the mobile app. */
+  progressUpdate?: { partId: string; completed: boolean };
 }
 
 export interface AttemptReview {
@@ -194,6 +196,7 @@ export class ExamAttemptService {
           durationSeconds
         },
         partId: context.partId,
+        partContext: context,
         status: "in_progress",
         createdAt: FieldValue.serverTimestamp(),
         createdAtMs: now,
@@ -301,6 +304,22 @@ export class ExamAttemptService {
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<SubmittedAttemptResponse> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
+    // Older attempts did not freeze their server-derived part context. Resolve
+    // that context before the transaction so a passing legacy attempt can be
+    // recorded even when learningProgress/current has not been provisioned.
+    const beforeSubmit = await attemptRef.get();
+    metrics.readDocument();
+    if (beforeSubmit.data()?.userId !== uid) {
+      throw notFound("Exam attempt not found.", "attempt_not_found");
+    }
+    const purpose = stringField(beforeSubmit.data()?.templateSnapshot, "purpose");
+    const partId = stringValue(beforeSubmit.data()?.partId);
+    const frozenContext = parsePartContext(objectMap(beforeSubmit.data()?.partContext));
+    const partContext = purpose === "part_completion" && partId !== undefined
+      ? frozenContext?.partId === partId
+        ? frozenContext
+        : await this.partContext(uid, partId, metrics)
+      : undefined;
     return this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const attempt = await transaction.get(attemptRef);
@@ -313,7 +332,7 @@ export class ExamAttemptService {
         const result = parseStoredResult(attempt.data()?.result, input.attemptId, current.questions.length);
         const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
         const partCompletion = purpose === "part_completion" && hasPassed(result)
-          ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, metrics)
+          ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, partContext, metrics)
           : undefined;
         return submittedResponse(current, result, answerKeys, partCompletion);
       }
@@ -356,7 +375,7 @@ export class ExamAttemptService {
       };
       const purpose = stringField(attempt.data()?.templateSnapshot, "purpose");
       const partCompletion = grading.passed && purpose === "part_completion"
-        ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, metrics)
+        ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, partContext, metrics)
         : undefined;
       transaction.update(attemptRef, {
         answers,
@@ -388,15 +407,15 @@ export class ExamAttemptService {
     input: RecordPartSectionCompletionInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<PartCompletionResponse> {
+    const resolvedContext = await this.partContext(uid, input.partId, metrics);
     const progressRef = this.progressRef(uid);
     return this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const progress = await transaction.get(progressRef);
       metrics.readDocument();
-      if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.", {
-        reason: "progress_unavailable"
-      });
-      const context = allowedPartContext(progress.data(), input.partId);
+      const context = Array.isArray(progress.data()?.allowedParts)
+        ? allowedPartContext(progress.data(), input.partId)
+        : resolvedContext;
       if (context === undefined) {
         throw failedPrecondition("The requested part is not enabled by learning progress.", {
           reason: "part_not_enabled"
@@ -506,6 +525,7 @@ export class ExamAttemptService {
     uid: string,
     attempt: Record<string, unknown> | undefined,
     attemptId: string,
+    frozenContext: PartContext | undefined,
     metrics: OperationMetrics
   ): Promise<PartCompletionResponse> {
     const partId = stringValue(attempt?.partId);
@@ -515,11 +535,10 @@ export class ExamAttemptService {
     const progressRef = this.progressRef(uid);
     const progress = await transaction.get(progressRef);
     metrics.readDocument();
-    if (!progress.exists) throw failedPrecondition("Learning progress is unavailable.", {
-      reason: "progress_unavailable"
-    });
-    const context = allowedPartContext(progress.data(), partId);
-    if (context === undefined) {
+    const context = Array.isArray(progress.data()?.allowedParts)
+      ? allowedPartContext(progress.data(), partId)
+      : frozenContext;
+    if (context === undefined || (frozenContext !== undefined && !samePartContext(context, frozenContext))) {
       throw failedPrecondition("The attempted part is no longer enabled by learning progress.", {
         reason: "part_not_enabled"
       });
@@ -988,7 +1007,13 @@ function submittedResponse(
     requiredCorrectAnswers: attempt.requiredCorrectAnswers,
     passed: grading.passed,
     review: grading.review,
-    ...(partCompletion === undefined ? {} : { partCompletion })
+    ...(partCompletion === undefined ? {} : {
+      partCompletion,
+      progressUpdate: {
+        partId: partCompletion.partId,
+        completed: partCompletion.status === "verified"
+      }
+    })
   };
 }
 
@@ -1059,6 +1084,13 @@ function parsePartContext(raw: Record<string, unknown>): PartContext | undefined
   return partId !== undefined && courseId !== undefined && topicId !== undefined && subtopicId !== undefined
     ? { partId, courseId, topicId, subtopicId }
     : undefined;
+}
+
+function samePartContext(left: PartContext, right: PartContext): boolean {
+  return left.partId === right.partId &&
+    left.courseId === right.courseId &&
+    left.topicId === right.topicId &&
+    left.subtopicId === right.subtopicId;
 }
 
 function allowedPartContext(

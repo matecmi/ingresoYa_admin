@@ -43,7 +43,7 @@ Acepta hasta 50 pares de IDs presentes en la instantánea abierta. El valor es e
 }
 ```
 
-Acepta hasta 200 respuestas, nunca nota ni claves calculadas por la app. Devuelve `{attemptId, status: "submitted", correctAnswers, percentage, requiredCorrectAnswers, passed, review, partCompletion?}`. Después de entregar, `review` puede incluir la alternativa correcta y explicación autorizadas.
+Acepta hasta 200 respuestas, nunca nota ni claves calculadas por la app. Devuelve `{attemptId, status: "submitted", correctAnswers, percentage, requiredCorrectAnswers, passed, review, partCompletion?, progressUpdate?}`. `progressUpdate` refleja `{partId, completed}` de `partCompletion` para el móvil. Después de entregar, `review` puede incluir la alternativa correcta y explicación autorizadas.
 
 ## Errores y diagnóstico
 
@@ -60,7 +60,7 @@ La app traduce `HttpsError.code` y `details.reason`; el texto inglés es solo de
 | `get`/`save`/`submit`: intento ausente o ajeno | `not-found` | `attempt_not_found` | ID del intento y propietario, sin distinguir públicamente un intento ajeno |
 | `save`: demasiados cambios | `resource-exhausted` | `answer_save_rate_limit` | Esperar `retryAfterMs` y reintentar las respuestas pendientes |
 | `submit`: clave de revisión congelada ausente | `failed-precondition` | `answer_key_unavailable` | Documento de clave para la versión exacta de la pregunta |
-| Cualquier llamada: progreso no creado | `failed-precondition` | `progress_unavailable` | Proyección `learningProgress/current` del usuario |
+| Sección o entrega aprobada: parte fuera de la lista autorizada | `failed-precondition` | `part_not_enabled` | `allowedParts` explícito o contexto legacy validado; la ausencia de `learningProgress/current` ya no impide registrar progreso |
 | Cualquier llamada: datos persistidos del intento inconsistentes | `failed-precondition` | `attempt_data_invalid` | Instantánea y metadatos del intento |
 | Cualquier llamada: solicitud inválida | `invalid-argument` | `invalid_request` | Payload y versión de la app |
 | Cualquier llamada: fallo inesperado | `internal` | `unexpected_server_error` | Logs de Functions y excepción del servidor |
