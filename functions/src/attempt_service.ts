@@ -33,6 +33,11 @@ import {
   type SelectedQuestion
 } from "./selection";
 import { OperationMetrics } from "./operation_metrics";
+import {
+  assessSubtopicCompletion,
+  publishedSubtopicRequirement,
+  type SubtopicRequirement
+} from "./subtopic_achievement";
 import type {
   CreateExamAttemptInput,
   RecordPartSectionCompletionInput,
@@ -121,6 +126,11 @@ export interface PartCompletionResponse {
   status: PartProgressStatus;
   missingSections: PartSection[];
   examAttemptId?: string;
+}
+
+interface PendingSubtopicAward {
+  ref: DocumentReference;
+  requirement: SubtopicRequirement;
 }
 
 export class ExamAttemptService {
@@ -422,15 +432,24 @@ export class ExamAttemptService {
           reason: "part_not_enabled"
         });
       }
-      return this.applyPartProgress(
+      const assessment = assessSectionsCompletion(
+        readPartProgress(partRecord(progress.data(), input.partId), context),
+        sections
+      );
+      const award = assessment.shouldMarkCompleted
+        ? await this.pendingSubtopicAward(transaction, uid, context, progress.data(), metrics)
+        : undefined;
+      const response = this.applyPartProgress(
         transaction,
         progressRef,
         progress.data(),
         context,
-        assessSectionsCompletion(readPartProgress(partRecord(progress.data(), input.partId), context), sections),
+        assessment,
         sections,
         metrics
       );
+      this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
+      return response;
     });
   }
 
@@ -545,15 +564,81 @@ export class ExamAttemptService {
       });
     }
     const state = readPartProgress(partRecord(progress.data(), partId), context);
-    return this.applyPartProgress(
+    const assessment = assessExamApproval(state, attemptId);
+    const award = assessment.shouldMarkCompleted
+      ? await this.pendingSubtopicAward(transaction, uid, context, progress.data(), metrics)
+      : undefined;
+    const response = this.applyPartProgress(
       transaction,
       progressRef,
       progress.data(),
       context,
-      assessExamApproval(state, attemptId),
+      assessment,
       undefined,
       metrics
     );
+    this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
+    return response;
+  }
+
+  /** Extra catalog reads happen only when this part becomes verified. */
+  private async pendingSubtopicAward(
+    transaction: Transaction,
+    uid: string,
+    context: ProgressPartContext,
+    progress: Record<string, unknown> | undefined,
+    metrics: OperationMetrics
+  ): Promise<PendingSubtopicAward | undefined> {
+    const courseRef = this.db.collection(this.config.collections.courses).doc(context.courseId);
+    const topicRef = courseRef.collection("topics").doc(context.topicId);
+    const subtopicRef = topicRef.collection("subtopics").doc(context.subtopicId);
+    const [course, topic, subtopic] = await Promise.all([
+      transaction.get(courseRef),
+      transaction.get(topicRef),
+      transaction.get(subtopicRef)
+    ]);
+    metrics.readDocument(3);
+    const requirement = publishedSubtopicRequirement(
+      context,
+      course.data(),
+      topic.data(),
+      subtopic.data()
+    );
+    if (requirement === undefined) return undefined;
+    if (!requirement.requiredPartIds.includes(context.partId)) return undefined;
+    const completion = assessSubtopicCompletion(
+      requirement,
+      progress?.partProgress,
+      context.partId
+    );
+    if (!completion.complete) return undefined;
+    const ref = this.progressRef(uid).collection("achievements").doc(requirement.requirementVersion);
+    const existing = await transaction.get(ref);
+    metrics.readDocument();
+    return existing.exists ? undefined : { ref, requirement };
+  }
+
+  private writeSubtopicAward(
+    transaction: Transaction,
+    award: PendingSubtopicAward | undefined,
+    completingPartId: string,
+    assessment: PartProgressAssessment,
+    metrics: OperationMetrics
+  ): void {
+    if (award === undefined || assessment.effectiveExamAttemptId === undefined) return;
+    transaction.set(award.ref, {
+      schemaVersion: 1,
+      type: "subtopic_completed",
+      courseId: award.requirement.courseId,
+      topicId: award.requirement.topicId,
+      subtopicId: award.requirement.subtopicId,
+      requirementVersion: award.requirement.requirementVersion,
+      requiredPartIds: [...award.requirement.requiredPartIds],
+      completingPartId,
+      examAttemptId: assessment.effectiveExamAttemptId,
+      awardedAt: FieldValue.serverTimestamp()
+    });
+    metrics.writeDocument();
   }
 
   private applyPartProgress(
