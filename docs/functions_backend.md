@@ -159,8 +159,11 @@ esa información antes de la entrega.
 
 Una parte de `part_completion` se completa sólo con dos clases de evidencia
 server-owned: un intento aprobado y las cinco secciones `video`, `lesson`,
-`examples`, `review` y `resources`. La app registra cada sección mediante
-`recordPartSectionCompletion({partId, section})`; la Function confirma que la
+`examples`, `review` y `resources`. La app puede registrar una sección con
+`recordPartSectionCompletion({partId, section})` o confirmar hasta cinco
+secciones distintas de una vez con `{partId, sections: [...]}`. Ambas formas
+devuelven el mismo estado; el lote escribe las evidencias faltantes en una
+única transacción. La Function confirma que la
 parte está autorizada por `allowedParts` o, para perfiles legacy sin esa lista,
 por el contexto único validado contra preguntas publicadas y catálogo. La
 Function crea `learningProgress/current` si aún no existe, escribe la evidencia con timestamp de servidor y

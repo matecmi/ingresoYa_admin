@@ -233,6 +233,20 @@ test("part-section completion accepts only the five server-defined sections", ()
     () => parseRecordPartSectionCompletion({ partId: "part-1", section: "clicked" }),
     isInvalidArgument
   );
+  assert.deepEqual(
+    parseRecordPartSectionCompletion({ partId: "part-1", sections: ["video", "lesson"] }),
+    { partId: "part-1", sections: ["video", "lesson"] }
+  );
+  for (const sections of [[], ["video", "video"], ["video", "clicked"]]) {
+    assert.throws(
+      () => parseRecordPartSectionCompletion({ partId: "part-1", sections }),
+      isInvalidArgument
+    );
+  }
+  assert.throws(
+    () => parseRecordPartSectionCompletion({ partId: "part-1", section: "video", sections: ["lesson"] }),
+    isInvalidArgument
+  );
 });
 
 test("recovery projects a frozen public snapshot and saved answers without keys", () => {

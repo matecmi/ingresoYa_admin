@@ -22,10 +22,15 @@ export interface SaveExamAnswersInput {
   answers: Readonly<Record<string, string>>;
 }
 
-export interface RecordPartSectionCompletionInput {
+export type RecordPartSectionCompletionInput = {
   partId: string;
   section: PartSection;
-}
+  sections?: never;
+} | {
+  partId: string;
+  sections: readonly PartSection[];
+  section?: never;
+};
 
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
 export const maxAnswersPerSave = 50;
@@ -88,11 +93,23 @@ export function parseRecordPartSectionCompletion(
   data: unknown
 ): RecordPartSectionCompletionInput {
   const value = object(data, "data");
-  onlyKeys(value, ["partId", "section"]);
-  if (!isPartSection(value.section)) {
-    throw invalidArgument("section must be a supported part section.");
+  onlyKeys(value, ["partId", "section", "sections"]);
+  const partId = id(value.partId, "partId");
+  if (Object.hasOwn(value, "section") === Object.hasOwn(value, "sections")) {
+    throw invalidArgument("Provide exactly one of section or sections.");
   }
-  return { partId: id(value.partId, "partId"), section: value.section };
+  if (Object.hasOwn(value, "section")) {
+    if (!isPartSection(value.section)) {
+      throw invalidArgument("section must be a supported part section.");
+    }
+    return { partId, section: value.section };
+  }
+  const sections = value.sections;
+  if (!Array.isArray(sections) || sections.length < 1 || sections.length > 5 ||
+    !sections.every(isPartSection) || new Set(sections).size !== sections.length) {
+    throw invalidArgument("sections must contain 1 to 5 distinct supported sections.");
+  }
+  return { partId, sections: sections as PartSection[] };
 }
 
 function parseAnswers(
