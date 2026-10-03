@@ -99,9 +99,16 @@ export function assessSectionCompletion(
   state: PartProgressState,
   section: PartSection
 ): PartProgressAssessment {
+  return assessSectionsCompletion(state, [section]);
+}
+
+export function assessSectionsCompletion(
+  state: PartProgressState,
+  sections: readonly PartSection[]
+): PartProgressAssessment {
   if (state.completed) return verified(state);
   const completedSections = new Set(state.completedSections);
-  completedSections.add(section);
+  for (const section of sections) completedSections.add(section);
   const missingSections = missingPartSections(completedSections);
   const effectiveExamAttemptId = state.approvedExamAttemptId;
   return {

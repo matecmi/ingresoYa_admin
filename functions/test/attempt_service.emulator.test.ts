@@ -85,6 +85,35 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.deepEqual(verified.progressUpdate, { partId, completed: true });
 });
 
+test("one batch confirms five sections and a repeated batch does not rewrite progress", async () => {
+  await seed();
+  const attempt = await service.create(uid, {
+    requestId: "request-batch-sections",
+    purpose: "part_completion",
+    partId,
+    templateId
+  });
+  const passed = await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+  assert.equal(passed.partCompletion?.status, "provisional");
+
+  const sections = ["video", "lesson", "examples", "review", "resources"] as const;
+  const confirmed = await service.recordPartSectionCompletion(uid, { partId, sections });
+  assert.equal(confirmed.status, "verified");
+  assert.deepEqual(confirmed.missingSections, []);
+  const progressRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current");
+  const first = (await progressRef.get()).data()?.partProgress?.[partId];
+  assert.equal(first.examAttemptId, attempt.attemptId);
+
+  const repeated = await service.recordPartSectionCompletion(uid, { partId, sections });
+  const second = (await progressRef.get()).data()?.partProgress?.[partId];
+  assert.deepEqual(repeated, confirmed);
+  assert.deepEqual(second, first);
+});
+
 test("create distinguishes a missing template from an orphaned request key", async () => {
   await seed();
   const request = {

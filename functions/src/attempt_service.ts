@@ -17,7 +17,7 @@ import {
 import { failedPrecondition, invalidArgument, notFound, resourceExhausted } from "./errors";
 import {
   assessExamApproval,
-  assessSectionCompletion,
+  assessSectionsCompletion,
   readPartProgress,
   type PartProgressAssessment,
   type PartProgressStatus,
@@ -407,6 +407,7 @@ export class ExamAttemptService {
     input: RecordPartSectionCompletionInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<PartCompletionResponse> {
+    const sections = input.sections ?? [input.section!];
     const resolvedContext = await this.partContext(uid, input.partId, metrics);
     const progressRef = this.progressRef(uid);
     return this.db.runTransaction(async (transaction) => {
@@ -426,8 +427,8 @@ export class ExamAttemptService {
         progressRef,
         progress.data(),
         context,
-        assessSectionCompletion(readPartProgress(partRecord(progress.data(), input.partId), context), input.section),
-        input.section,
+        assessSectionsCompletion(readPartProgress(partRecord(progress.data(), input.partId), context), sections),
+        sections,
         metrics
       );
     });
@@ -561,20 +562,20 @@ export class ExamAttemptService {
     progress: Record<string, unknown> | undefined,
     context: ProgressPartContext,
     assessment: PartProgressAssessment,
-    newSection?: PartSection,
+    newSections: readonly PartSection[] = [],
     metrics?: OperationMetrics
   ): PartCompletionResponse {
     const existing = readPartProgress(partRecord(progress, context.partId), context);
-    const sectionIsNew = newSection !== undefined && !existing.completedSections.has(newSection);
-    if (existing.completed || (!assessment.shouldRecordApproval && !assessment.shouldMarkCompleted && !sectionIsNew)) {
+    const missingNewSections = newSections.filter((section) => !existing.completedSections.has(section));
+    if (existing.completed || (!assessment.shouldRecordApproval && !assessment.shouldMarkCompleted && missingNewSections.length === 0)) {
       return progressResponse(context.partId, assessment);
     }
     const progressMap = objectMap(progress?.partProgress);
     const parts = { ...progressMap };
     const rawPart = objectMap(parts[context.partId]);
     const sections = { ...objectMap(rawPart.sections) };
-    if (sectionIsNew && newSection !== undefined) {
-      sections[newSection] = { completedAt: FieldValue.serverTimestamp() };
+    for (const section of missingNewSections) {
+      sections[section] = { completedAt: FieldValue.serverTimestamp() };
     }
     const next: Record<string, unknown> = {
       ...rawPart,
