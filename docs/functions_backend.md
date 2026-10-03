@@ -70,8 +70,9 @@ mismos campos; se prefiere siempre el ID de documento de Firestore.
 
 Mientras un perfil anterior todavía no tenga `allowedParts`, el servidor
 deriva el único contexto posible de preguntas publicadas de esa parte y lo
-valida en el catálogo antes de seleccionar. No recibe IDs académicos del
-cliente ni escribe progreso. Si hay cero o más de un contexto publicado,
+valida en el catálogo antes de seleccionar. Lo congela en el intento para
+que la entrega posterior no dependa de que el catálogo siga igual. No recibe
+IDs académicos del cliente. Si hay cero o más de un contexto publicado,
 rechaza la creación con `part_not_available` o `part_context_ambiguous`.
 Cuando `allowedParts` exista, sigue siendo la frontera de autorización y una
 parte ausente se rechaza con `part_not_enabled`.
@@ -157,7 +158,9 @@ Una parte de `part_completion` se completa sólo con dos clases de evidencia
 server-owned: un intento aprobado y las cinco secciones `video`, `lesson`,
 `examples`, `review` y `resources`. La app registra cada sección mediante
 `recordPartSectionCompletion({partId, section})`; la Function confirma que la
-parte sigue en `allowedParts`, escribe la evidencia con timestamp de servidor y
+parte está autorizada por `allowedParts` o, para perfiles legacy sin esa lista,
+por el contexto único validado contra preguntas publicadas y catálogo. La
+Function crea `learningProgress/current` si aún no existe, escribe la evidencia con timestamp de servidor y
 mantiene los IDs de curso, tema y subtema asociados. No se aceptan secciones
 libres ni timestamps del cliente.
 
@@ -169,6 +172,13 @@ una sección, una aprobación registra `approvedExamAttemptId` y
 visita después las secciones pendientes, la llamada de sección reconcilia en
 transacción: al registrar la última, escribe una sola vez `completed: true`,
 `examAttemptId`, `completedAt` y `verificationStatus: verified`.
+
+La entrega aprobada también crea la proyección cuando falta. Para intentos
+antiguos sin contexto congelado se vuelve a resolver el contexto autorizado
+antes de la transacción; los nuevos usan el contexto ya congelado. La respuesta
+mantiene `partCompletion` y añade `progressUpdate: {partId, completed}` para
+compatibilidad con la app. Un resultado aprobado puede ser `provisional`
+cuando aún quedan secciones; la app no debe presentarlo como parte completada.
 
 `completed` nunca se restablece a `false`. Una repetición de sección ya
 registrada o de `submitExamAttempt` no reescribe timestamps ni crea XP, logros

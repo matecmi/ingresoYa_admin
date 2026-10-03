@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { FieldValue } from "firebase-admin/firestore";
 
 import { db } from "../src/admin";
 import {
@@ -57,6 +58,7 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(passed.correctAnswers, 9);
   assert.equal(passed.passed, true);
   assert.equal(passed.partCompletion?.status, "provisional");
+  assert.deepEqual(passed.progressUpdate, { partId, completed: false });
   const repeatedSubmit = await service.submit(uid, {
     attemptId: passing.attemptId,
     answers: answers(passing.questions, 9)
@@ -76,6 +78,11 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(stored.completed, true);
   assert.equal(stored.verificationStatus, "verified");
   assert.equal(stored.examAttemptId, passing.attemptId);
+  const verified = await service.submit(uid, {
+    attemptId: passing.attemptId,
+    answers: answers(passing.questions, 9)
+  });
+  assert.deepEqual(verified.progressUpdate, { partId, completed: true });
 });
 
 test("create distinguishes a missing template from an orphaned request key", async () => {
@@ -111,8 +118,29 @@ test("legacy app profiles derive a safe part context from published questions", 
     templateId
   });
 
+  // Simulate an attempt created before partContext was frozen in the snapshot.
+  await db.collection(config.collections.attempts).doc(attempt.attemptId).update({
+    partContext: FieldValue.delete()
+  });
+
   assert.equal(attempt.questions.length, 10);
   assert.equal(attempt.questions.every((question) => question.questionId.startsWith("attempt-fixture-question-")), true);
+  const passed = await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+  assert.equal(passed.passed, true);
+  assert.deepEqual(passed.progressUpdate, { partId, completed: false });
+  for (const section of ["video", "lesson", "examples", "review", "resources"] as const) {
+    await service.recordPartSectionCompletion(uid, { partId, section });
+  }
+  const verified = await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+  assert.deepEqual(verified.progressUpdate, { partId, completed: true });
+  const stored = await users.doc(uid).collection("learningProgress").doc("current").get();
+  assert.equal(stored.data()?.partProgress?.[partId]?.examAttemptId, attempt.attemptId);
 });
 
 async function seed(): Promise<void> {
