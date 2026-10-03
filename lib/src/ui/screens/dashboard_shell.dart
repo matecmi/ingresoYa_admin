@@ -12,14 +12,10 @@ class DashboardShell extends StatelessWidget {
     final loc = GoRouterState.of(context).matchedLocation;
 
     final isUni = loc.startsWith('/universities');
+    final isProfessions = loc.startsWith('/professions');
     final isCourse = loc.startsWith('/courses');
     final isQ = loc.startsWith('/questions');
     final isTemplates = loc.startsWith('/exam-templates');
-
-    int bottomIndex() {
-      if (isCourse) return 1;
-      return 0; // default universidades
-    }
 
     return Scaffold(
       body: SafeArea(
@@ -88,6 +84,13 @@ class DashboardShell extends StatelessWidget {
                       ),
 
                       _SideItem(
+                        active: isProfessions,
+                        icon: Icons.work_rounded,
+                        label: 'Profesiones',
+                        onTap: () => context.go('/professions'),
+                      ),
+
+                      _SideItem(
                         active: isCourse,
                         icon: Icons.menu_book_rounded,
                         label: 'Cursos',
@@ -145,9 +148,10 @@ class DashboardShell extends StatelessWidget {
           int indexFromLocation(String loc) {
             // ✅ soporta rutas hijas: /courses/xyz, /questions/new, etc.
             if (loc.startsWith('/universities')) return 0;
-            if (loc.startsWith('/courses')) return 1;
-            if (loc.startsWith('/questions')) return 2;
-            if (loc.startsWith('/exam-templates')) return 3;
+            if (loc.startsWith('/professions')) return 1;
+            if (loc.startsWith('/courses')) return 2;
+            if (loc.startsWith('/questions')) return 3;
+            if (loc.startsWith('/exam-templates')) return 4;
             return 0;
           }
 
@@ -169,12 +173,15 @@ class DashboardShell extends StatelessWidget {
                     context.go('/universities');
                     break;
                   case 1:
-                    context.go('/courses');
+                    context.go('/professions');
                     break;
                   case 2:
-                    context.go('/questions');
+                    context.go('/courses');
                     break;
                   case 3:
+                    context.go('/questions');
+                    break;
+                  case 4:
                     context.go('/exam-templates');
                     break;
                 }
@@ -187,6 +194,10 @@ class DashboardShell extends StatelessWidget {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.school_rounded),
                   label: 'Universidades',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.work_rounded),
+                  label: 'Profesiones',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.menu_book_rounded),

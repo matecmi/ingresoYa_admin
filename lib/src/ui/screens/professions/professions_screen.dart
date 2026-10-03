@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -231,6 +232,8 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
   late final TextEditingController name;
   late final TextEditingController acronym;
   bool active = true;
+  bool _saving = false;
+  String? _saveError;
 
   @override
   void initState() {
@@ -307,10 +310,18 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
-                      onPressed: _save,
-                      icon: const Icon(Icons.save_rounded, size: 18),
+                      onPressed: _saving ? null : _save,
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_rounded, size: 18),
                       label: Text(
-                        isEdit ? 'Guardar cambios' : 'Crear',
+                        _saving
+                            ? 'Guardando...'
+                            : (isEdit ? 'Guardar cambios' : 'Crear'),
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -322,6 +333,27 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                         ),
                       ),
                     ),
+                    if (_saveError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withOpacity(.12),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: const Color(0xFFEF4444).withOpacity(.35),
+                          ),
+                        ),
+                        child: Text(
+                          _saveError!,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(.92),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -367,20 +399,42 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final repo = ref.read(professionRepoProvider);
-
-    if (widget.p == null) {
-      await repo.create(name: name.text, acronym: acronym.text, active: active);
-    } else {
-      await repo.update(widget.p!.id, {
-        'name': name.text.trim(),
-        'acronym': acronym.text.trim(),
-        'active': active,
+    setState(() {
+      _saving = true;
+      _saveError = null;
+    });
+    try {
+      final repo = ref.read(professionRepoProvider);
+      if (widget.p == null) {
+        await repo.create(
+          name: name.text,
+          acronym: acronym.text,
+          active: active,
+        );
+      } else {
+        await repo.update(widget.p!.id, {
+          'name': name.text.trim(),
+          'acronym': acronym.text.trim(),
+          'active': active,
+        });
+      }
+      if (mounted) Navigator.pop(context);
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saveError = error.code == 'permission-denied'
+            ? 'Tu cuenta no tiene permiso para crear profesiones. Cierra sesión, vuelve a ingresar con el correo autorizado y verifica el claim admin.'
+            : 'No se pudo guardar la profesión. Revisa tu conexión y vuelve a intentarlo.';
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saveError =
+            'No se pudo guardar la profesión. Revisa tu conexión y vuelve a intentarlo.';
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-
-    if (!mounted) return;
-    Navigator.pop(context);
   }
 }
 class _IconMiniBtn extends StatelessWidget {
