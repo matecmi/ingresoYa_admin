@@ -831,20 +831,37 @@ export class ExamAttemptService {
         .where("courseId", "==", filter.courseId)
         .where("topicId", "==", filter.topicId)
         .where("subtopicId", "==", filter.subtopicId)
-        .where("partIds", "array-contains", filter.partId)
-        .where("randomKey", ">=", start)
-        .orderBy("randomKey");
+        .where("partIds", "array-contains", filter.partId);
       // Source type is a compact, indexed equality filter. Other optional
       // source metadata remains a bounded in-memory predicate to avoid a
       // combinatorial index matrix.
       if (filter.sourceType !== "any") {
         query = query.where("sourceType", "==", filter.sourceType);
       }
-      const snapshot = await query.limit(limit).get();
-      metrics.readQuery(snapshot.size);
-      for (const document of snapshot.docs) {
+      const head = await query
+        .where("randomKey", ">=", start)
+        .orderBy("randomKey")
+        .limit(limit)
+        .get();
+      metrics.readQuery(head.size);
+      for (const document of head.docs) {
         const parsed = parseCandidateQuestion(document.id, document.data());
         if (parsed !== undefined) found.set(parsed.questionId, parsed);
+      }
+      if (head.size < limit) {
+        // A random start near the end must wrap to the beginning. Without
+        // this, a four-question bank can appear insufficient at random.
+        const tail = await query
+          .where("randomKey", "<", start)
+          .orderBy("randomKey")
+          .limit(limit - head.size)
+          .get();
+        metrics.readQuery(tail.size);
+        for (const document of tail.docs) {
+          const parsed = parseCandidateQuestion(document.id, document.data());
+          if (parsed !== undefined) found.set(parsed.questionId, parsed);
+        }
+        if (head.size + tail.size < limit) break;
       }
     }
     return [...found.values()];
