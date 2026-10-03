@@ -105,6 +105,49 @@ test("create distinguishes a missing template from an orphaned request key", asy
   );
 });
 
+test("four published questions shared by multiple parts survive a random-key wrap", async () => {
+  await seed();
+  const batch = db.batch();
+  const users = db.collection(config.collections.users);
+  const questions = db.collection(config.collections.questions);
+  batch.update(users.doc(uid).collection("learningProgress").doc("current"), {
+    allowedParts: [
+      { partId, courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" },
+      { partId: "part-2", courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" }
+    ]
+  });
+  batch.update(
+    db.collection(config.collections.courses).doc("course-1")
+      .collection("topics").doc("topic-1")
+      .collection("subtopics").doc("subtopic-1"),
+    { listPart: [{ id: partId, active: true }, { id: "part-2", active: true }] }
+  );
+  batch.update(db.collection(config.collections.templates).doc(templateId), {
+    questionCount: 4,
+    blocks: [{ count: 4, filter: {} }]
+  });
+  for (let index = 1; index <= 80; index += 1) {
+    batch.update(questions.doc(`attempt-fixture-question-${index}`), index <= 4
+      ? { randomKey: 0, partIds: [partId, "part-2"] }
+      : { status: "retired" });
+  }
+  await batch.commit();
+
+  for (const linkedPartId of [partId, "part-2"]) {
+    const attempt = await service.create(uid, {
+      requestId: `request-four-${linkedPartId}`,
+      purpose: "part_completion",
+      partId: linkedPartId,
+      templateId
+    });
+    assert.equal(attempt.questionCount, 4);
+    assert.deepEqual(
+      new Set(attempt.questions.map((question) => question.questionId)),
+      new Set([1, 2, 3, 4].map((index) => `attempt-fixture-question-${index}`))
+    );
+  }
+});
+
 test("legacy app profiles derive a safe part context from published questions", async () => {
   await seed();
   const users = db.collection(config.collections.users);

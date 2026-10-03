@@ -83,7 +83,10 @@ bloque que declare otro curso, tema, subtema o parte se rechaza. Nunca se
 amplían referencias académicas silenciosamente.
 
 Los candidatos son `published` de la parte, con límites por punto de inicio de
-`randomKey`. Se vuelven a validar universidad, tipo, examen, modalidad, año,
+`randomKey`. Cuando un punto de inicio llega al final del índice, la búsqueda
+continúa desde el principio hasta completar su ventana acotada; así un banco
+de cuatro preguntas elegibles no falla al solicitar exactamente cuatro por
+haber empezado después de una de ellas. Se vuelven a validar universidad, tipo, examen, modalidad, año,
 curso, tema, subtema, parte y dificultad. `strict` exige el filtro exacto;
 `prefer_profile_university` prioriza la universidad del perfil y sólo completa
 con tipos presentes en `allowedFallbackSources`. Se reducen repeticiones
