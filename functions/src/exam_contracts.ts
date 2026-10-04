@@ -30,7 +30,7 @@ export interface ExamTemplateRecord {
   id: string;
   version: number;
   title: string;
-  purpose: "practice" | "part_completion" | "simulation";
+  purpose: "practice" | "part_completion" | "simulation" | "subtopic_mastery";
   mode: "dynamic" | "fixed";
   selectionPolicy: "strict" | "prefer_profile_university";
   allowedFallbackSources: SourceType[];
@@ -67,6 +67,12 @@ export interface AttemptAlternative {
 
 export interface PartContext {
   partId: string;
+  courseId: string;
+  topicId: string;
+  subtopicId: string;
+}
+
+export interface SubtopicContext {
   courseId: string;
   topicId: string;
   subtopicId: string;
@@ -172,8 +178,9 @@ export function parseTemplate(
     id !== expectedId ||
     version === undefined ||
     title === undefined ||
-    !["practice", "part_completion", "simulation"].includes(data.purpose as string) ||
+    !["practice", "part_completion", "simulation", "subtopic_mastery"].includes(data.purpose as string) ||
     !["dynamic", "fixed"].includes(data.mode as string) ||
+    (data.purpose === "subtopic_mastery" && data.mode !== "dynamic") ||
     !["strict", "prefer_profile_university"].includes(data.selectionPolicy as string) ||
     questionCount === undefined ||
     passPercentExclusive === undefined ||

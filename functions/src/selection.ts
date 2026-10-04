@@ -4,6 +4,7 @@ import type {
   CandidateQuestion,
   ExamFilter,
   PartContext,
+  SubtopicContext,
   SourceType,
   TemplateBlock
 } from "./exam_contracts";
@@ -58,9 +59,39 @@ export function bindPartCompletionBlocks(
   });
 }
 
+/** Mastery uses every eligible question in the subtopic, not a single part. */
+export function bindSubtopicMasteryBlocks(
+  blocks: readonly TemplateBlock[],
+  context: SubtopicContext
+): BoundBlock[] {
+  return blocks.map((block, index) => {
+    const filter = block.filter;
+    for (const [name, expected, actual] of [
+      ["course", context.courseId, filter.courseId],
+      ["topic", context.topicId, filter.topicId],
+      ["subtopic", context.subtopicId, filter.subtopicId]
+    ] as const) {
+      if (actual.length > 0 && actual !== expected) {
+        throw failedPrecondition(`Template block ${index + 1} does not target the requested ${name}.`, {
+          reason: "template_subtopic_mismatch",
+          blockIndex: index + 1,
+          field: name
+        });
+      }
+    }
+    return {
+      count: block.count,
+      filter: {
+        ...filter,
+        ...context
+      }
+    };
+  });
+}
+
 export function matchesFilter(question: CandidateQuestion, filter: ExamFilter): boolean {
   return (
-    question.partIds.includes(filter.partId) &&
+    (filter.partId.length === 0 || question.partIds.includes(filter.partId)) &&
     question.courseId === filter.courseId &&
     question.topicId === filter.topicId &&
     question.subtopicId === filter.subtopicId &&
