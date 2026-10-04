@@ -282,6 +282,7 @@ class ExamTemplate {
         'practice',
         'part_completion',
         'simulation',
+        'subtopic_mastery',
       ]),
       mode = enumField(json, 'mode', ['dynamic', 'fixed']),
       selectionPolicy = enumField(json, 'selectionPolicy', [
@@ -331,6 +332,9 @@ class ExamTemplate {
     if (mode == 'fixed' &&
         (blocks.isNotEmpty || fixedQuestions.length != questionCount)) {
       throw const FormatException('Fixed questions must match questionCount');
+    }
+    if (purpose == 'subtopic_mastery' && mode != 'dynamic') {
+      throw const FormatException('Subtopic mastery requires dynamic mode');
     }
     uniqueIds(fixedQuestions.map((q) => q.questionId));
     if (selectionPolicy == 'strict' && allowedFallbackSources.isNotEmpty) {
@@ -425,6 +429,9 @@ class ExamAttempt {
       templateId = idField(json, 'templateId'),
       templateVersion = intField(json, 'templateVersion', min: 1),
       partId = stringField(json, 'partId', fallback: ''),
+      courseId = stringField(json, 'courseId', fallback: ''),
+      topicId = stringField(json, 'topicId', fallback: ''),
+      subtopicId = stringField(json, 'subtopicId', fallback: ''),
       status = enumField(json, 'status', [
         'in_progress',
         'submitted',
@@ -466,6 +473,7 @@ class ExamAttempt {
     }
   }
   final String id, userId, requestId, templateId, partId, status;
+  final String courseId, topicId, subtopicId;
   final int templateVersion, createdAtMs;
   final List<AttemptQuestion> questions;
   final Map<String, String> answers;
@@ -478,6 +486,9 @@ class ExamAttempt {
     'templateId': templateId,
     'templateVersion': templateVersion,
     'partId': partId,
+    if (courseId.isNotEmpty) 'courseId': courseId,
+    if (topicId.isNotEmpty) 'topicId': topicId,
+    if (subtopicId.isNotEmpty) 'subtopicId': subtopicId,
     'status': status,
     'createdAtMs': createdAtMs,
     'questions': questions.map((q) => q.toJson()).toList(),

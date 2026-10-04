@@ -28,6 +28,14 @@ class ExamTemplateRepo {
         return records;
       });
 
+  /// Editorial choices for the future mastery flow (not yet served by Functions).
+  Stream<List<ExamTemplateRecord>> watchSelectableMasteryTemplates() =>
+      watchTemplates().map(
+        (records) => records
+            .where((record) => record.selectableForMastery)
+            .toList(growable: false),
+      );
+
   Future<ExamTemplateRecord?> read(String templateId) async {
     final snapshot = await _templates.doc(templateId).get();
     if (!snapshot.exists) return null;
@@ -96,6 +104,7 @@ class ExamTemplateRepo {
     if (data == null) throw const FormatException('Missing template');
     return ExamTemplateRecord(
       template: ExamTemplate.fromJson({...data, 'id': snapshot.id}),
+      published: data['status'] == 'published',
       createdAt: _date(data['createdAt']),
       updatedAt: _date(data['updatedAt']),
     );

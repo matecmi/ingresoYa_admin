@@ -209,11 +209,23 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
                 ),
                 _text(_title, 'Título', required: true),
                 _text(_description, 'Descripción', maxLines: 3),
-                _enum('Propósito', _purpose, const {
-                  'practice': 'Práctica',
-                  'part_completion': 'Completar parte',
-                  'simulation': 'Simulación',
-                }, (value) => setState(() => _purpose = value!)),
+                _enum(
+                  'Propósito',
+                  _purpose,
+                  const {
+                    'practice': 'Práctica',
+                    'part_completion': 'Completar parte',
+                    'simulation': 'Simulación',
+                    'subtopic_mastery': 'Dominio del subtema',
+                  },
+                  (value) => setState(() {
+                    _purpose = value!;
+                    if (_purpose == 'subtopic_mastery') {
+                      _mode = 'dynamic';
+                      if (_blocks.isEmpty) _blocks.add(_BlockDraft());
+                    }
+                  }),
+                ),
                 _text(
                   _priorityUniversity,
                   'ID de universidad prioritaria (opcional)',
@@ -232,10 +244,12 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
                 _enum(
                   'Tipo de selección',
                   _mode,
-                  const {
-                    'dynamic': 'Banco dinámico por bloques',
-                    'fixed': 'Lista fija de revisiones',
-                  },
+                  _purpose == 'subtopic_mastery'
+                      ? const {'dynamic': 'Banco dinámico por bloques'}
+                      : const {
+                          'dynamic': 'Banco dinámico por bloques',
+                          'fixed': 'Lista fija de revisiones',
+                        },
                   (value) {
                     setState(() {
                       _mode = value!;
@@ -407,6 +421,10 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
 
   Future<void> _save() async {
     if (!(_form.currentState?.validate() ?? false)) return;
+    if (_purpose == 'subtopic_mastery' && _mode != 'dynamic') {
+      _message('El examen integrador solo admite banco dinámico.');
+      return;
+    }
     if (_mode == 'dynamic' && _blockCount != _questionCount) {
       _message('La suma de bloques debe ser igual a la cantidad total.');
       return;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
+import 'package:ingresoya_admin/src/data/repo/exam_template_repo.dart';
+import 'package:ingresoya_admin/src/domain/exam_template_record.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_entity_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart';
 import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
@@ -14,6 +16,7 @@ class SubtopicsTab extends StatelessWidget {
     super.key,
     required this.courseId,
     required this.repo,
+    required this.templateRepo,
     required this.topicId,
     required this.topicName,
     required this.onSubtopicSelected,
@@ -22,6 +25,7 @@ class SubtopicsTab extends StatelessWidget {
 
   final String courseId;
   final dynamic repo; // (CourseRepo)
+  final ExamTemplateRepo templateRepo;
   final String? topicId;
   final String? topicName;
   final String? selectedSubtopicId;
@@ -55,8 +59,13 @@ class SubtopicsTab extends StatelessWidget {
               title: 'Subtemas',
               subtitle: 'Tema: ${topicName ?? "—"} • ${items.length} items',
               actionLabel: 'Agregar',
-              onAction: () =>
-                  _subtopicDialog(context, repo, courseId, topicId!),
+              onAction: () => _subtopicDialog(
+                context,
+                repo,
+                templateRepo,
+                courseId,
+                topicId!,
+              ),
               icon: Icons.add_rounded,
             ),
             const SizedBox(height: 10),
@@ -74,13 +83,16 @@ class SubtopicsTab extends StatelessWidget {
                       ? Icons.check_circle_rounded
                       : Icons.layers_rounded,
                   title: '${s.order}. ${s.name}',
-                  subtitle: s.linkVideo.isEmpty ? 'Sin video' : s.linkVideo,
+                  subtitle: s.masteryTemplateId.isNotEmpty
+                      ? 'Examen integrador: ${s.masteryTemplateId}'
+                      : (s.linkVideo.isEmpty ? 'Sin video' : s.linkVideo),
                   rightPill: 'Orden ${s.order}',
                   rightPillTone: selected ? PillTone.good : PillTone.neutral,
                   onTap: () => onSubtopicSelected(s.id, s.name),
                   onEdit: () => _subtopicDialog(
                     context,
                     repo,
+                    templateRepo,
                     courseId,
                     topicId!,
                     editing: s,
@@ -111,6 +123,7 @@ class SubtopicsTab extends StatelessWidget {
   Future<void> _subtopicDialog(
     BuildContext context,
     dynamic repo,
+    ExamTemplateRepo templateRepo,
     String courseId,
     String topicId, {
     SubtopicEntity? editing,
@@ -121,6 +134,8 @@ class SubtopicsTab extends StatelessWidget {
     );
     final link = TextEditingController(text: editing?.linkVideo ?? '');
     final description = TextEditingController(text: editing?.content ?? '');
+    var selectedMasteryTemplateId = editing?.masteryTemplateId ?? '';
+    final templates = templateRepo.watchSelectableMasteryTemplates();
     var saving = false;
 
     await showDialog<void>(
@@ -148,6 +163,53 @@ class SubtopicsTab extends StatelessWidget {
                   ctrl: description,
                   label: 'Descripción *',
                   maxLines: 6,
+                ),
+                StreamBuilder<List<ExamTemplateRecord>>(
+                  stream: templates,
+                  builder: (context, snapshot) {
+                    final available =
+                        snapshot.data ?? const <ExamTemplateRecord>[];
+                    final selectedAvailable = available.any(
+                      (record) =>
+                          record.template.id == selectedMasteryTemplateId,
+                    );
+                    return DropdownButtonFormField<String>(
+                      initialValue: selectedMasteryTemplateId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Examen integrador (opcional)',
+                        helperText:
+                            'Solo plantillas dinámicas, activas y publicadas.',
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('Sin examen integrador'),
+                        ),
+                        if (selectedMasteryTemplateId.isNotEmpty &&
+                            !selectedAvailable)
+                          DropdownMenuItem(
+                            value: selectedMasteryTemplateId,
+                            enabled: false,
+                            child: Text(
+                              'Plantilla no disponible: $selectedMasteryTemplateId',
+                            ),
+                          ),
+                        for (final record in available)
+                          DropdownMenuItem(
+                            value: record.template.id,
+                            child: Text(record.template.title),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setStateDialog(
+                            () => selectedMasteryTemplateId = value,
+                          );
+                        }
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -184,6 +246,7 @@ class SubtopicsTab extends StatelessWidget {
                   content: description.text.trim(),
                   order: order,
                   linkVideo: link.text.trim(),
+                  masteryTemplateId: selectedMasteryTemplateId,
                 );
                 HapticFeedback.selectionClick();
                 if (sheetContext.mounted) {

@@ -187,6 +187,7 @@ class CourseRepo {
           order: (x['order'] ?? '').toString(),
           linkVideo: (x['linkVideo'] ?? '').toString(),
           listPart: parts,
+          masteryTemplateId: (x['masteryTemplateId'] ?? '').toString(),
           active: _toBool(x['active']),
         );
       }).toList();
@@ -201,6 +202,7 @@ class CourseRepo {
     required String content,
     required int order,
     required String linkVideo,
+    String? masteryTemplateId,
   }) async {
     final ref = _col
         .doc(courseId)
@@ -210,15 +212,40 @@ class CourseRepo {
 
     final id = subtopicId ?? const Uuid().v4();
 
-    await ref.doc(id).set({
-      'name': name.trim(),
-      'content': content.trim(),
-      'order': order,
-      'linkVideo': linkVideo.trim(),
-      'idTopic': topicId, // opcional para consulta
-      'updatedAt': FieldValue.serverTimestamp(),
-      if (subtopicId == null) 'createdAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    final selectedTemplateId = masteryTemplateId?.trim();
+    await db.runTransaction((transaction) async {
+      if (selectedTemplateId != null && selectedTemplateId.isNotEmpty) {
+        final template = await transaction.get(
+          db.collection(AppEnv.examTemplatesCollection).doc(selectedTemplateId),
+        );
+        final data = template.data();
+        if (data == null ||
+            data['id'] != selectedTemplateId ||
+            data['status'] != 'published' ||
+            data['active'] == false ||
+            data['purpose'] != 'subtopic_mastery' ||
+            data['mode'] != 'dynamic') {
+          throw StateError(
+            'Selecciona una plantilla de dominio dinámica, activa y publicada.',
+          );
+        }
+      }
+      transaction.set(ref.doc(id), {
+        'name': name.trim(),
+        'content': content.trim(),
+        'order': order,
+        'linkVideo': linkVideo.trim(),
+        'idTopic': topicId,
+        'updatedAt': FieldValue.serverTimestamp(),
+        if (subtopicId == null) 'createdAt': FieldValue.serverTimestamp(),
+        if (selectedTemplateId != null && selectedTemplateId.isNotEmpty)
+          'masteryTemplateId': selectedTemplateId,
+        if (selectedTemplateId != null &&
+            selectedTemplateId.isEmpty &&
+            subtopicId != null)
+          'masteryTemplateId': FieldValue.delete(),
+      }, SetOptions(merge: true));
+    });
   }
 
   Future<void> deleteSubtopic({
