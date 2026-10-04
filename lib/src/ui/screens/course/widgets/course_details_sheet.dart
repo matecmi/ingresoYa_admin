@@ -112,6 +112,7 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                       SubtopicsTab(
                         courseId: c.id,
                         repo: repo,
+                        templateRepo: ref.watch(examTemplateRepoProvider),
                         topicId: _topicSelectedId,
                         topicName: _topicSelectedName,
                         onSubtopicSelected: (id, name) {

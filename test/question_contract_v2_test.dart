@@ -264,6 +264,48 @@ void main() {
     );
   });
 
+  test('subtopic mastery is dynamic without changing existing purposes', () {
+    final source = objectField(fixture()['template']);
+    final mastery = ExamTemplate.fromJson({
+      ...source,
+      'purpose': 'subtopic_mastery',
+    });
+    expect(ExamTemplate.fromJson(mastery.toJson()).purpose, 'subtopic_mastery');
+    expect(mastery.mode, 'dynamic');
+    for (final purpose in ['practice', 'part_completion', 'simulation']) {
+      expect(
+        ExamTemplate.fromJson({...source, 'purpose': purpose}).purpose,
+        purpose,
+      );
+    }
+    expect(
+      () => ExamTemplate.fromJson({
+        ...source,
+        'purpose': 'subtopic_mastery',
+        'mode': 'fixed',
+        'questionCount': 1,
+        'blocks': [],
+        'fixedQuestions': [
+          {'questionId': 'q-01', 'version': 1},
+        ],
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test('attempt context is optional and preserves legacy payloads', () {
+    final source = objectField(fixture()['attempt']);
+    final legacy = ExamAttempt.fromJson(source);
+    expect(legacy.toJson().containsKey('subtopicId'), isFalse);
+    final mastery = ExamAttempt.fromJson({
+      ...source,
+      'courseId': 'course-1',
+      'topicId': 'topic-1',
+      'subtopicId': 'subtopic-1',
+    });
+    expect(ExamAttempt.fromJson(mastery.toJson()).subtopicId, 'subtopic-1');
+  });
+
   test('8/10 fails, 9/10 passes without rounding threshold errors', () {
     for (final correct in [8, 9]) {
       final r = ExamResult.fromJson({

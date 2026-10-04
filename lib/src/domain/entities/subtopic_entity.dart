@@ -6,6 +6,7 @@ class SubtopicEntity {
   final String order;
   final String linkVideo;
   final List<SubtopicPartEntity> listPart;
+  final String masteryTemplateId;
   final bool active;
 
   const SubtopicEntity({
@@ -17,6 +18,7 @@ class SubtopicEntity {
     required this.linkVideo,
 
     required this.listPart,
+    this.masteryTemplateId = '',
     this.active = true,
   });
 }
