@@ -20,6 +20,14 @@ export interface SubtopicCompletionAssessment {
   missingPartIds: string[];
 }
 
+/** Stable across template revisions and later catalog changes. */
+export function masteryAwardId(context: SubtopicContext): string {
+  const digest = createHash("sha256")
+    .update(JSON.stringify([context.courseId, context.topicId, context.subtopicId]))
+    .digest("hex");
+  return `mastery-v1-${digest}`;
+}
+
 /**
  * An inactive or malformed catalog cannot grant an award. The version is a
  * digest of the active part IDs and academic context, not an admin-maintained

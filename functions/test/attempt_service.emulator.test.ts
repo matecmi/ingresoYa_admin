@@ -389,6 +389,230 @@ test("legacy app profiles derive a safe part context from published questions", 
   assert.equal(stored.data()?.partProgress?.[partId]?.examAttemptId, attempt.attemptId);
 });
 
+test("mastery requires a verified completion and an active published association", async () => {
+  await seed();
+  await seedMastery();
+  const request = masteryRequest("mastery-gate");
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "mastery_prerequisite_missing")
+  );
+  // Historic/local progress is not a verified server award.
+  await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current")
+    .update({ legacyCompletedSubtopics: ["subtopic-1"] });
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "mastery_prerequisite_missing")
+  );
+
+  await completeFixtureSubtopic();
+  const templates = db.collection(config.collections.templates);
+  await templates.doc("mastery-fixture-template").update({ active: false });
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "template_not_published")
+  );
+  await templates.doc("mastery-fixture-template").update({ active: true });
+  const subtopic = fixtureSubtopicRef();
+  await subtopic.update({ masteryTemplateId: "another-template" });
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "mastery_template_not_associated")
+  );
+});
+
+test("mastery freezes versions, is idempotent, and grants one badge only after passing", async () => {
+  await seed();
+  await seedMastery();
+  await completeFixtureSubtopic();
+  // A later catalog expansion must not revoke the already verified prerequisite.
+  await fixtureSubtopicRef().update({
+    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }]
+  });
+  const request = masteryRequest("mastery-idempotent");
+  const [first, repeated] = await Promise.all([
+    service.create(uid, request),
+    service.create(uid, request)
+  ]);
+  assert.equal(first.attemptId, repeated.attemptId);
+  assert.deepEqual(first.questions, repeated.questions);
+  assert.equal(first.courseId, "course-1");
+  assert.equal(JSON.stringify(first).includes("correctAlternativeId"), false);
+  assert.equal(JSON.stringify(first).includes("explanation"), false);
+  await assert.rejects(
+    service.create(uid, { ...request, subtopicId: "other-subtopic" }),
+    hasReason("failed-precondition", "request_id_conflict")
+  );
+  await assert.rejects(
+    service.get("another-student", first.attemptId),
+    hasReason("not-found", "attempt_not_found")
+  );
+  await assert.rejects(
+    service.saveAnswers("another-student", { attemptId: first.attemptId, answers: {} }),
+    hasReason("not-found", "attempt_not_found")
+  );
+  await assert.rejects(
+    service.submit("another-student", { attemptId: first.attemptId, answers: {} }),
+    hasReason("not-found", "attempt_not_found")
+  );
+
+  const templateRef = db.collection(config.collections.templates).doc("mastery-fixture-template");
+  await templateRef.update({ version: 2, title: "Dominio renovado" });
+  await db.collection(config.collections.questions)
+    .doc(first.questions[0]!.questionId).update({ version: 2, status: "retired" });
+  const recovered = await service.get(uid, first.attemptId);
+  assert.equal(recovered.templateVersion, 1);
+  assert.deepEqual(recovered.questions, first.questions);
+  assert.equal((await service.create(uid, request)).attemptId, first.attemptId);
+  await service.saveAnswers(uid, {
+    attemptId: first.attemptId,
+    answers: { [first.questions[0]!.questionId]: "a" }
+  });
+  const failed = await service.submit(uid, {
+    attemptId: first.attemptId,
+    answers: answers(first.questions, 8)
+  });
+  assert.equal(failed.passed, false);
+  assert.equal(failed.masteryUpdate, undefined);
+  const afterFail = await service.getAchievementSummary(uid);
+  assert.equal(afterFail.totalCompletedSubtopics, 1);
+  assert.equal(afterFail.totalMasteredSubtopics, 0);
+
+  const second = await service.create(uid, masteryRequest("mastery-after-fail"));
+  assert.notEqual(second.attemptId, first.attemptId);
+  assert.equal((await service.get(uid, second.attemptId)).templateVersion, 2);
+  const passed = await service.submit(uid, {
+    attemptId: second.attemptId,
+    answers: answers(second.questions, 9)
+  });
+  assert.equal(passed.passed, true);
+  assert.deepEqual(passed.masteryUpdate, {
+    courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1", mastered: true
+  });
+  const awards = await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").collection("achievements").get();
+  assert.equal(awards.size, 2);
+  const mastery = awards.docs.find((award) => award.data().type === "subtopic_mastery");
+  assert.ok(mastery);
+  assert.equal(mastery.data().templateVersion, 2);
+  assert.equal(mastery.data().examAttemptId, second.attemptId);
+  const summaryBeforeRetry = await service.getAchievementSummary(uid);
+  assert.equal(summaryBeforeRetry.totalCompletedSubtopics, 1);
+  assert.equal(summaryBeforeRetry.totalMasteredSubtopics, 1);
+  assert.equal(summaryBeforeRetry.recentMastery[0]?.subtopicId, "subtopic-1");
+  assert.deepEqual(await service.submit(uid, {
+    attemptId: second.attemptId,
+    answers: answers(second.questions, 9)
+  }), passed);
+  assert.deepEqual((await mastery.ref.get()).data(), mastery.data());
+  assert.deepEqual(await service.getAchievementSummary(uid), summaryBeforeRetry);
+  const another = await service.create(uid, masteryRequest("mastery-after-success"));
+  await service.submit(uid, {
+    attemptId: another.attemptId,
+    answers: answers(another.questions, 9)
+  });
+  assert.deepEqual((await mastery.ref.get()).data(), mastery.data());
+  assert.deepEqual(await service.getAchievementSummary(uid), summaryBeforeRetry);
+
+  const summaryRef = db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current")
+    .collection("achievementSummary").doc("current");
+  await summaryRef.delete();
+  const rebuilt = await service.getAchievementSummary(uid);
+  assert.equal(rebuilt.totalCompletedSubtopics, 1);
+  assert.equal(rebuilt.totalMasteredSubtopics, 1);
+  assert.equal(rebuilt.recentMastery[0]?.examAttemptId, second.attemptId);
+});
+
+test("a grading failure leaves mastery open and awards nothing until a successful retry", async () => {
+  await seed();
+  await seedMastery();
+  await completeFixtureSubtopic();
+  const created = await service.create(uid, masteryRequest("mastery-atomic"));
+  const question = created.questions[0]!;
+  const keyRef = db.collection(config.collections.answerKeys).doc(`${question.questionId}_${question.version}`);
+  const originalKey = (await keyRef.get()).data();
+  assert.ok(originalKey);
+  await keyRef.delete();
+  await assert.rejects(
+    service.submit(uid, { attemptId: created.attemptId, answers: answers(created.questions, 9) }),
+    hasReason("failed-precondition", "answer_key_unavailable")
+  );
+  assert.equal((await service.get(uid, created.attemptId)).status, "in_progress");
+  assert.equal((await service.getAchievementSummary(uid)).totalMasteredSubtopics, 0);
+  await keyRef.set(originalKey);
+  const passed = await service.submit(uid, {
+    attemptId: created.attemptId,
+    answers: answers(created.questions, 9)
+  });
+  assert.equal(passed.passed, true);
+  assert.equal((await service.getAchievementSummary(uid)).totalMasteredSubtopics, 1);
+});
+
+test("a published mastery block may reuse an active part filter from the same subtopic", async () => {
+  await seed();
+  await seedMastery();
+  await completeFixtureSubtopic();
+  await db.collection(config.collections.templates).doc("mastery-fixture-template")
+    .update({ blocks: [{ count: 10, filter: { partId } }] });
+  const attempt = await service.create(uid, masteryRequest("mastery-editorial-part-block"));
+  assert.equal(attempt.questionCount, 10);
+});
+
+function masteryRequest(requestId: string) {
+  return {
+    requestId,
+    purpose: "subtopic_mastery" as const,
+    courseId: "course-1",
+    topicId: "topic-1",
+    subtopicId: "subtopic-1",
+    templateId: "mastery-fixture-template"
+  };
+}
+
+function fixtureSubtopicRef() {
+  return db.collection(config.collections.courses).doc("course-1")
+    .collection("topics").doc("topic-1")
+    .collection("subtopics").doc("subtopic-1");
+}
+
+async function seedMastery(): Promise<void> {
+  await fixtureSubtopicRef().update({ masteryTemplateId: "mastery-fixture-template" });
+  await db.collection(config.collections.templates).doc("mastery-fixture-template").set({
+    schemaVersion: 2,
+    id: "mastery-fixture-template",
+    version: 1,
+    title: "Dominio del subtema",
+    status: "published",
+    active: true,
+    purpose: "subtopic_mastery",
+    mode: "dynamic",
+    selectionPolicy: "strict",
+    allowedFallbackSources: [],
+    questionCount: 10,
+    passPercentExclusive: 80,
+    blocks: [{ count: 10, filter: {} }]
+  });
+}
+
+async function completeFixtureSubtopic(): Promise<void> {
+  await service.recordPartSectionCompletion(uid, {
+    partId,
+    sections: ["video", "lesson", "examples", "review", "resources"]
+  });
+  const attempt = await service.create(uid, {
+    requestId: `prerequisite-${Date.now()}`,
+    purpose: "part_completion",
+    partId,
+    templateId
+  });
+  await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+}
+
 async function seed(): Promise<void> {
   const awards = await db.collection(config.collections.users).doc(uid)
     .collection("learningProgress").doc("current").collection("achievements").get();

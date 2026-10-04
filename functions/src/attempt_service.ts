@@ -10,6 +10,7 @@ import type { BackendConfig } from "./config";
 import {
   emptyAchievementSummary,
   includeAchievement,
+  includeMastery,
   readAchievementSummary,
   summaryFromAwards,
   type AchievementSummary
@@ -18,6 +19,7 @@ import {
   type CandidateQuestion,
   type ExamTemplateRecord,
   type PartContext,
+  type SubtopicContext,
   parseCandidateQuestion,
   parseTemplate
 } from "./exam_contracts";
@@ -33,6 +35,7 @@ import {
 } from "./part_progress";
 import {
   bindPartCompletionBlocks,
+  bindSubtopicMasteryBlocks,
   chooseQuestions,
   randomStarts,
   requireEnough,
@@ -42,6 +45,7 @@ import {
 import { OperationMetrics } from "./operation_metrics";
 import {
   assessSubtopicCompletion,
+  masteryAwardId,
   publishedSubtopicRequirement,
   type SubtopicRequirement
 } from "./subtopic_achievement";
@@ -64,6 +68,9 @@ export interface CreateExamAttemptResponse {
   requiredCorrectAnswers: number;
   expiresAt: string;
   questions: AttemptQuestionSnapshot[];
+  courseId?: string;
+  topicId?: string;
+  subtopicId?: string;
 }
 
 export type AttemptStatus = "in_progress" | "submitted" | "expired";
@@ -116,6 +123,7 @@ export interface SubmittedAttemptResponse {
   partCompletion?: PartCompletionResponse;
   /** Compatibility projection consumed by the mobile app. */
   progressUpdate?: { partId: string; completed: boolean };
+  masteryUpdate?: SubtopicContext & { mastered: true };
 }
 
 export interface AttemptReview {
@@ -186,11 +194,14 @@ export class ExamAttemptService {
       .doc(input.requestId);
     const previous = await requestRef.get();
     metrics.readDocument();
-    if (previous.exists) return this.responseForExisting(uid, previous.data(), metrics);
+    if (previous.exists) return this.responseForExisting(uid, previous.data(), input, metrics);
 
+    const contextPromise = input.purpose === "part_completion"
+      ? this.partContext(uid, input.partId, metrics)
+      : this.masteryContext(uid, input, metrics);
     const [profile, context, template, recentExposure] = await Promise.all([
       this.profileUniversity(uid, metrics),
-      this.partContext(uid, input.partId, metrics),
+      contextPromise,
       this.template(input.templateId, metrics),
       this.recentExposure(uid, metrics)
     ]);
@@ -199,7 +210,9 @@ export class ExamAttemptService {
         reason: "template_incompatible"
       });
     }
-    const blocks = bindPartCompletionBlocks(template.blocks, context);
+    const blocks = input.purpose === "part_completion"
+      ? bindPartCompletionBlocks(template.blocks, context as PartContext)
+      : bindSubtopicMasteryBlocks(template.blocks, context as SubtopicContext);
     const selected = await this.select(
       template,
       blocks,
@@ -214,18 +227,24 @@ export class ExamAttemptService {
     const now = Date.now();
     const durationSeconds = template.durationSeconds ?? defaultAttemptDurationSeconds;
     const expiresAtMs = now + durationSeconds * 1000;
-    const response = this.responseFromSelection(
+    const selectedResponse = this.responseFromSelection(
       attemptRef.id,
       template,
       ordered,
       expiresAtMs
     );
+    const response: CreateExamAttemptResponse = input.purpose === "subtopic_mastery"
+      ? { ...selectedResponse, ...context }
+      : selectedResponse;
 
     const created = await this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const existing = await transaction.get(requestRef);
       metrics.readDocument();
       if (existing.exists) return false;
+      if (input.purpose === "subtopic_mastery") {
+        await this.verifyMasteryTransaction(transaction, uid, input, template.version, metrics);
+      }
       transaction.set(attemptRef, {
         schemaVersion: 2,
         id: attemptRef.id,
@@ -240,8 +259,9 @@ export class ExamAttemptService {
           passPercentExclusive: template.passPercentExclusive,
           durationSeconds
         },
-        partId: context.partId,
-        partContext: context,
+        ...(input.purpose === "part_completion"
+          ? { partId: input.partId, partContext: context }
+          : { courseId: input.courseId, topicId: input.topicId, subtopicId: input.subtopicId }),
         status: "in_progress",
         createdAt: FieldValue.serverTimestamp(),
         createdAtMs: now,
@@ -275,7 +295,7 @@ export class ExamAttemptService {
       }
       return true;
     });
-    if (!created) return this.responseForRequest(uid, input.requestId, metrics);
+    if (!created) return this.responseForRequest(uid, input, metrics);
     // Attempt, idempotency key and one recent-question record per selected item.
     metrics.writeDocument(2 + response.questions.length);
     return response;
@@ -379,7 +399,10 @@ export class ExamAttemptService {
         const partCompletion = purpose === "part_completion" && hasPassed(result)
           ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, partContext, metrics)
           : undefined;
-        return submittedResponse(current, result, answerKeys, partCompletion);
+        const masteryUpdate = purpose === "subtopic_mastery" && hasPassed(result)
+          ? await this.recordMasteryAward(transaction, uid, attempt.data(), input.attemptId, metrics)
+          : undefined;
+        return submittedResponse(current, result, answerKeys, partCompletion, masteryUpdate);
       }
       if (current.status !== "in_progress") {
         throw failedPrecondition("The exam attempt is not open.", {
@@ -422,6 +445,9 @@ export class ExamAttemptService {
       const partCompletion = grading.passed && purpose === "part_completion"
         ? await this.recordExamApproval(transaction, uid, attempt.data(), input.attemptId, partContext, metrics)
         : undefined;
+      const masteryUpdate = grading.passed && purpose === "subtopic_mastery"
+        ? await this.recordMasteryAward(transaction, uid, attempt.data(), input.attemptId, metrics)
+        : undefined;
       transaction.update(attemptRef, {
         answers,
         status: "submitted",
@@ -441,7 +467,8 @@ export class ExamAttemptService {
         { ...current, status: "submitted", answers },
         result,
         answerKeys,
-        partCompletion
+        partCompletion,
+        masteryUpdate
       );
     });
   }
@@ -491,33 +518,35 @@ export class ExamAttemptService {
   private async responseForExisting(
     uid: string,
     request: Record<string, unknown> | undefined,
+    input: CreateExamAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attemptId = typeof request?.attemptId === "string" ? request.attemptId : "";
     if (attemptId.length === 0) throw failedPrecondition("The idempotency record is invalid.", {
       reason: "request_key_invalid"
     });
-    return this.responseForAttempt(uid, attemptId, metrics);
+    return this.responseForAttempt(uid, attemptId, input, metrics);
   }
 
   private async responseForRequest(
     uid: string,
-    requestId: string,
+    input: CreateExamAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const request = await this.db
       .collection(this.config.collections.users)
       .doc(uid)
       .collection("examRequestKeys")
-      .doc(requestId)
+      .doc(input.requestId)
       .get();
     metrics.readDocument();
-    return this.responseForExisting(uid, request.data(), metrics);
+    return this.responseForExisting(uid, request.data(), input, metrics);
   }
 
   private async responseForAttempt(
     uid: string,
     attemptId: string,
+    input: CreateExamAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
@@ -527,7 +556,18 @@ export class ExamAttemptService {
         reason: "request_key_orphaned"
       });
     }
-    const response = this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
+    const data = attempt.data();
+    const response = this.readAttempt(uid, attemptId, data);
+    if (response.requestId !== input.requestId || response.templateId !== input.templateId ||
+      (stringField(data?.templateSnapshot, "purpose") ?? "part_completion") !== input.purpose ||
+      (input.purpose === "part_completion"
+        ? response.partId !== input.partId
+        : response.courseId !== input.courseId ||
+          response.topicId !== input.topicId || response.subtopicId !== input.subtopicId)) {
+      throw failedPrecondition("The request ID belongs to another exam request.", {
+        reason: "request_id_conflict"
+      });
+    }
     return {
       attemptId: response.attemptId,
       status: response.status,
@@ -535,7 +575,12 @@ export class ExamAttemptService {
       questionCount: response.questionCount,
       requiredCorrectAnswers: response.requiredCorrectAnswers,
       expiresAt: response.expiresAt,
-      questions: response.questions
+      questions: response.questions,
+      ...(response.courseId === undefined ? {} : {
+        courseId: response.courseId,
+        topicId: response.topicId,
+        subtopicId: response.subtopicId
+      })
     };
   }
 
@@ -614,6 +659,66 @@ export class ExamAttemptService {
     );
     this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
     return response;
+  }
+
+  private async recordMasteryAward(
+    transaction: Transaction,
+    uid: string,
+    attempt: Record<string, unknown> | undefined,
+    attemptId: string,
+    metrics: OperationMetrics
+  ): Promise<SubtopicContext & { mastered: true }> {
+    const context = parseSubtopicContext(objectMap(attempt));
+    const templateId = stringValue(attempt?.templateId);
+    const templateVersion = numberField(attempt?.templateVersion);
+    if (context === undefined || templateId === undefined || templateVersion === undefined ||
+      stringField(attempt?.templateSnapshot, "purpose") !== "subtopic_mastery") {
+      throw failedPrecondition("The stored mastery attempt is invalid.", {
+        reason: "attempt_data_invalid"
+      });
+    }
+    const awardRef = this.progressRef(uid).collection("achievements").doc(masteryAwardId(context));
+    const award = await transaction.get(awardRef);
+    metrics.readDocument();
+    if (award.exists) {
+      const existing = award.data();
+      if (existing?.type !== "subtopic_mastery" ||
+        existing.courseId !== context.courseId || existing.topicId !== context.topicId ||
+        existing.subtopicId !== context.subtopicId) {
+        throw failedPrecondition("The stored mastery award is invalid.", {
+          reason: "mastery_award_invalid"
+        });
+      }
+      return { ...context, mastered: true };
+    }
+
+    const summaryRef = this.achievementSummaryRef(uid);
+    const summary = await transaction.get(summaryRef);
+    metrics.readDocument();
+    let previous = readAchievementSummary(summary.data());
+    if (previous === undefined) {
+      const olderAwards = await transaction.get(this.progressRef(uid).collection("achievements"));
+      metrics.readQuery(olderAwards.size);
+      previous = summaryFromAwards(olderAwards.docs.map((item) => item.data()));
+    }
+    transaction.set(awardRef, {
+      schemaVersion: 1,
+      type: "subtopic_mastery",
+      ...context,
+      templateId,
+      templateVersion,
+      examAttemptId: attemptId,
+      awardedAt: FieldValue.serverTimestamp()
+    });
+    transaction.set(summaryRef, includeMastery(previous, {
+      ...context,
+      templateId,
+      templateVersion,
+      examAttemptId: attemptId,
+      awardedAtMs: Date.now()
+    }));
+    metrics.writeDocument(2);
+    return { ...context, mastered: true };
   }
 
   /** Extra catalog reads happen only when this part becomes verified. */
@@ -762,6 +867,88 @@ export class ExamAttemptService {
 
   private achievementSummaryRef(uid: string) {
     return this.progressRef(uid).collection("achievementSummary").doc("current");
+  }
+
+  private completionAwardQuery(uid: string, context: SubtopicContext) {
+    return this.progressRef(uid).collection("achievements")
+      .where("type", "==", "subtopic_completed")
+      .where("courseId", "==", context.courseId)
+      .where("topicId", "==", context.topicId)
+      .where("subtopicId", "==", context.subtopicId)
+      .limit(1);
+  }
+
+  private async masteryContext(
+    uid: string,
+    input: Extract<CreateExamAttemptInput, { purpose: "subtopic_mastery" }>,
+    metrics: OperationMetrics
+  ): Promise<SubtopicContext> {
+    const context = {
+      courseId: input.courseId,
+      topicId: input.topicId,
+      subtopicId: input.subtopicId
+    };
+    const courseRef = this.db.collection(this.config.collections.courses).doc(context.courseId);
+    const topicRef = courseRef.collection("topics").doc(context.topicId);
+    const subtopicRef = topicRef.collection("subtopics").doc(context.subtopicId);
+    const [course, topic, subtopic, awards] = await Promise.all([
+      courseRef.get(), topicRef.get(), subtopicRef.get(),
+      this.completionAwardQuery(uid, context).get()
+    ]);
+    metrics.readDocument(3);
+    metrics.readQuery(awards.size);
+    requireMasteryAssociation(context, input.templateId, course.data(), topic.data(), subtopic.data());
+    if (awards.empty) {
+      throw failedPrecondition("Complete the subtopic before starting its mastery exam.", {
+        reason: "mastery_prerequisite_missing"
+      });
+    }
+    return context;
+  }
+
+  private async verifyMasteryTransaction(
+    transaction: Transaction,
+    uid: string,
+    input: Extract<CreateExamAttemptInput, { purpose: "subtopic_mastery" }>,
+    expectedTemplateVersion: number,
+    metrics: OperationMetrics
+  ): Promise<void> {
+    const context = {
+      courseId: input.courseId,
+      topicId: input.topicId,
+      subtopicId: input.subtopicId
+    };
+    const courseRef = this.db.collection(this.config.collections.courses).doc(context.courseId);
+    const topicRef = courseRef.collection("topics").doc(context.topicId);
+    const subtopicRef = topicRef.collection("subtopics").doc(context.subtopicId);
+    const [course, topic, subtopic, template, awards] = await Promise.all([
+      transaction.get(courseRef),
+      transaction.get(topicRef),
+      transaction.get(subtopicRef),
+      transaction.get(this.db.collection(this.config.collections.templates).doc(input.templateId)),
+      transaction.get(this.completionAwardQuery(uid, context))
+    ]);
+    metrics.readDocument(4);
+    metrics.readQuery(awards.size);
+    requireMasteryAssociation(context, input.templateId, course.data(), topic.data(), subtopic.data());
+    if (awards.empty) {
+      throw failedPrecondition("Complete the subtopic before starting its mastery exam.", {
+        reason: "mastery_prerequisite_missing"
+      });
+    }
+    const current = template.exists ? parseTemplate(template.data()!, input.templateId) : undefined;
+    if (current?.purpose !== "subtopic_mastery" || current.version !== expectedTemplateVersion) {
+      throw failedPrecondition("The mastery template changed while preparing the exam. Try again.", {
+        reason: "template_changed_retry"
+      });
+    }
+    const requirement = publishedSubtopicRequirement(context, course.data(), topic.data(), subtopic.data());
+    if (current.blocks.some((block) => block.filter.partId.length > 0 &&
+      !requirement?.requiredPartIds.includes(block.filter.partId))) {
+      throw failedPrecondition("A mastery template block targets an inactive part.", {
+        reason: "template_subtopic_mismatch"
+      });
+    }
   }
 
   private async profileUniversity(uid: string, metrics: OperationMetrics): Promise<string> {
@@ -977,8 +1164,10 @@ export class ExamAttemptService {
         .where("status", "==", "published")
         .where("courseId", "==", filter.courseId)
         .where("topicId", "==", filter.topicId)
-        .where("subtopicId", "==", filter.subtopicId)
-        .where("partIds", "array-contains", filter.partId);
+        .where("subtopicId", "==", filter.subtopicId);
+      if (filter.partId.length > 0) {
+        query = query.where("partIds", "array-contains", filter.partId);
+      }
       // Source type is a compact, indexed equality filter. Other optional
       // source metadata remains a bounded in-memory predicate to avoid a
       // combinatorial index matrix.
@@ -1054,7 +1243,9 @@ export function projectAttemptResponse(
   const requestId = stringValue(data.requestId);
   const templateId = stringValue(data.templateId);
   const templateVersion = numberField(data.templateVersion);
+  const purpose = stringField(data.templateSnapshot, "purpose");
   const partId = stringValue(data.partId);
+  const masteryContext = parseSubtopicContext(data);
   const createdAtMs = numberField(data.createdAtMs);
   if (
     expiresAtMs === undefined ||
@@ -1065,7 +1256,7 @@ export function projectAttemptResponse(
     requestId === undefined ||
     templateId === undefined ||
     templateVersion === undefined ||
-    partId === undefined ||
+    (purpose === "subtopic_mastery" ? masteryContext === undefined : partId === undefined) ||
     createdAtMs === undefined
   ) {
     throw failedPrecondition("The stored exam attempt is invalid.");
@@ -1083,7 +1274,8 @@ export function projectAttemptResponse(
     requestId,
     templateId,
     templateVersion,
-    partId,
+    partId: partId ?? "",
+    ...(masteryContext === undefined ? {} : masteryContext),
     createdAtMs
   };
 }
@@ -1141,7 +1333,8 @@ function submittedResponse(
   attempt: ExamAttemptResponse,
   result: StoredExamResult,
   answerKeys: readonly FrozenAnswerKey[],
-  partCompletion?: PartCompletionResponse
+  partCompletion?: PartCompletionResponse,
+  masteryUpdate?: SubtopicContext & { mastered: true }
 ): SubmittedAttemptResponse {
   if (result.total !== attempt.questions.length) {
     throw failedPrecondition("The stored exam result is invalid.");
@@ -1171,6 +1364,7 @@ function submittedResponse(
     requiredCorrectAnswers: attempt.requiredCorrectAnswers,
     passed: grading.passed,
     review: grading.review,
+    ...(masteryUpdate === undefined ? {} : { masteryUpdate }),
     ...(partCompletion === undefined ? {} : {
       partCompletion,
       progressUpdate: {
@@ -1248,6 +1442,34 @@ function parsePartContext(raw: Record<string, unknown>): PartContext | undefined
   return partId !== undefined && courseId !== undefined && topicId !== undefined && subtopicId !== undefined
     ? { partId, courseId, topicId, subtopicId }
     : undefined;
+}
+
+function parseSubtopicContext(raw: Record<string, unknown>): SubtopicContext | undefined {
+  const courseId = stringValue(raw.courseId);
+  const topicId = stringValue(raw.topicId);
+  const subtopicId = stringValue(raw.subtopicId);
+  return courseId !== undefined && topicId !== undefined && subtopicId !== undefined
+    ? { courseId, topicId, subtopicId }
+    : undefined;
+}
+
+function requireMasteryAssociation(
+  context: SubtopicContext,
+  templateId: string,
+  course: Record<string, unknown> | undefined,
+  topic: Record<string, unknown> | undefined,
+  subtopic: Record<string, unknown> | undefined
+): void {
+  if (publishedSubtopicRequirement(context, course, topic, subtopic) === undefined) {
+    throw failedPrecondition("The selected subtopic is unavailable.", {
+      reason: "subtopic_not_available"
+    });
+  }
+  if (subtopic?.masteryTemplateId !== templateId) {
+    throw failedPrecondition("The selected mastery template is not published for this subtopic.", {
+      reason: "mastery_template_not_associated"
+    });
+  }
 }
 
 function samePartContext(left: PartContext, right: PartContext): boolean {

@@ -1,12 +1,19 @@
 import { invalidArgument } from "./errors";
 import { isPartSection, type PartSection } from "./part_progress";
 
-export interface CreateExamAttemptInput {
+export type CreateExamAttemptInput = {
   requestId: string;
   purpose: "part_completion";
   templateId: string;
   partId: string;
-}
+} | {
+  requestId: string;
+  purpose: "subtopic_mastery";
+  templateId: string;
+  courseId: string;
+  topicId: string;
+  subtopicId: string;
+};
 
 export interface GetExamAttemptInput {
   attemptId: string;
@@ -60,10 +67,21 @@ function id(value: unknown, name: string): string {
 
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
-  onlyKeys(value, ["requestId", "purpose", "templateId", "partId"]);
-  if (value.purpose !== "part_completion") {
-    throw invalidArgument("purpose must be part_completion.");
+  if (value.purpose === "subtopic_mastery") {
+    onlyKeys(value, ["requestId", "purpose", "templateId", "courseId", "topicId", "subtopicId"]);
+    return {
+      requestId: id(value.requestId, "requestId"),
+      purpose: "subtopic_mastery",
+      templateId: id(value.templateId, "templateId"),
+      courseId: id(value.courseId, "courseId"),
+      topicId: id(value.topicId, "topicId"),
+      subtopicId: id(value.subtopicId, "subtopicId")
+    };
   }
+  if (value.purpose !== "part_completion") {
+    throw invalidArgument("purpose must be part_completion or subtopic_mastery.");
+  }
+  onlyKeys(value, ["requestId", "purpose", "templateId", "partId"]);
   return {
     requestId: id(value.requestId, "requestId"),
     purpose: "part_completion",

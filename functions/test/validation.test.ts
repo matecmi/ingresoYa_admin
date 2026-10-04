@@ -5,6 +5,8 @@ import { readBackendConfig } from "../src/config";
 import {
   emptyAchievementSummary,
   includeAchievement,
+  includeMastery,
+  readAchievementSummary,
   summaryFromAwards
 } from "../src/achievement_summary";
 import { asHttpsError, ExamBackendError, notFound } from "../src/errors";
@@ -26,9 +28,17 @@ import {
 } from "../src/attempt_service";
 import type { CandidateQuestion } from "../src/exam_contracts";
 import { parseTemplate } from "../src/exam_contracts";
-import { chooseQuestions, randomStarts, requireEnough, shuffle } from "../src/selection";
+import {
+  bindSubtopicMasteryBlocks,
+  chooseQuestions,
+  matchesFilter,
+  randomStarts,
+  requireEnough,
+  shuffle
+} from "../src/selection";
 import {
   assessSubtopicCompletion,
+  masteryAwardId,
   publishedSubtopicRequirement
 } from "../src/subtopic_achievement";
 import {
@@ -53,6 +63,29 @@ test("achievement projection keeps one badge per subtopic across requirement ver
   assert.equal(next.recent.length, 1);
   assert.equal(next.recent[0]?.requirementVersion, "v2");
   assert.equal(summaryFromAwards([]).totalCompletedSubtopics, 0);
+});
+
+test("mastery summary extends legacy fields and deduplicates by subtopic", () => {
+  const completed = includeAchievement(emptyAchievementSummary(), {
+    courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1",
+    requirementVersion: "parts-v1", awardedAtMs: 10
+  });
+  const preview = {
+    courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1",
+    templateId: "mastery-1", templateVersion: 1, examAttemptId: "attempt-1", awardedAtMs: 20
+  };
+  const first = includeMastery(completed, preview);
+  const repeated = includeMastery(first, { ...preview, templateVersion: 2, awardedAtMs: 30 });
+  assert.equal(repeated.totalCompletedSubtopics, 1);
+  assert.equal(repeated.totalMasteredSubtopics, 1);
+  assert.equal(repeated.recentMastery.length, 1);
+  assert.equal(repeated.recentMastery[0]?.templateVersion, 2);
+  assert.deepEqual(readAchievementSummary(repeated), repeated);
+  assert.equal(readAchievementSummary({
+    schemaVersion: 1, completedSubtopicKeys: [], recent: []
+  }), undefined);
+  const revised = { ...preview, templateVersion: 3 };
+  assert.equal(masteryAwardId(preview), masteryAwardId(revised));
 });
 
 test("achievement summary callable accepts no client-controlled scope", () => {
@@ -147,6 +180,24 @@ test("inactive templates cannot be used to create new attempts", () => {
   assert.throws(() => parseTemplate({ ...active, active: false }, "template-1"));
 });
 
+test("mastery template is dynamic and blocks stay inside the requested subtopic", () => {
+  const raw = { ...templateRecord(), purpose: "subtopic_mastery", blocks: [{ count: 1, filter: {} }] };
+  const template = parseTemplate(raw, "template-1");
+  assert.equal(template.purpose, "subtopic_mastery");
+  assert.throws(() => parseTemplate({ ...raw, mode: "fixed" }, "template-1"));
+  const context = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+  const bound = bindSubtopicMasteryBlocks(template.blocks, context);
+  assert.equal(bound[0]?.filter.partId, "");
+  assert.equal(matchesFilter(candidate("question-1", "university-1", "original"), bound[0]!.filter), true);
+  const partBlock = bindSubtopicMasteryBlocks(
+    [{ count: 1, filter: { ...bound[0]!.filter, partId: "part-1" } }], context
+  );
+  assert.equal(partBlock[0]?.filter.partId, "part-1");
+  assert.throws(() => bindSubtopicMasteryBlocks(
+    [{ count: 1, filter: { ...bound[0]!.filter, subtopicId: "other" } }], context
+  ));
+});
+
 test("create input rejects client-controlled attempt fields", () => {
   assert.throws(
     () =>
@@ -159,6 +210,19 @@ test("create input rejects client-controlled attempt fields", () => {
       }),
     isInvalidArgument
   );
+});
+
+test("mastery create accepts only request ID, purpose, context and template", () => {
+  const request = {
+    requestId: "mastery-request-1", purpose: "subtopic_mastery",
+    courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1",
+    templateId: "mastery-1"
+  };
+  assert.deepEqual(parseCreateExamAttempt(request), request);
+  for (const extra of [{ count: 10 }, { filters: {} }, { passPercentExclusive: 80 }, { partId: "part-1" }]) {
+    assert.throws(() => parseCreateExamAttempt({ ...request, ...extra }), isInvalidArgument);
+  }
+  assert.throws(() => parseCreateExamAttempt({ ...request, topicId: undefined }), isInvalidArgument);
 });
 
 test("selection prefers the profile university before authorized fallback sources", () => {
