@@ -16,7 +16,7 @@ _Última actualización: 2026-10-05_
 
 ## Pendiente / siguiente paso
 - Desplegar Functions (#17) cuando se decida (no se despliega automáticamente).
-- La app (`iya-app`, rama `codex/dominio-subtema-app`) tiene PR abierto con el flujo del alumno; depende de este despliegue.
+- La app (`iya-app`, rama `codex/dominio-subtema-app`) tiene PR matecmi/IngresoYa#33 abierto con el flujo del alumno (completo y validado); depende de este despliegue.
 
 ## Decisiones
 - Contrato de dominio del subtema: `docs/subtopic_mastery_contract.md` (compartido con iya-app). Solo modo `dynamic` en esta versión; solo Functions califica y concede logros.
