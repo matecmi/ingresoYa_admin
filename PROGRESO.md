@@ -31,8 +31,9 @@ _Última actualización: 2026-10-06_
 
 ## Pendiente / siguiente paso
 - Recorrido E2E con cuenta de prueba (partes → integrador → reprobar/reintentar → aprobar → submit repetido → Perfil).
-- Producción: definir el proyecto Firebase de producción (en `.firebaserc` solo existe el alias `test`) y hacer el release `desarrollo` → `main` antes de desplegar; debe hacerse **antes del 2026-10-30**. Opcional: instalar Node 22 en local (`nvm install 22`).
+- Opcional: instalar Node 22 en local (`nvm install 22`).
 - App: PR matecmi/IngresoYa#33 fusionado en `desarrollo` (verificado en GitHub: 2026-10-06, merge `64f6661`).
 
 ## Decisiones
+- **Aún no hay producción.** Todo se despliega solo en test (`ingresoya-e5115`). Nada se fusiona a `main` hasta publicar en Play Console; en ese momento se configura `INGRESOYA_ENV=production` y se hace el release `desarrollo` → `main`.
 - Contrato de dominio del subtema: `docs/subtopic_mastery_contract.md` (compartido con iya-app). Solo modo `dynamic` en esta versión; solo Functions califica y concede logros.
