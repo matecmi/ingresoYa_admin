@@ -1,7 +1,7 @@
 # Functions del backend de exámenes
 
 `functions/` contiene el backend TypeScript de Firebase Functions v2. Usa
-Node 20, Firebase Admin SDK y el runtime `nodejs20` declarado en
+Node 22, Firebase Admin SDK y el runtime `nodejs22` declarado en
 `firebase.json`. No se despliega ningún recurso desde este cambio.
 
 ## Entornos y colecciones
