@@ -30,9 +30,9 @@ _Última actualización: 2026-10-06_
 - Asociada al subtema Razonamiento Matemático › Series y Sumatorias › Sumatorias. El selector solo listó plantillas de dominio publicadas.
 
 ## Pendiente / siguiente paso
-- Recorrido E2E con cuenta de prueba (partes → integrador → reprobar/reintentar → aprobar → submit repetido → Perfil).
 - Opcional: instalar Node 22 en local (`nvm install 22`).
-- App: PR matecmi/IngresoYa#33 fusionado en `desarrollo` (verificado en GitHub: 2026-10-06, merge `64f6661`).
+- App: PR matecmi/IngresoYa#33 fusionado en `desarrollo` (verificado en GitHub: 2026-10-06, merge `64f6661`). E2E del integrador probado por Kevin: funciona.
+- App: mejora de logros en 3 PRs (ver `../iya-app/PROGRESO.md`). PR 1 «Examen integrador visible» en curso. No requiere cambios en Functions ni en el admin.
 
 ## Decisiones
 - **Aún no hay producción.** Todo se despliega solo en test (`ingresoya-e5115`). Nada se fusiona a `main` hasta publicar en Play Console; en ese momento se configura `INGRESOYA_ENV=production` y se hace el release `desarrollo` → `main`.
