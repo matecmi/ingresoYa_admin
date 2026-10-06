@@ -32,7 +32,7 @@ _Última actualización: 2026-10-06_
 ## Pendiente / siguiente paso
 - Opcional: instalar Node 22 en local (`nvm install 22`).
 - App: PR matecmi/IngresoYa#33 fusionado en `desarrollo` (verificado en GitHub: 2026-10-06, merge `64f6661`). E2E del integrador probado por Kevin: funciona.
-- App: mejora de logros en 3 PRs (ver `../iya-app/PROGRESO.md`). PR 1 «Examen integrador visible» en curso. No requiere cambios en Functions ni en el admin.
+- App: mejora de logros en 3 PRs (ver `../iya-app/PROGRESO.md`). PR 1 «Examen integrador visible» fusionado (#36); PR 2 «Estados de logro y celebración de dominio» en revisión. No requiere cambios en Functions ni en el admin.
 
 ## Decisiones
 - **Aún no hay producción.** Todo se despliega solo en test (`ingresoya-e5115`). Nada se fusiona a `main` hasta publicar en Play Console; en ese momento se configura `INGRESOYA_ENV=production` y se hace el release `desarrollo` → `main`.
