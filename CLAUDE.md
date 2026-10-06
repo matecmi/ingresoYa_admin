@@ -17,7 +17,7 @@ En cada desarrollo, commit o PR, actualizar `PROGRESO.md` (y este `CLAUDE.md` si
 
 ## Stack
 - Flutter (Dart ^3.9.2), Riverpod, go_router, Firebase Auth, Cloud Firestore, flutter_math_fork.
-- Functions: Node/TypeScript, firebase-functions 7, firebase-admin 13. Código en `functions/src/` (`attempt_service.ts`, `selection.ts`, `subtopic_achievement.ts`, `achievement_summary.ts`, `handlers.ts`, ...).
+- Functions: Node 22 (runtime `nodejs22`)/TypeScript, firebase-functions 7, firebase-admin 13. Código en `functions/src/` (`attempt_service.ts`, `selection.ts`, `subtopic_achievement.ts`, `achievement_summary.ts`, `handlers.ts`, ...).
 
 ## Comandos
 ```powershell
