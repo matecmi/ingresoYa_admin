@@ -70,7 +70,15 @@ export interface PartContext {
   courseId: string;
   topicId: string;
   subtopicId: string;
+  /**
+   * Sections the catalog part actually has (a part without a video does not
+   * require "video"). Frozen into the attempt; absent in older records, which
+   * then require all five.
+   */
+  requiredSections?: readonly PartSectionName[];
 }
+
+export type PartSectionName = "video" | "lesson" | "examples" | "review" | "resources";
 
 export interface SubtopicContext {
   courseId: string;

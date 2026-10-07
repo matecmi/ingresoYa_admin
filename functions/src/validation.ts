@@ -1,11 +1,22 @@
 import { invalidArgument } from "./errors";
 import { isPartSection, type PartSection } from "./part_progress";
 
+/**
+ * Where the app found the part in the catalog. A hint only: the server checks
+ * that the part exists, active, inside exactly this course/topic/subtopic.
+ */
+export interface PartCatalogHint {
+  courseId: string;
+  topicId: string;
+  subtopicId: string;
+}
+
 export type CreateExamAttemptInput = {
   requestId: string;
   purpose: "part_completion";
   templateId: string;
   partId: string;
+  catalog?: PartCatalogHint;
 } | {
   requestId: string;
   purpose: "subtopic_mastery";
@@ -29,7 +40,7 @@ export interface SaveExamAnswersInput {
   answers: Readonly<Record<string, string>>;
 }
 
-export type RecordPartSectionCompletionInput = {
+export type RecordPartSectionCompletionInput = ({
   partId: string;
   section: PartSection;
   sections?: never;
@@ -37,7 +48,7 @@ export type RecordPartSectionCompletionInput = {
   partId: string;
   sections: readonly PartSection[];
   section?: never;
-};
+}) & { catalog?: PartCatalogHint };
 
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
 export const maxAnswersPerSave = 50;
@@ -56,6 +67,21 @@ function onlyKeys(value: Record<string, unknown>, allowed: readonly string[]): v
       throw invalidArgument(`Unexpected field: ${key}.`);
     }
   }
+}
+
+/** All three academic IDs, or none (older app versions). */
+function catalogHint(value: Record<string, unknown>): PartCatalogHint | undefined {
+  const keys = ["courseId", "topicId", "subtopicId"] as const;
+  const present = keys.filter((key) => Object.hasOwn(value, key));
+  if (present.length === 0) return undefined;
+  if (present.length !== keys.length) {
+    throw invalidArgument("Provide courseId, topicId and subtopicId together.");
+  }
+  return {
+    courseId: id(value.courseId, "courseId"),
+    topicId: id(value.topicId, "topicId"),
+    subtopicId: id(value.subtopicId, "subtopicId")
+  };
 }
 
 function id(value: unknown, name: string): string {
@@ -81,12 +107,14 @@ export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   if (value.purpose !== "part_completion") {
     throw invalidArgument("purpose must be part_completion or subtopic_mastery.");
   }
-  onlyKeys(value, ["requestId", "purpose", "templateId", "partId"]);
+  onlyKeys(value, ["requestId", "purpose", "templateId", "partId", "courseId", "topicId", "subtopicId"]);
+  const catalog = catalogHint(value);
   return {
     requestId: id(value.requestId, "requestId"),
     purpose: "part_completion",
     templateId: id(value.templateId, "templateId"),
-    partId: id(value.partId, "partId")
+    partId: id(value.partId, "partId"),
+    ...(catalog === undefined ? {} : { catalog })
   };
 }
 
@@ -116,8 +144,10 @@ export function parseRecordPartSectionCompletion(
   data: unknown
 ): RecordPartSectionCompletionInput {
   const value = object(data, "data");
-  onlyKeys(value, ["partId", "section", "sections"]);
+  onlyKeys(value, ["partId", "section", "sections", "courseId", "topicId", "subtopicId"]);
   const partId = id(value.partId, "partId");
+  const catalog = catalogHint(value);
+  const withCatalog = catalog === undefined ? {} : { catalog };
   if (Object.hasOwn(value, "section") === Object.hasOwn(value, "sections")) {
     throw invalidArgument("Provide exactly one of section or sections.");
   }
@@ -125,14 +155,14 @@ export function parseRecordPartSectionCompletion(
     if (!isPartSection(value.section)) {
       throw invalidArgument("section must be a supported part section.");
     }
-    return { partId, section: value.section };
+    return { partId, section: value.section, ...withCatalog };
   }
   const sections = value.sections;
   if (!Array.isArray(sections) || sections.length < 1 || sections.length > 5 ||
     !sections.every(isPartSection) || new Set(sections).size !== sections.length) {
     throw invalidArgument("sections must contain 1 to 5 distinct supported sections.");
   }
-  return { partId, sections: sections as PartSection[] };
+  return { partId, sections: sections as PartSection[], ...withCatalog };
 }
 
 function parseAnswers(

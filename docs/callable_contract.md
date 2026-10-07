@@ -9,9 +9,18 @@ Las callables del flujo de intento mantienen estos nombres y payloads exactos. T
   "requestId": "uuid-estable",
   "purpose": "part_completion",
   "partId": "part-01",
-  "templateId": "part-exam-v1"
+  "templateId": "part-exam-v1",
+  "courseId": "course-01",
+  "topicId": "topic-01",
+  "subtopicId": "subtopic-01"
 }
 ```
+
+`courseId`, `topicId` y `subtopicId` son opcionales y van los tres juntos (o
+ninguno, en apps anteriores). Indican dónde está la parte en el catálogo; el
+servidor solo los acepta si la parte está, activa, en el `listPart` de ese
+subtema. Así una parte se localiza aunque no tenga preguntas publicadas.
+`recordPartSectionCompletion` acepta los mismos tres campos.
 
 Devuelve `{attemptId, status: "in_progress", title, questionCount, requiredCorrectAnswers, expiresAt, questions}`. Cada pregunta tiene `questionId`, `version`, `order`, `content`, `alternatives`, `sourceLabel` y `alternativeOrder`; no contiene `correctAlternativeId`, `isCorrect` ni `explanation`.
 

@@ -358,7 +358,14 @@ class CourseRepo {
         list.add(_partToMap(part));
       } else {
         final index = list.indexWhere((e) => e['id'] == part.id);
-        if (index >= 0) list[index] = _partToMap(part);
+        if (index >= 0) {
+          // Fields this editor does not manage (added by scripts or newer
+          // versions) survive; the ones it manages are rewritten, so a value
+          // cleared in the form is really cleared.
+          final kept = Map<String, dynamic>.from(list[index])
+            ..removeWhere((key, _) => _editorPartKeys.contains(key));
+          list[index] = {...kept, ..._partToMap(part)};
+        }
       }
       transaction.update(ref, {'listPart': list});
     });
@@ -399,8 +406,37 @@ class CourseRepo {
     return allowed.contains(difficulty) ? difficulty! : 'basic';
   }
 
+  /// Every key [_partToMap] may write.
+  static const _editorPartKeys = {
+    'id',
+    'name',
+    'idSubtopic',
+    'idTopic',
+    'content',
+    'order',
+    'linkVideo',
+    'linkPdf',
+    'active',
+    'summary',
+    'objectives',
+    'keyPoints',
+    'estimatedMinutes',
+    'difficulty',
+    'formulas',
+    'examples',
+    'exercises',
+    'images',
+    'externalLinks',
+    'flashcards',
+    'quizQuestions',
+    'examTemplateId',
+  };
+
   Map<String, dynamic> _partToMap(SubtopicPartEntity part) => {
     'id': part.id,
+    // Always written: an inactive part leaves the app and the subtopic
+    // achievement requirement, and must stay inactive after any edit.
+    'active': part.active,
     'name': part.name,
     'idSubtopic': part.idSubtopic,
     'idTopic': part.idTopic,

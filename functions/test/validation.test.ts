@@ -17,7 +17,8 @@ import {
   assessExamApproval,
   assessSectionCompletion,
   readPartProgress,
-  requiredPartSections
+  requiredPartSections,
+  requiredSectionsForPart
 } from "../src/part_progress";
 import {
   gradeFrozenAttempt,
@@ -431,6 +432,65 @@ test("a later final section verifies a provisional approved part exactly once", 
   assert.equal(retry.status, "verified");
   assert.equal(retry.shouldRecordApproval, false);
   assert.equal(retry.shouldMarkCompleted, false);
+});
+
+test("a part only requires the sections it has content for", () => {
+  assert.deepEqual(
+    requiredSectionsForPart({
+      linkVideo: "https://youtu.be/x", content: "Lección", examples: [{}],
+      flashcards: [{}], linkPdf: "https://example.com/a.pdf"
+    }),
+    requiredPartSections
+  );
+  assert.deepEqual(
+    requiredSectionsForPart({ linkVideo: "  ", content: "Lección", flashcards: [{}] }),
+    ["lesson", "review"]
+  );
+  assert.deepEqual(requiredSectionsForPart({}), []);
+});
+
+test("a part without a video is verified with its own sections and the exam", () => {
+  const context = partContext();
+  const required = ["lesson", "examples", "review", "resources"] as const;
+  const state = readPartProgress(
+    partProgressRecord(context, ["lesson", "examples", "review", "resources"]),
+    context,
+    required
+  );
+  const assessment = assessExamApproval(state, "attempt-1");
+  assert.equal(assessment.status, "verified");
+  assert.equal(assessment.shouldMarkCompleted, true);
+  assert.deepEqual(assessment.missingSections, []);
+
+  // Stored with the list it was verified with, it stays valid later.
+  const stored = readPartProgress(
+    {
+      ...partProgressRecord(context, [...required], "attempt-1", true),
+      requiredSections: [...required]
+    },
+    context
+  );
+  assert.equal(stored.completed, true);
+});
+
+test("part requests may say where the part lives, all three IDs or none", () => {
+  const base = { requestId: "r-1", purpose: "part_completion", templateId: "t-1", partId: "p-1" };
+  assert.deepEqual(parseCreateExamAttempt(base), base);
+  assert.deepEqual(
+    parseCreateExamAttempt({ ...base, courseId: "c-1", topicId: "t-9", subtopicId: "s-1" }),
+    { ...base, catalog: { courseId: "c-1", topicId: "t-9", subtopicId: "s-1" } }
+  );
+  assert.throws(() => parseCreateExamAttempt({ ...base, courseId: "c-1" }), isInvalidArgument);
+  assert.deepEqual(
+    parseRecordPartSectionCompletion({
+      partId: "p-1", sections: ["lesson"], courseId: "c-1", topicId: "t-9", subtopicId: "s-1"
+    }),
+    { partId: "p-1", sections: ["lesson"], catalog: { courseId: "c-1", topicId: "t-9", subtopicId: "s-1" } }
+  );
+  assert.throws(
+    () => parseRecordPartSectionCompletion({ partId: "p-1", section: "lesson", subtopicId: "s-1" }),
+    isInvalidArgument
+  );
 });
 
 test("legacy section clicks never become v2 completion evidence", () => {
