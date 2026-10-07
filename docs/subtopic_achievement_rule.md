@@ -31,8 +31,10 @@ verificadas, crea un documento en
 `{users}/{uid}/learningProgress/current/achievements/{requirementVersion}`.
 El documento congela `requiredPartIds`, `requirementVersion`, IDs académicos,
 `examAttemptId` de la última parte y `awardedAt` de servidor. Ese árbol es
-ilegible e inmodificable directamente para el alumno; la futura UI recibirá
-una proyección segura desde el backend.
+inmodificable para el alumno. Solo puede **leer** el documento
+`learningProgress/current` (su `partProgress`), para que un teléfono nuevo
+recupere las partes verificadas; los logros y el resumen siguen siendo
+ilegibles y llegan mediante `getAchievementSummary`.
 
 La misma transacción actualiza
 `{users}/{uid}/learningProgress/current/achievementSummary/current` con

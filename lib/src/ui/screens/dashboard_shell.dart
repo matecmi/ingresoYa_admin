@@ -16,6 +16,7 @@ class DashboardShell extends StatelessWidget {
     final isCourse = loc.startsWith('/courses');
     final isQ = loc.startsWith('/questions');
     final isTemplates = loc.startsWith('/exam-templates');
+    final isSettings = loc.startsWith('/settings');
 
     return Scaffold(
       body: SafeArea(
@@ -108,6 +109,12 @@ class DashboardShell extends StatelessWidget {
                         label: 'Plantillas',
                         onTap: () => context.go('/exam-templates'),
                       ),
+                      _SideItem(
+                        active: isSettings,
+                        icon: Icons.settings_rounded,
+                        label: 'Configuración',
+                        onTap: () => context.go('/settings'),
+                      ),
 
                       const Spacer(),
 
@@ -152,6 +159,7 @@ class DashboardShell extends StatelessWidget {
             if (loc.startsWith('/courses')) return 2;
             if (loc.startsWith('/questions')) return 3;
             if (loc.startsWith('/exam-templates')) return 4;
+            if (loc.startsWith('/settings')) return 5;
             return 0;
           }
 
@@ -184,6 +192,9 @@ class DashboardShell extends StatelessWidget {
                   case 4:
                     context.go('/exam-templates');
                     break;
+                  case 5:
+                    context.go('/settings');
+                    break;
                 }
               },
               backgroundColor: AppTheme.card,
@@ -210,6 +221,10 @@ class DashboardShell extends StatelessWidget {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.assignment_rounded),
                   label: 'Plantillas',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings_rounded),
+                  label: 'Configuración',
                 ),
               ],
             ),

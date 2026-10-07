@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/data/repo/app_config_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/repo/admission_exam_repo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,4 +45,8 @@ final admissionExamRepoProvider = Provider<AdmissionExamRepo>(
 
 final examTemplateRepoProvider = Provider<ExamTemplateRepo>(
   (ref) => ExamTemplateRepo(ref.watch(firestoreProvider)),
+);
+
+final appConfigRepoProvider = Provider<AppConfigRepo>(
+  (ref) => AppConfigRepo(ref.watch(firestoreProvider)),
 );
