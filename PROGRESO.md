@@ -2,7 +2,7 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-06_
+_Última actualización: 2026-10-07_
 
 ## Estado actual
 - `desarrollo` en `cd3c532` (Merge PR #19). Functions en Node.js 22, desplegadas en test.
@@ -38,6 +38,7 @@ _Última actualización: 2026-10-06_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
+- App: PR `codex/celebraciones-y-panel-logros` (celebraciones por nivel y panel único de logros). Solo app; sin cambios en Functions ni admin. Falta probar en dispositivo.
 - Plantilla por parte: admin #23 y app #40 fusionados en `desarrollo`. Las 6 partes de TEST ya tienen `part-exam-v1` (asociadas por Kevin desde el admin, verificado 2026-10-06). Falta desplegar `createExamAttempt` en TEST (`$env:FUNCTIONS_DISCOVERY_TIMEOUT=120; firebase deploy --only functions:createExamAttempt --project ingresoya-e5115`; desde Claude lo bloquea el modo automático, lo ejecuta Kevin) y probar en dispositivo.
 - Opcional: instalar Node 22 en local (`nvm install 22`).
 - App: PR matecmi/IngresoYa#33 fusionado en `desarrollo` (verificado en GitHub: 2026-10-06, merge `64f6661`). E2E del integrador probado por Kevin: funciona.
