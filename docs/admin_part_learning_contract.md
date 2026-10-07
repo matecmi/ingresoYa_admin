@@ -23,6 +23,12 @@ Campos opcionales:
 - `externalLinks`: `{id, title, url, type}`.
 - `flashcards`: `{id, front, back}`.
 - `quizQuestions`: `{id, question, options: string[], correctIndex, explanation}`.
+- `examTemplateId`: string. Plantilla `part_completion` que valida la parte.
+  El admin solo deja elegir plantillas dinámicas, activas y publicadas, y lo
+  vuelve a comprobar en la transacción que guarda `listPart`. La app la lee del
+  catálogo y la envía en `createExamAttempt`; Functions rechaza cualquier otra
+  plantilla con `part_template_not_associated`. Sin este campo la parte no
+  tiene examen y no se puede validar.
 
 Cada objeto anidado conserva un UUID estable. `correctIndex` usa índice basado en
 cero y debe estar entre `0` y `options.length - 1`. Todas las URLs aceptadas usan

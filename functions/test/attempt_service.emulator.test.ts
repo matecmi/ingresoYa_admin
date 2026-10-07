@@ -125,7 +125,7 @@ test("an award snapshots all active parts and survives a later catalog expansion
     }))
   });
   batch.update(subtopicRef, {
-    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }]
   });
   batch.update(db.collection(config.collections.templates).doc(templateId), {
     blocks: [{ count: 10, filter: {} }]
@@ -158,7 +158,7 @@ test("an award snapshots all active parts and survives a later catalog expansion
   assert.equal((await service.getAchievementSummary(uid)).totalCompletedSubtopics, 1);
 
   await subtopicRef.update({
-    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }, { id: "part-3", active: true }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }, { id: "part-3", active: true, examTemplateId: templateId }]
   });
   const attempt = await service.create(uid, {
     requestId: "request-achievement-part-3",
@@ -308,6 +308,29 @@ test("create distinguishes a missing template from an orphaned request key", asy
   );
 });
 
+test("a part exam only uses the template associated with that catalog part", async () => {
+  await seed();
+  await db.collection(config.collections.templates).doc("other-part-template").set({
+    ...(await db.collection(config.collections.templates).doc(templateId).get()).data(),
+    id: "other-part-template"
+  });
+  const request = {
+    requestId: "request-part-template",
+    purpose: "part_completion" as const,
+    partId,
+    templateId: "other-part-template"
+  };
+  await assert.rejects(
+    service.create(uid, request),
+    hasReason("failed-precondition", "part_template_not_associated")
+  );
+  await fixtureSubtopicRef().update({ listPart: [{ id: partId, active: true }] });
+  await assert.rejects(
+    service.create(uid, { ...request, templateId }),
+    hasReason("failed-precondition", "part_template_not_associated")
+  );
+});
+
 test("four published questions shared by multiple parts survive a random-key wrap", async () => {
   await seed();
   const batch = db.batch();
@@ -323,7 +346,7 @@ test("four published questions shared by multiple parts survive a random-key wra
     db.collection(config.collections.courses).doc("course-1")
       .collection("topics").doc("topic-1")
       .collection("subtopics").doc("subtopic-1"),
-    { listPart: [{ id: partId, active: true }, { id: "part-2", active: true }] }
+    { listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }] }
   );
   batch.update(db.collection(config.collections.templates).doc(templateId), {
     questionCount: 4,
@@ -428,7 +451,7 @@ test("mastery freezes versions, is idempotent, and grants one badge only after p
   await completeFixtureSubtopic();
   // A later catalog expansion must not revoke the already verified prerequisite.
   await fixtureSubtopicRef().update({
-    listPart: [{ id: partId, active: true }, { id: "part-2", active: true }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }]
   });
   const request = masteryRequest("mastery-idempotent");
   const [first, repeated] = await Promise.all([
@@ -634,7 +657,7 @@ async function seed(): Promise<void> {
   batch.set(courses.doc("course-1").collection("topics").doc("topic-1"), { active: true });
   batch.set(
     courses.doc("course-1").collection("topics").doc("topic-1").collection("subtopics").doc("subtopic-1"),
-    { active: true, listPart: [{ id: partId, active: true }] }
+    { active: true, listPart: [{ id: partId, active: true, examTemplateId: templateId }] }
   );
   batch.set(templates.doc(templateId), {
     schemaVersion: 2,

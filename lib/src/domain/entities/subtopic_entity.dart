@@ -44,6 +44,9 @@ class SubtopicPartEntity {
   final List<Map<String, dynamic>> externalLinks;
   final List<Map<String, dynamic>> flashcards;
   final List<Map<String, dynamic>> quizQuestions;
+
+  /// Published `part_completion` template that validates this part.
+  final String examTemplateId;
   final bool active;
 
   const SubtopicPartEntity({
@@ -67,6 +70,7 @@ class SubtopicPartEntity {
     this.externalLinks = const [],
     this.flashcards = const [],
     this.quizQuestions = const [],
+    this.examTemplateId = '',
     this.active = true,
   });
 }

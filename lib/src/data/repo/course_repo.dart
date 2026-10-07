@@ -174,6 +174,7 @@ class CourseRepo {
                 externalLinks: _toMapList(p['externalLinks']),
                 flashcards: _toMapList(p['flashcards']),
                 quizQuestions: _toMapList(p['quizQuestions']),
+                examTemplateId: (p['examTemplateId'] ?? '').toString(),
                 active: _toBool(p['active']),
               ),
             )
@@ -268,21 +269,13 @@ class CourseRepo {
     required String subtopicId,
     required SubtopicPartEntity part,
   }) async {
-    final doc = await _col
-        .doc(courseId)
-        .collection(AppEnv.topicsSubcollection)
-        .doc(topicId)
-        .collection(AppEnv.subtopicsSubcollection)
-        .doc(subtopicId)
-        .get();
-
-    final data = doc.data() ?? {};
-
-    final list = List<Map<String, dynamic>>.from(data['listPart'] ?? []);
-
-    list.add(_partToMap(part));
-
-    await doc.reference.update({'listPart': list});
+    await _savePart(
+      courseId: courseId,
+      topicId: topicId,
+      subtopicId: subtopicId,
+      part: part,
+      create: true,
+    );
   }
 
   Future<void> deletePart({
@@ -314,25 +307,61 @@ class CourseRepo {
     required String subtopicId,
     required SubtopicPartEntity part,
   }) async {
-    final doc = await _col
+    await _savePart(
+      courseId: courseId,
+      topicId: topicId,
+      subtopicId: subtopicId,
+      part: part,
+      create: false,
+    );
+  }
+
+  /// Rewrites `listPart` in one transaction. An associated exam template must
+  /// be a dynamic, active and published `part_completion` template; Functions
+  /// only accepts that exact template for this part.
+  Future<void> _savePart({
+    required String courseId,
+    required String topicId,
+    required String subtopicId,
+    required SubtopicPartEntity part,
+    required bool create,
+  }) {
+    final ref = _col
         .doc(courseId)
         .collection(AppEnv.topicsSubcollection)
         .doc(topicId)
         .collection(AppEnv.subtopicsSubcollection)
-        .doc(subtopicId)
-        .get();
-
-    final data = doc.data() ?? {};
-
-    final list = List<Map<String, dynamic>>.from(data['listPart'] ?? []);
-
-    final index = list.indexWhere((e) => e['id'] == part.id);
-
-    if (index >= 0) {
-      list[index] = _partToMap(part);
-    }
-
-    await doc.reference.update({'listPart': list});
+        .doc(subtopicId);
+    final templateId = part.examTemplateId.trim();
+    return db.runTransaction((transaction) async {
+      if (templateId.isNotEmpty) {
+        final template = await transaction.get(
+          db.collection(AppEnv.examTemplatesCollection).doc(templateId),
+        );
+        final data = template.data();
+        if (data == null ||
+            data['id'] != templateId ||
+            data['status'] != 'published' ||
+            data['active'] == false ||
+            data['purpose'] != 'part_completion' ||
+            data['mode'] != 'dynamic') {
+          throw StateError(
+            'Selecciona una plantilla de examen de parte dinámica, activa y publicada.',
+          );
+        }
+      }
+      final doc = await transaction.get(ref);
+      final list = List<Map<String, dynamic>>.from(
+        doc.data()?['listPart'] ?? [],
+      );
+      if (create) {
+        list.add(_partToMap(part));
+      } else {
+        final index = list.indexWhere((e) => e['id'] == part.id);
+        if (index >= 0) list[index] = _partToMap(part);
+      }
+      transaction.update(ref, {'listPart': list});
+    });
   }
 
   // ---------------- JSON IMPORT (Courses) ----------------
@@ -403,6 +432,8 @@ class CourseRepo {
       'quizQuestions': PartLearningContract.normaliseEntries(
         part.quizQuestions,
       ),
+    if (part.examTemplateId.trim().isNotEmpty)
+      'examTemplateId': part.examTemplateId.trim(),
   };
 
   List<Map<String, dynamic>> parseJsonListOrThrow(String raw) {

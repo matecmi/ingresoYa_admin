@@ -95,6 +95,7 @@ class SubtopicsPartTab extends StatelessWidget {
   int _orderOf(SubtopicPartEntity part) => int.tryParse(part.order) ?? 0;
 
   String _subtitle(SubtopicPartEntity part) {
+    if (part.examTemplateId.isEmpty) return 'Sin examen de parte';
     if (part.linkVideo.isNotEmpty) return part.linkVideo;
     if (part.linkPdf.isNotEmpty) return part.linkPdf;
     if (part.content.isNotEmpty) return part.content;

@@ -197,7 +197,7 @@ export class ExamAttemptService {
     if (previous.exists) return this.responseForExisting(uid, previous.data(), input, metrics);
 
     const contextPromise = input.purpose === "part_completion"
-      ? this.partContext(uid, input.partId, metrics)
+      ? this.partContext(uid, input.partId, metrics, input.templateId)
       : this.masteryContext(uid, input, metrics);
     const [profile, context, template, recentExposure] = await Promise.all([
       this.profileUniversity(uid, metrics),
@@ -973,10 +973,15 @@ export class ExamAttemptService {
     return universityId;
   }
 
+  /**
+   * [examTemplateId] is checked only when a new part attempt is created: it
+   * must be the template the admin associated with that catalog part.
+   */
   private async partContext(
     uid: string,
     partId: string,
-    metrics: OperationMetrics
+    metrics: OperationMetrics,
+    examTemplateId?: string
   ): Promise<PartContext> {
     const progress = await this.db
       .collection(this.config.collections.users)
@@ -999,7 +1004,7 @@ export class ExamAttemptService {
           reason: "part_not_enabled"
         });
       }
-      await this.validateCatalogPart(context, metrics);
+      await this.validateCatalogPart(context, metrics, examTemplateId);
       return context;
     }
 
@@ -1009,7 +1014,7 @@ export class ExamAttemptService {
     // the client, and an explicitly configured allowedParts list remains a
     // strict authorization boundary.
     const context = await this.legacyPartContext(partId, metrics);
-    await this.validateCatalogPart(context, metrics);
+    await this.validateCatalogPart(context, metrics, examTemplateId);
     return context;
   }
 
@@ -1057,7 +1062,8 @@ export class ExamAttemptService {
 
   private async validateCatalogPart(
     context: PartContext,
-    metrics: OperationMetrics
+    metrics: OperationMetrics,
+    examTemplateId?: string
   ): Promise<void> {
     const course = this.db.collection(this.config.collections.courses).doc(context.courseId);
     const topic = course.collection("topics").doc(context.topicId);
@@ -1084,6 +1090,11 @@ export class ExamAttemptService {
     ) {
       throw failedPrecondition("The requested academic part is unavailable.", {
         reason: "part_not_available"
+      });
+    }
+    if (examTemplateId !== undefined && part.examTemplateId !== examTemplateId) {
+      throw failedPrecondition("The selected exam template is not published for this part.", {
+        reason: "part_template_not_associated"
       });
     }
   }

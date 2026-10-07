@@ -36,6 +36,13 @@ class ExamTemplateRepo {
             .toList(growable: false),
       );
 
+  Stream<List<ExamTemplateRecord>> watchSelectablePartExamTemplates() =>
+      watchTemplates().map(
+        (records) => records
+            .where((record) => record.selectableForPartExam)
+            .toList(growable: false),
+      );
+
   Future<ExamTemplateRecord?> read(String templateId) async {
     final snapshot = await _templates.doc(templateId).get();
     if (!snapshot.exists) return null;
