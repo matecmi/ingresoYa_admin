@@ -78,7 +78,9 @@ Cuando `allowedParts` exista, sigue siendo la frontera de autorización y una
 parte ausente se rechaza con `part_not_enabled`.
 
 La plantilla debe ser v2, publicada, de propósito `part_completion` y modo
-dinámico. Cada bloque queda restringido al contexto de la parte solicitada; un
+dinámico, y ser exactamente la `examTemplateId` que el admin asoció a esa parte
+en `listPart`; si no coincide (o la parte no tiene plantilla) se rechaza con
+`part_template_not_associated`. Cada bloque queda restringido al contexto de la parte solicitada; un
 bloque que declare otro curso, tema, subtema o parte se rechaza. Nunca se
 amplían referencias académicas silenciosamente.
 

@@ -51,7 +51,8 @@ La app traduce `HttpsError.code` y `details.reason`; el texto inglés es solo de
 
 | Operación/causa | `code` | `details.reason` | Qué revisar |
 | --- | --- | --- | --- |
-| `create`: no existe `templateId` en la colección del entorno activo | `not-found` | `template_not_found` | `INGRESOYA_ENV`, colección `iya-exam-templates-*` y documento `part-exam-v1` |
+| `create`: no existe `templateId` en la colección del entorno activo | `not-found` | `template_not_found` | `INGRESOYA_ENV`, colección `iya-exam-templates-*` y la plantilla asociada a la parte (`examTemplateId`) |
+| `create`: la plantilla no es la asociada a la parte en el catálogo | `failed-precondition` | `part_template_not_associated` | `listPart[].examTemplateId` de la parte en el admin |
 | `create`: plantilla no publicada/válida | `failed-precondition` | `template_not_published` | `status`, `active`, bloques y `questionCount` |
 | `create`: propósito/modo incompatibles | `failed-precondition` | `template_incompatible` | `purpose=part_completion`, `mode=dynamic` |
 | `create`: bloque no corresponde a la parte resuelta por el servidor | `failed-precondition` | `template_part_mismatch` | Filtros del bloque y relación curso/tema/subtema/parte |

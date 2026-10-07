@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:ingresoya_admin/src/domain/entities/subtopic_entity.dart';
+import 'package:ingresoya_admin/src/domain/exam_template_record.dart';
 import 'package:ingresoya_admin/src/domain/part_learning_contract.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_entity_form_sheet.dart';
@@ -45,6 +46,8 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
   late List<Map<String, dynamic>> _externalLinks;
   late List<Map<String, dynamic>> _flashcards;
   late List<Map<String, dynamic>> _quizQuestions;
+  late String _examTemplateId;
+  late final Stream<List<ExamTemplateRecord>> _partExamTemplates;
 
   bool _saving = false;
 
@@ -70,6 +73,10 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
     _externalLinks = _cloneList(widget.part?.externalLinks);
     _flashcards = _cloneList(widget.part?.flashcards);
     _quizQuestions = _cloneList(widget.part?.quizQuestions);
+    _examTemplateId = widget.part?.examTemplateId ?? '';
+    _partExamTemplates = ref
+        .read(examTemplateRepoProvider)
+        .watchSelectablePartExamTemplates();
   }
 
   @override
@@ -139,6 +146,7 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
         externalLinks: _normaliseMaps(_externalLinks),
         flashcards: _normaliseMaps(_flashcards),
         quizQuestions: _normaliseMaps(_quizQuestions),
+        examTemplateId: _examTemplateId,
       );
       final repo = ref.read(courseRepoProvider);
       if (widget.part == null) {
@@ -200,6 +208,9 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
         _externalLinks = _asEntries(data['externalLinks']);
         _flashcards = _asEntries(data['flashcards']);
         _quizQuestions = _asEntries(data['quizQuestions']);
+        if (data['examTemplateId'] != null) {
+          _examTemplateId = data['examTemplateId'].toString().trim();
+        }
       });
       _showMessage('Datos importados. Revisa y guarda la parte.');
     } catch (_) {
@@ -307,6 +318,12 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
           _DifficultySelector(
             value: _difficulty,
             onChanged: (value) => setState(() => _difficulty = value),
+          ),
+          const SizedBox(height: 12),
+          _PartExamTemplateSelector(
+            templates: _partExamTemplates,
+            value: _examTemplateId,
+            onChanged: (value) => setState(() => _examTemplateId = value),
           ),
           const SizedBox(height: 12),
           _StringListEditor(
@@ -1068,4 +1085,60 @@ class _MobilePartPreview extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Same rules as the subtopic «Examen integrador» selector: only dynamic,
+/// active and published `part_completion` templates can be associated.
+class _PartExamTemplateSelector extends StatelessWidget {
+  const _PartExamTemplateSelector({
+    required this.templates,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final Stream<List<ExamTemplateRecord>> templates;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<ExamTemplateRecord>>(
+      stream: templates,
+      builder: (context, snapshot) {
+        final available = snapshot.data ?? const <ExamTemplateRecord>[];
+        final selectedAvailable = available.any(
+          (record) => record.template.id == value,
+        );
+        return DropdownButtonFormField<String>(
+          key: ValueKey('part-exam-$value-${available.length}'),
+          initialValue: value,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Examen de la parte',
+            helperText:
+                'Sin plantilla, la app no puede validar la parte. '
+                'Solo plantillas dinámicas, activas y publicadas.',
+            helperMaxLines: 2,
+          ),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('Sin examen')),
+            if (value.isNotEmpty && !selectedAvailable)
+              DropdownMenuItem(
+                value: value,
+                enabled: false,
+                child: Text('Plantilla no disponible: $value'),
+              ),
+            for (final record in available)
+              DropdownMenuItem(
+                value: record.template.id,
+                child: Text(record.template.title),
+              ),
+          ],
+          onChanged: (selected) {
+            if (selected != null) onChanged(selected);
+          },
+        );
+      },
+    );
+  }
 }

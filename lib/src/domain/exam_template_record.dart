@@ -20,4 +20,9 @@ class ExamTemplateRecord {
       published &&
       template.purpose == 'subtopic_mastery' &&
       template.mode == 'dynamic';
+  bool get selectableForPartExam =>
+      active &&
+      published &&
+      template.purpose == 'part_completion' &&
+      template.mode == 'dynamic';
 }
