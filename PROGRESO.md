@@ -8,7 +8,14 @@ _Última actualización: 2026-10-07_
 - `desarrollo` en `be901e6` (admin #26, solo PROGRESO); código en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
 
 ## Hecho (reciente)
-- Rama `codex/favoritos-corazon-pestana` (app, PR abierto 2026-10-07), ajuste de los favoritos de #44 según Kevin:
+- Rama `codex/sync-progreso-automatica` (app + admin, PR abierto 2026-10-07): **sincronización automática del progreso** (ítem 1 de alta del análisis de la Guía de estudio). Estrategia acordada con Kevin: las 3 fases, espera de 45 s.
+  - App: `AutoSyncCoordinator` + `AutoSyncScope` (`features/synchronization/presentation/controllers/`). Sube 45 s después del último cambio (máx. 3 min), al ocultar/pausar/cerrar la app, al aprobar un examen y al abrir con pendientes; reintenta en `nextPushDueAtMs`.
+  - App: subida sin cambios de perfil ya no lee ni escribe el documento raíz (1 lectura + 1 escritura por curso); reabrir la misma parte no escribe ni deja pendiente.
+  - App: `refreshProgress` al volver a la app (cada 12 h máx.): baja solo `courseProgress` con `updatedAtMs` > `lastPullAtMs` − 10 min, recupera partes verificadas del servidor y sube lo pendiente. `Lock` reentrante en `OfflineFirstSessionSyncRepository`.
+  - Admin: regla de Firestore que permite al dueño **leer** (no escribir) `learningProgress/current`; logros y resumen siguen cerrados. La app copia a Hive las partes con `completed: true` que le falten (al iniciar sesión y en cada refresco). La prueba de reglas lee los puertos de `emulators:exec`.
+  - Pruebas: app `auto_sync_test.dart` (11: espera, tope de 3 min, pausa, arranque con pendientes, reintento, cambio durante subida, refresco cada 12 h, subida sin documento raíz, descarga incremental, partes verificadas, recuperación en teléfono nuevo); 318 OK, analyze sin avisos, APK debug development OK. Functions: lint, 29 unitarias, 21 emulador OK (nueva prueba de la regla).
+  - Docs: `iya-app/docs/architecture/adr-003-offline-first-profile-sync.md`, `ingresoya_admin/docs/subtopic_achievement_rule.md`.
+- #45 (app) / #28 (admin) `codex/favoritos-corazon-pestana`, fusionados 2026-10-07, ajuste de los favoritos de #44 según Kevin:
   - El **corazón** de la barra superior del subtema (`TopStickyBar`, arriba a la derecha) marca ahora la **parte abierta** como favorita. Antes marcaba el subtema entero (`SubtopicProgress.isFavorite` vía `markIsFavorite`); ese dato queda en el progreso pero ninguna pantalla lo usa ya.
   - Se quitan las estrellas de #44 (cabecera de la parte y línea de tiempo del menú; se elimina `part_favorite_star.dart`).
   - Menú lateral: debajo de la cabecera, pestañas **«Temario» | «Favoritos»** (con contador). «Favoritos» (`StudyGuideFavoritesView`) agrupa por subtema (con su tema), indica Completada / Estás aquí / Pendiente, lleva directo a la parte y tiene un corazón para quitarla; vacío explica cómo agregar. Siguen guardados solo en el dispositivo.
@@ -49,6 +56,8 @@ _Última actualización: 2026-10-07_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
+- **Desplegar la regla de Firestore en TEST** (`codex/sync-progreso-automatica`): `firebase deploy --only firestore:rules --project ingresoya-e5115` (lo ejecuta Kevin; desde Claude lo bloquea el modo automático). Sin ella la app funciona igual pero no recupera partes verificadas. Probar en dispositivo: estudiar sin cerrar sesión, salir de la app y ver `courseProgress` en Firestore; instalar en otro teléfono y ver las partes aprobadas.
+- Nota: el emulador de Firestore de las pruebas quedó corriendo en el puerto 8080 (java, proyecto `ingresoya-security-rules`, desde 2026-10-06); `npm run test:emulators` no arranca hasta cerrarlo.
 - Favoritos por parte (`codex/favoritos-corazon-pestana`): revisar el PR y probar en dispositivo (corazón arriba a la derecha y pestaña «Favoritos» del Temario). Más adelante, si se quiere, sincronizarlos con el progreso (`favoritePartIds`). `SubtopicProgress.isFavorite` (favorito de subtema) ya no lo usa ninguna pantalla.
 - App: #42 celebraciones por nivel y panel único de logros (fusionado 2026-10-07). Falta probar en dispositivo.
 - App: #43 `codex/logros-menu-y-cargas` fusionado 2026-10-07 (sin «Revisar resultado» ni notas de parte, cargador global, menú lateral y tarjetas rediseñados, sin parpadeo). Falta probar en dispositivo.

@@ -29,6 +29,13 @@ function storageFor(uid?: string, admin = false) {
   return context.storage();
 }
 
+// `emulators:exec` exports where each emulator listens; the defaults match
+// firebase.json for direct runs.
+function emulatorPort(variable: string, fallback: number): number {
+  const port = Number(process.env[variable]?.split(":").at(-1));
+  return Number.isInteger(port) && port > 0 ? port : fallback;
+}
+
 before(async () => {
   const root = join(process.cwd(), "..");
   testEnv = await initializeTestEnvironment({
@@ -36,12 +43,12 @@ before(async () => {
     firestore: {
       rules: await readFile(join(root, "firestore.rules"), "utf8"),
       host: "127.0.0.1",
-      port: 8080
+      port: emulatorPort("FIRESTORE_EMULATOR_HOST", 8080)
     },
     storage: {
       rules: await readFile(join(root, "storage.rules"), "utf8"),
       host: "127.0.0.1",
-      port: 9199
+      port: emulatorPort("FIREBASE_STORAGE_EMULATOR_HOST", 9199)
     }
   });
 });
@@ -140,6 +147,23 @@ test("learner cannot publish questions or complete learning progress directly", 
   await assertFails(summary.get());
   await assertFails(summary.set({ totalCompletedSubtopics: 99 }));
   await assertFails(summary.set({ totalMasteredSubtopics: 99 }));
+});
+
+test("owner can only read its own server part evidence, never write it", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore()
+      .doc("iya-profile-test/student-1/learningProgress/current")
+      .set({ partProgress: { "part-1": { schemaVersion: 2, completed: true } } });
+  });
+  const learner = firestoreFor("student-1");
+  const other = firestoreFor("student-2");
+  const current = "iya-profile-test/student-1/learningProgress/current";
+
+  await assertSucceeds(learner.doc(current).get());
+  await assertFails(other.doc(current).get());
+  await assertFails(learner.doc(current).set({ partProgress: {} }));
+  await assertFails(learner.doc(current).update({ allowedParts: [] }));
+  await assertFails(learner.collection("iya-profile-test/student-1/learningProgress").get());
 });
 
 test("admin claim can administer the bank while answer keys remain student-private", async () => {

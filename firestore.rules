@@ -211,5 +211,12 @@ service cloud.firestore {
     match /{profiles}/{userId}/learningProgress/{document=**} {
       allow read, write: if false;
     }
+
+    // The owner may READ (never write) the server's part evidence so a new or
+    // reinstalled device restores its verified parts. Awards and the summary
+    // stay behind the callables.
+    match /{profiles}/{userId}/learningProgress/current {
+      allow get: if isProfileCollection(profiles) && isOwner(userId);
+    }
   }
 }
