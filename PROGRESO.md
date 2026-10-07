@@ -8,7 +8,12 @@ _Última actualización: 2026-10-07_
 - `desarrollo` en `be901e6` (admin #26, solo PROGRESO); código en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
 
 ## Hecho (reciente)
-- Rama `codex/favoritos-partes` (app, PR abierto 2026-10-07): favoritos **por parte**, guardados **solo en el dispositivo** (decisión de Kevin; sin sincronizar por ahora).
+- Rama `codex/favoritos-corazon-pestana` (app, PR abierto 2026-10-07), ajuste de los favoritos de #44 según Kevin:
+  - El **corazón** de la barra superior del subtema (`TopStickyBar`, arriba a la derecha) marca ahora la **parte abierta** como favorita. Antes marcaba el subtema entero (`SubtopicProgress.isFavorite` vía `markIsFavorite`); ese dato queda en el progreso pero ninguna pantalla lo usa ya.
+  - Se quitan las estrellas de #44 (cabecera de la parte y línea de tiempo del menú; se elimina `part_favorite_star.dart`).
+  - Menú lateral: debajo de la cabecera, pestañas **«Temario» | «Favoritos»** (con contador). «Favoritos» (`StudyGuideFavoritesView`) agrupa por subtema (con su tema), indica Completada / Estás aquí / Pendiente, lleva directo a la parte y tiene un corazón para quitarla; vacío explica cómo agregar. Siguen guardados solo en el dispositivo.
+  - Pruebas: `progress_views_test.dart` (cambio de pestaña, orden, contador que ignora otros cursos, quitar, estado vacío). `flutter analyze` sin avisos, 307 pruebas OK, APK debug development OK.
+- #44 (app) / #27 (admin) `codex/favoritos-partes`, fusionados 2026-10-07 (luego ajustado por `codex/favoritos-corazon-pestana`): favoritos **por parte**, guardados **solo en el dispositivo** (decisión de Kevin; sin sincronizar por ahora).
   - Estrella en la cabecera de la parte (`subtopic_content_section.dart`) y en cada parte de la línea de tiempo del menú lateral.
   - Sección «Favoritos» arriba del menú lateral (`study_guide_favorites_section.dart`), agrupada por subtema y en orden del catálogo; lleva directo a la parte, aunque sea de otro tema. Solo muestra favoritos del curso abierto y oculta partes eliminadas.
   - `PartFavoritesStore` (dominio) + `SharedPreferencesPartFavoritesStore` (clave `part_favorites_v1|uid`) + `partFavoritesProvider`. Por cuenta; un toque antes de cargar no pisa la lista guardada; si el guardado falla, la estrella vuelve atrás.
@@ -44,7 +49,7 @@ _Última actualización: 2026-10-07_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
-- Favoritos por parte (`codex/favoritos-partes`): revisar el PR y probar en dispositivo. Más adelante, si se quiere, sincronizarlos con el progreso (`favoritePartIds`). Ojo: `SubtopicProgress.isFavorite` (favorito de subtema heredado) existe en datos pero no lo usa ninguna pantalla.
+- Favoritos por parte (`codex/favoritos-corazon-pestana`): revisar el PR y probar en dispositivo (corazón arriba a la derecha y pestaña «Favoritos» del Temario). Más adelante, si se quiere, sincronizarlos con el progreso (`favoritePartIds`). `SubtopicProgress.isFavorite` (favorito de subtema) ya no lo usa ninguna pantalla.
 - App: #42 celebraciones por nivel y panel único de logros (fusionado 2026-10-07). Falta probar en dispositivo.
 - App: #43 `codex/logros-menu-y-cargas` fusionado 2026-10-07 (sin «Revisar resultado» ni notas de parte, cargador global, menú lateral y tarjetas rediseñados, sin parpadeo). Falta probar en dispositivo.
 - Plantilla por parte: admin #23 y app #40 fusionados en `desarrollo`. Las 6 partes de TEST ya tienen `part-exam-v1` (asociadas por Kevin desde el admin, verificado 2026-10-06). Falta desplegar `createExamAttempt` en TEST (`$env:FUNCTIONS_DISCOVERY_TIMEOUT=120; firebase deploy --only functions:createExamAttempt --project ingresoya-e5115`; desde Claude lo bloquea el modo automático, lo ejecuta Kevin) y probar en dispositivo.
