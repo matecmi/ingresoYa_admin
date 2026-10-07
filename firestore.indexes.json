@@ -43,5 +43,8 @@
     {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"searchTokens","arrayConfig":"CONTAINS"},{"fieldPath":"updatedAt","order":"DESCENDING"}]},
     {"collectionGroup":"iya-questions","queryScope":"COLLECTION","fields":[{"fieldPath":"year","order":"ASCENDING"},{"fieldPath":"updatedAt","order":"DESCENDING"}]}
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {"collectionGroup":"recentQuestions","fieldPath":"expireAt","ttl":true,"indexes":[]},
+    {"collectionGroup":"examRequestKeys","fieldPath":"expireAt","ttl":true,"indexes":[]}
+  ]
 }

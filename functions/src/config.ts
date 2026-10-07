@@ -13,6 +13,12 @@ export interface BackendConfig {
   environment: DeploymentEnvironment;
   region: string;
   enforceAppCheck: boolean;
+  /**
+   * Warm instances for the callables a student waits on (create, submit,
+   * section completion). 0 = cold starts, no idle cost; production defaults
+   * to 1. Each warm 256 MiB instance has a small monthly idle cost.
+   */
+  minInstances: number;
   selection: {
     candidateStartsPerBlock: number;
     maxCandidatesPerStart: number;
@@ -113,6 +119,13 @@ export function readBackendConfig(
     environment: environment as DeploymentEnvironment,
     region,
     enforceAppCheck: configuredAppCheck ?? environment === "production",
+    minInstances: readBoundedPositiveInteger(
+      env.FUNCTIONS_MIN_INSTANCES,
+      "FUNCTIONS_MIN_INSTANCES",
+      environment === "production" ? 1 : 0,
+      0,
+      3
+    ),
     selection: {
       candidateStartsPerBlock: readBoundedPositiveInteger(
         env.EXAM_CANDIDATE_STARTS_PER_BLOCK,

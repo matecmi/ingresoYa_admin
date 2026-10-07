@@ -17,6 +17,7 @@ import {
   parseCreateExamAttempt,
   parseGetAchievementSummary,
   parseGetExamAttempt,
+  parseReconcileSubtopicAchievement,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
   parseSubmitExamAttempt
@@ -34,6 +35,27 @@ export function requireUid(request: CallableRequest<unknown>): string {
 export function createCallableHandlers(config: BackendConfig) {
   const attempts = new ExamAttemptService(db, config);
   return {
+    async reconcileSubtopicAchievement(
+      request: CallableRequest<unknown>
+    ): Promise<{ complete: boolean; awarded: boolean; missingPartIds: string[] }> {
+      const metrics = new OperationMetrics();
+      try {
+        const uid = requireUid(request);
+        const input = parseReconcileSubtopicAchievement(request.data);
+        const response = await attempts.reconcileSubtopicAchievement(uid, input, metrics);
+        safeLog("subtopic_achievement_reconciled", uid, {
+          ...metrics.logFields(),
+          awarded: response.awarded
+        });
+        return response;
+      } catch (error) {
+        safeError("subtopic_achievement_reconcile_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
+        throw asHttpsError(error);
+      }
+    },
     async getAchievementSummary(request: CallableRequest<unknown>): Promise<AchievementSummary> {
       const metrics = new OperationMetrics();
       try {

@@ -397,6 +397,41 @@ test("a part without a video is verified by its own sections and the exam", asyn
   assert.deepEqual(part.requiredSections, ["lesson", "examples", "review", "resources"]);
 });
 
+test("removing a part grants a subtopic already complete without it", async () => {
+  await seed();
+  // part-1 is verified; part-2 still pending, so no award yet.
+  await fixtureSubtopicRef().update({
+    listPart: [
+      { id: partId, active: true, examTemplateId: templateId, ...fullPart },
+      { id: "part-2", active: true, examTemplateId: templateId, ...fullPart }
+    ]
+  });
+  await service.recordPartSectionCompletion(uid, {
+    partId,
+    sections: ["video", "lesson", "examples", "review", "resources"]
+  });
+  const attempt = await service.create(uid, {
+    requestId: "request-reconcile", purpose: "part_completion", partId, templateId
+  });
+  await service.submit(uid, { attemptId: attempt.attemptId, answers: answers(attempt.questions, 9) });
+  const target = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+  const before = await service.reconcileSubtopicAchievement(uid, target);
+  assert.deepEqual(before, { complete: false, awarded: false, missingPartIds: ["part-2"] });
+
+  // The admin deactivates part-2: the subtopic is now complete.
+  await fixtureSubtopicRef().update({
+    listPart: [
+      { id: partId, active: true, examTemplateId: templateId, ...fullPart },
+      { id: "part-2", active: false, examTemplateId: templateId, ...fullPart }
+    ]
+  });
+  const after = await service.reconcileSubtopicAchievement(uid, target);
+  assert.deepEqual(after, { complete: true, awarded: true, missingPartIds: [] });
+  assert.equal((await service.getAchievementSummary(uid)).totalCompletedSubtopics, 1);
+  const again = await service.reconcileSubtopicAchievement(uid, target);
+  assert.equal(again.awarded, false, "one award only");
+});
+
 test("four published questions shared by multiple parts survive a random-key wrap", async () => {
   await seed();
   const batch = db.batch();

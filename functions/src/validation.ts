@@ -124,6 +124,25 @@ export function parseGetExamAttempt(data: unknown): GetExamAttemptInput {
   return { attemptId: id(value.attemptId, "attemptId") };
 }
 
+export interface ReconcileSubtopicAchievementInput {
+  courseId: string;
+  topicId: string;
+  subtopicId: string;
+}
+
+/** Only the subtopic to re-check; the server reads everything else. */
+export function parseReconcileSubtopicAchievement(
+  data: unknown
+): ReconcileSubtopicAchievementInput {
+  const value = object(data, "data");
+  onlyKeys(value, ["courseId", "topicId", "subtopicId"]);
+  return {
+    courseId: id(value.courseId, "courseId"),
+    topicId: id(value.topicId, "topicId"),
+    subtopicId: id(value.subtopicId, "subtopicId")
+  };
+}
+
 export function parseGetAchievementSummary(data: unknown): void {
   const value = object(data, "data");
   onlyKeys(value, []);

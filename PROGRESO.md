@@ -8,6 +8,24 @@ _Última actualización: 2026-10-07_
 - `desarrollo` en `be901e6` (admin #26, solo PROGRESO); código en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
 
 ## Hecho (reciente)
+- Rama `codex/correcciones-media-baja` (app + admin, sobre `codex/correcciones-severidad-alta`; PR abierto 2026-10-07): ítems 5 a 20 del análisis de la Guía de estudio.
+  - 5: «Tomar examen» siempre visible (solo se pliega la lista de requisitos).
+  - 6: contenido del curso desde Hive si se descargó hace < 30 min; sin conexión, la última copia.
+  - 7: resumen de logros guardado por cuenta (`achievement_summary_v1`), espera máx. 8 s y luego el último; «Favoritos» no espera al servidor; si falla, el panel dice «No pudimos confirmar tus logros» con «Reintentar».
+  - 8: `recentQuestions` ordenado por `lastSeenAt`; `expireAt` + TTL (120 días) en `recentQuestions` y (30 días) en `examRequestKeys` (`firestore.indexes.json`).
+  - 9: admin no deja borrar parte/subtema/tema/curso con preguntas no retiradas o plantillas activas que lo usen; nueva callable `reconcileSubtopicAchievement` que la app llama cuando todas las partes están verificadas y falta el logro.
+  - 10: sección revisada solo si tiene contenido y estuvo abierta ≥ 5 s; video revisado al llegar al 60 % visto (antes, al tocarlo).
+  - 11: la subida combina con la copia en la nube y escribe el documento completo (los borrados se propagan; lo de otro teléfono se conserva).
+  - 12: el corazón se desactiva sin partes; sin sesión avisa «Inicia sesión...» en vez de «agregada».
+  - 13: orden de la parte guardado como número y sin repetidos entre partes activas.
+  - 14: cursos borrados salen de Hive; escrituras de la caché del catálogo serializadas con `Lock`.
+  - 15: eliminados `PartQuizSection`, `NoPdfCard`, `NoVideoCard`, `MicroBadge`, `CourseHeader` y los métodos del controlador `markIsFavorite`/`markPartPending`/`savePartNote`/`savePartQuizScore` (los del repositorio y los campos Hive se conservan por compatibilidad de datos).
+  - 16: dificultad del ejercicio en español.
+  - 17: «Tema/Subtema no encontrado» con «Volver al curso»; botón atrás en el subtema; el menú reemplaza la ruta en vez de apilar.
+  - 18: al cerrar sesión con todo subido se borran del teléfono progreso, metadatos de sync, favoritos y resumen de esa cuenta.
+  - 19: `FUNCTIONS_MIN_INSTANCES` (0 por defecto, 1 en producción) para create/submit/secciones.
+  - 20: `withOpacity` → `withValues` en la Guía de estudio; `part_learning_sections.dart` y `study_guide_sidebar.dart` divididos en archivos `part`. **No hecho:** pasar los textos a archivos de idioma (l10n), es un cambio de toda la app.
+  - Pruebas: Functions lint, 34 unitarias, 17 emulador; admin 77; app 334, analyze sin avisos, APK debug development OK.
 - Rama `codex/correcciones-severidad-alta` (app + admin, PR abierto 2026-10-07): ítems 2, 3 y 4 (severidad alta) del análisis de la Guía de estudio.
   - **2. Contexto de la parte sin preguntas publicadas:** la app envía `courseId`/`topicId`/`subtopicId` en `createExamAttempt` y `recordPartSectionCompletion`; Functions solo los usa si el catálogo confirma la parte (activa, en ese `listPart`), y si no responde `part_not_available`. Sin ellos (apps anteriores) sigue la deducción por preguntas publicadas. Ante un servidor anterior (`invalid-argument`) la app repite sin la ubicación (mismo `requestId`).
   - **3. Requisitos según el contenido:** `requiredSectionsForPart` (Functions) y `requiredReviewItemsFor` (app): video si hay `linkVideo`; lección si hay descripción/resumen/objetivos/puntos clave/fórmulas; ejemplos si hay ejemplos o ejercicios; repaso si hay tarjetas; recursos si hay PDF/imágenes/enlaces. Se congela en el intento (`partContext.requiredSections`) y se guarda en `partProgress.requiredSections`; registros viejos exigen las 5. En la app la lista de requisitos y «Tomar examen» usan los de la parte, y una confirmación del servidor (`passed: true`) verifica la parte aunque el teléfono no haya visto todas las secciones.
