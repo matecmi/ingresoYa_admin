@@ -146,4 +146,67 @@ void main() {
     }
     expect(await readParts(courses), isEmpty);
   });
+
+  test(
+    'an inactive part stays inactive after edits, keeping unknown fields',
+    () async {
+      await courses.addPart(
+        courseId: 'course-1',
+        topicId: 'topic-1',
+        subtopicId: 'subtopic-1',
+        part: const SubtopicPartEntity(
+          id: 'part-1',
+          name: 'Parte 1',
+          idSubtopic: 'subtopic-1',
+          idTopic: 'topic-1',
+          content: 'Contenido',
+          order: '1',
+          linkVideo: '',
+          linkPdf: '',
+          summary: 'Resumen',
+          active: false,
+        ),
+      );
+      final ref = db
+          .collection(AppEnv.coursesCollection)
+          .doc('course-1')
+          .collection(AppEnv.topicsSubcollection)
+          .doc('topic-1')
+          .collection(AppEnv.subtopicsSubcollection)
+          .doc('subtopic-1');
+      // A field written by a script or a newer editor.
+      final list = List<Map<String, dynamic>>.from(
+        (await ref.get()).data()!['listPart'] as List,
+      );
+      list.first['reviewedBy'] = 'script';
+      await ref.update({'listPart': list});
+
+      final stored = (await readParts(courses)).single;
+      expect(stored.active, isFalse);
+
+      // Edit without touching the switch and clear the summary.
+      await courses.updatePart(
+        courseId: 'course-1',
+        topicId: 'topic-1',
+        subtopicId: 'subtopic-1',
+        part: SubtopicPartEntity(
+          id: stored.id,
+          name: 'Parte 1 editada',
+          idSubtopic: stored.idSubtopic,
+          idTopic: stored.idTopic,
+          content: stored.content,
+          order: stored.order,
+          linkVideo: '',
+          linkPdf: '',
+          active: stored.active,
+        ),
+      );
+      final raw = ((await ref.get()).data()!['listPart'] as List).single as Map;
+      expect(raw['active'], isFalse);
+      expect(raw['name'], 'Parte 1 editada');
+      expect(raw['reviewedBy'], 'script');
+      expect(raw.containsKey('summary'), isFalse);
+      expect((await readParts(courses)).single.active, isFalse);
+    },
+  );
 }

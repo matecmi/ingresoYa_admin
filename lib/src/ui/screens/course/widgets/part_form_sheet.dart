@@ -47,6 +47,7 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
   late List<Map<String, dynamic>> _flashcards;
   late List<Map<String, dynamic>> _quizQuestions;
   late String _examTemplateId;
+  late bool _active;
   late final Stream<List<ExamTemplateRecord>> _partExamTemplates;
 
   bool _saving = false;
@@ -74,6 +75,7 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
     _flashcards = _cloneList(widget.part?.flashcards);
     _quizQuestions = _cloneList(widget.part?.quizQuestions);
     _examTemplateId = widget.part?.examTemplateId ?? '';
+    _active = widget.part?.active ?? true;
     _partExamTemplates = ref
         .read(examTemplateRepoProvider)
         .watchSelectablePartExamTemplates();
@@ -147,6 +149,7 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
         flashcards: _normaliseMaps(_flashcards),
         quizQuestions: _normaliseMaps(_quizQuestions),
         examTemplateId: _examTemplateId,
+        active: _active,
       );
       final repo = ref.read(courseRepoProvider);
       if (widget.part == null) {
@@ -281,6 +284,18 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
             ctrl: _nameCtrl,
             label: 'Nombre *',
             onChanged: (_) => setState(() {}),
+          ),
+          SwitchListTile(
+            key: const ValueKey('part-active'),
+            contentPadding: EdgeInsets.zero,
+            value: _active,
+            onChanged: _saving ? null : (v) => setState(() => _active = v),
+            title: const Text('Parte activa'),
+            subtitle: Text(
+              _active
+                  ? 'Visible en la app y requerida para el logro del subtema'
+                  : 'Oculta en la app y fuera del requisito del logro del subtema',
+            ),
           ),
           DialogTF(
             ctrl: _orderCtrl,

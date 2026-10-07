@@ -27,7 +27,9 @@ import { failedPrecondition, invalidArgument, notFound, resourceExhausted } from
 import {
   assessExamApproval,
   assessSectionsCompletion,
+  parseRequiredSections,
   readPartProgress,
+  requiredSectionsForPart,
   type PartProgressAssessment,
   type PartProgressStatus,
   type PartSection,
@@ -51,6 +53,7 @@ import {
 } from "./subtopic_achievement";
 import type {
   CreateExamAttemptInput,
+  PartCatalogHint,
   RecordPartSectionCompletionInput,
   SaveExamAnswersInput,
   SubmitExamAttemptInput
@@ -197,7 +200,7 @@ export class ExamAttemptService {
     if (previous.exists) return this.responseForExisting(uid, previous.data(), input, metrics);
 
     const contextPromise = input.purpose === "part_completion"
-      ? this.partContext(uid, input.partId, metrics, input.templateId)
+      ? this.partContext(uid, input.partId, metrics, input.templateId, input.catalog)
       : this.masteryContext(uid, input, metrics);
     const [profile, context, template, recentExposure] = await Promise.all([
       this.profileUniversity(uid, metrics),
@@ -480,7 +483,7 @@ export class ExamAttemptService {
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<PartCompletionResponse> {
     const sections = input.sections ?? [input.section!];
-    const resolvedContext = await this.partContext(uid, input.partId, metrics);
+    const resolvedContext = await this.partContext(uid, input.partId, metrics, undefined, input.catalog);
     const progressRef = this.progressRef(uid);
     return this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
@@ -495,7 +498,11 @@ export class ExamAttemptService {
         });
       }
       const assessment = assessSectionsCompletion(
-        readPartProgress(partRecord(progress.data(), input.partId), context),
+        readPartProgress(
+          partRecord(progress.data(), input.partId),
+          context,
+          resolvedContext.requiredSections
+        ),
         sections
       );
       const award = assessment.shouldMarkCompleted
@@ -508,7 +515,8 @@ export class ExamAttemptService {
         context,
         assessment,
         sections,
-        metrics
+        metrics,
+        resolvedContext.requiredSections
       );
       this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
       return response;
@@ -643,7 +651,11 @@ export class ExamAttemptService {
         reason: "part_not_enabled"
       });
     }
-    const state = readPartProgress(partRecord(progress.data(), partId), context);
+    const state = readPartProgress(
+      partRecord(progress.data(), partId),
+      context,
+      frozenContext?.requiredSections
+    );
     const assessment = assessExamApproval(state, attemptId);
     const award = assessment.shouldMarkCompleted
       ? await this.pendingSubtopicAward(transaction, uid, context, progress.data(), metrics)
@@ -655,7 +667,8 @@ export class ExamAttemptService {
       context,
       assessment,
       undefined,
-      metrics
+      metrics,
+      frozenContext?.requiredSections
     );
     this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
     return response;
@@ -810,9 +823,14 @@ export class ExamAttemptService {
     context: ProgressPartContext,
     assessment: PartProgressAssessment,
     newSections: readonly PartSection[] = [],
-    metrics?: OperationMetrics
+    metrics?: OperationMetrics,
+    requiredSections?: readonly PartSection[]
   ): PartCompletionResponse {
-    const existing = readPartProgress(partRecord(progress, context.partId), context);
+    const existing = readPartProgress(
+      partRecord(progress, context.partId),
+      context,
+      requiredSections
+    );
     const missingNewSections = newSections.filter((section) => !existing.completedSections.has(section));
     if (existing.completed || (!assessment.shouldRecordApproval && !assessment.shouldMarkCompleted && missingNewSections.length === 0)) {
       return progressResponse(context.partId, assessment);
@@ -831,6 +849,7 @@ export class ExamAttemptService {
       courseId: context.courseId,
       topicId: context.topicId,
       subtopicId: context.subtopicId,
+      requiredSections: [...existing.requiredSections],
       sections
     };
     if (assessment.shouldRecordApproval && assessment.effectiveExamAttemptId !== undefined) {
@@ -981,7 +1000,8 @@ export class ExamAttemptService {
     uid: string,
     partId: string,
     metrics: OperationMetrics,
-    examTemplateId?: string
+    examTemplateId?: string,
+    catalog?: PartCatalogHint
   ): Promise<PartContext> {
     const progress = await this.db
       .collection(this.config.collections.users)
@@ -1004,8 +1024,14 @@ export class ExamAttemptService {
           reason: "part_not_enabled"
         });
       }
-      await this.validateCatalogPart(context, metrics, examTemplateId);
-      return context;
+      return this.validateCatalogPart(context, metrics, examTemplateId);
+    }
+
+    // Current apps say where the part lives; the catalog confirms it (the
+    // part must be in that subtopic's listPart and everything active), so a
+    // part needs no published question to record sections or start an exam.
+    if (catalog !== undefined) {
+      return this.validateCatalogPart({ partId, ...catalog }, metrics, examTemplateId);
     }
 
     // Legacy profiles do not yet have a server-owned allowedParts projection.
@@ -1014,8 +1040,7 @@ export class ExamAttemptService {
     // the client, and an explicitly configured allowedParts list remains a
     // strict authorization boundary.
     const context = await this.legacyPartContext(partId, metrics);
-    await this.validateCatalogPart(context, metrics, examTemplateId);
-    return context;
+    return this.validateCatalogPart(context, metrics, examTemplateId);
   }
 
   private async legacyPartContext(
@@ -1060,11 +1085,12 @@ export class ExamAttemptService {
     return [...contexts.values()][0]!;
   }
 
+  /** Returns the context with the sections this catalog part requires. */
   private async validateCatalogPart(
     context: PartContext,
     metrics: OperationMetrics,
     examTemplateId?: string
-  ): Promise<void> {
+  ): Promise<PartContext> {
     const course = this.db.collection(this.config.collections.courses).doc(context.courseId);
     const topic = course.collection("topics").doc(context.topicId);
     const subtopic = topic.collection("subtopics").doc(context.subtopicId);
@@ -1097,6 +1123,13 @@ export class ExamAttemptService {
         reason: "part_template_not_associated"
       });
     }
+    return {
+      partId: context.partId,
+      courseId: context.courseId,
+      topicId: context.topicId,
+      subtopicId: context.subtopicId,
+      requiredSections: requiredSectionsForPart(part)
+    };
   }
 
   private async template(templateId: string, metrics: OperationMetrics): Promise<ExamTemplateRecord> {
@@ -1450,8 +1483,9 @@ function parsePartContext(raw: Record<string, unknown>): PartContext | undefined
   const courseId = typeof raw.courseId === "string" ? raw.courseId : undefined;
   const topicId = typeof raw.topicId === "string" ? raw.topicId : undefined;
   const subtopicId = typeof raw.subtopicId === "string" ? raw.subtopicId : undefined;
+  const requiredSections = parseRequiredSections(raw.requiredSections);
   return partId !== undefined && courseId !== undefined && topicId !== undefined && subtopicId !== undefined
-    ? { partId, courseId, topicId, subtopicId }
+    ? { partId, courseId, topicId, subtopicId, ...(requiredSections === undefined ? {} : { requiredSections }) }
     : undefined;
 }
 

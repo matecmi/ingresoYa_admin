@@ -23,6 +23,9 @@ Campos opcionales:
 - `externalLinks`: `{id, title, url, type}`.
 - `flashcards`: `{id, front, back}`.
 - `quizQuestions`: `{id, question, options: string[], correctIndex, explanation}`.
+- `active`: bool. Lo escribe siempre el formulario («Parte activa»). Una parte
+  inactiva no se muestra en la app ni cuenta para el logro del subtema. Editar
+  una parte conserva los campos que el admin no maneja.
 - `examTemplateId`: string. Plantilla `part_completion` que valida la parte.
   El admin solo deja elegir plantillas dinámicas, activas y publicadas, y lo
   vuelve a comprobar en la transacción que guarda `listPart`. La app la lee del

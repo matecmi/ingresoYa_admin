@@ -16,6 +16,14 @@ const service = new ExamAttemptService(db, config);
 const uid = "attempt-fixture-student";
 const partId = "part-1";
 const templateId = "attempt-fixture-template";
+// Content for all five sections, so the fixture parts require all of them.
+const fullPart = {
+  linkVideo: "https://youtu.be/fixture",
+  content: "Lección",
+  examples: [{ id: "e1" }],
+  flashcards: [{ id: "f1" }],
+  linkPdf: "https://example.com/fixture.pdf"
+};
 
 test("frozen attempts preserve ownership, order, grading and verified progress", async () => {
   await seed();
@@ -125,7 +133,7 @@ test("an award snapshots all active parts and survives a later catalog expansion
     }))
   });
   batch.update(subtopicRef, {
-    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId, ...fullPart }, { id: "part-2", active: true, examTemplateId: templateId, ...fullPart }]
   });
   batch.update(db.collection(config.collections.templates).doc(templateId), {
     blocks: [{ count: 10, filter: {} }]
@@ -158,7 +166,7 @@ test("an award snapshots all active parts and survives a later catalog expansion
   assert.equal((await service.getAchievementSummary(uid)).totalCompletedSubtopics, 1);
 
   await subtopicRef.update({
-    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }, { id: "part-3", active: true, examTemplateId: templateId }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId, ...fullPart }, { id: "part-2", active: true, examTemplateId: templateId, ...fullPart }, { id: "part-3", active: true, examTemplateId: templateId, ...fullPart }]
   });
   const attempt = await service.create(uid, {
     requestId: "request-achievement-part-3",
@@ -331,6 +339,64 @@ test("a part exam only uses the template associated with that catalog part", asy
   );
 });
 
+test("a part with no published questions records sections from its catalog location", async () => {
+  await seed();
+  await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").delete();
+  await fixtureSubtopicRef().update({
+    listPart: [
+      { id: partId, active: true, examTemplateId: templateId, ...fullPart },
+      { id: "part-empty-bank", active: true, examTemplateId: templateId, ...fullPart }
+    ]
+  });
+  const catalog = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+
+  // Without the location, the old path finds no published question.
+  await assert.rejects(
+    service.recordPartSectionCompletion(uid, { partId: "part-empty-bank", section: "lesson" }),
+    hasReason("failed-precondition", "part_not_available")
+  );
+  const recorded = await service.recordPartSectionCompletion(uid, {
+    partId: "part-empty-bank", section: "lesson", catalog
+  });
+  assert.deepEqual(recorded.missingSections, ["video", "examples", "review", "resources"]);
+
+  // A location the catalog does not confirm is rejected.
+  await assert.rejects(
+    service.recordPartSectionCompletion(uid, {
+      partId: "part-empty-bank", section: "lesson", catalog: { ...catalog, subtopicId: "other" }
+    }),
+    hasReason("failed-precondition", "part_not_available")
+  );
+});
+
+test("a part without a video is verified by its own sections and the exam", async () => {
+  await seed();
+  const noVideo = { ...fullPart, linkVideo: "" };
+  await fixtureSubtopicRef().update({
+    listPart: [{ id: partId, active: true, examTemplateId: templateId, ...noVideo }]
+  });
+  const catalog = { courseId: "course-1", topicId: "topic-1", subtopicId: "subtopic-1" };
+  const sections = await service.recordPartSectionCompletion(uid, {
+    partId, sections: ["lesson", "examples", "review", "resources"], catalog
+  });
+  assert.deepEqual(sections.missingSections, []);
+
+  const attempt = await service.create(uid, {
+    requestId: "request-no-video", purpose: "part_completion", partId, templateId, catalog
+  });
+  const result = await service.submit(uid, {
+    attemptId: attempt.attemptId,
+    answers: answers(attempt.questions, 9)
+  });
+  assert.deepEqual(result.progressUpdate, { partId, completed: true });
+  const stored = await db.collection(config.collections.users).doc(uid)
+    .collection("learningProgress").doc("current").get();
+  const part = stored.data()?.partProgress?.[partId];
+  assert.equal(part.completed, true);
+  assert.deepEqual(part.requiredSections, ["lesson", "examples", "review", "resources"]);
+});
+
 test("four published questions shared by multiple parts survive a random-key wrap", async () => {
   await seed();
   const batch = db.batch();
@@ -346,7 +412,7 @@ test("four published questions shared by multiple parts survive a random-key wra
     db.collection(config.collections.courses).doc("course-1")
       .collection("topics").doc("topic-1")
       .collection("subtopics").doc("subtopic-1"),
-    { listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }] }
+    { listPart: [{ id: partId, active: true, examTemplateId: templateId, ...fullPart }, { id: "part-2", active: true, examTemplateId: templateId, ...fullPart }] }
   );
   batch.update(db.collection(config.collections.templates).doc(templateId), {
     questionCount: 4,
@@ -451,7 +517,7 @@ test("mastery freezes versions, is idempotent, and grants one badge only after p
   await completeFixtureSubtopic();
   // A later catalog expansion must not revoke the already verified prerequisite.
   await fixtureSubtopicRef().update({
-    listPart: [{ id: partId, active: true, examTemplateId: templateId }, { id: "part-2", active: true, examTemplateId: templateId }]
+    listPart: [{ id: partId, active: true, examTemplateId: templateId, ...fullPart }, { id: "part-2", active: true, examTemplateId: templateId, ...fullPart }]
   });
   const request = masteryRequest("mastery-idempotent");
   const [first, repeated] = await Promise.all([
@@ -657,7 +723,7 @@ async function seed(): Promise<void> {
   batch.set(courses.doc("course-1").collection("topics").doc("topic-1"), { active: true });
   batch.set(
     courses.doc("course-1").collection("topics").doc("topic-1").collection("subtopics").doc("subtopic-1"),
-    { active: true, listPart: [{ id: partId, active: true, examTemplateId: templateId }] }
+    { active: true, listPart: [{ id: partId, active: true, examTemplateId: templateId, ...fullPart }] }
   );
   batch.set(templates.doc(templateId), {
     schemaVersion: 2,

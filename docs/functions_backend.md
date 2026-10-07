@@ -68,7 +68,11 @@ desde la proyección de servidor (`universityIdDoc` primero, luego
 `universityId`) o, para perfiles de la app existente, desde `profile` con los
 mismos campos; se prefiere siempre el ID de documento de Firestore.
 
-Mientras un perfil anterior todavía no tenga `allowedParts`, el servidor
+Si el perfil no tiene `allowedParts` (ninguna Function lo escribe todavía) y la
+app envía `courseId`, `topicId` y `subtopicId`, el servidor usa esa ubicación
+solo después de confirmar en el catálogo que la parte existe, activa, en ese
+subtema; una ubicación que no coincide se rechaza con `part_not_available`. Sin
+esos campos (apps anteriores), el servidor
 deriva el único contexto posible de preguntas publicadas de esa parte y lo
 valida en el catálogo antes de seleccionar. Lo congela en el intento para
 que la entrega posterior no dependa de que el catálogo siga igual. No recibe
@@ -160,8 +164,14 @@ esa información antes de la entrega.
 ## Progreso verificable de partes
 
 Una parte de `part_completion` se completa sólo con dos clases de evidencia
-server-owned: un intento aprobado y las cinco secciones `video`, `lesson`,
-`examples`, `review` y `resources`. La app puede registrar una sección con
+server-owned: un intento aprobado y las secciones que la parte **tiene**
+(`requiredSectionsForPart`): `video` si hay `linkVideo`; `lesson` si hay
+descripción, resumen, objetivos, puntos clave o fórmulas; `examples` si hay
+ejemplos o ejercicios; `review` si hay tarjetas; `resources` si hay PDF,
+imágenes o enlaces. Una parte sin video no exige `video`. La lista se calcula
+del catálogo, se congela en el intento (`partContext.requiredSections`) y se
+guarda en `partProgress.requiredSections`; los registros anteriores sin ella
+exigen las cinco. La app puede registrar una sección con
 `recordPartSectionCompletion({partId, section})` o confirmar hasta cinco
 secciones distintas de una vez con `{partId, sections: [...]}`. Ambas formas
 devuelven el mismo estado; el lote escribe las evidencias faltantes en una
