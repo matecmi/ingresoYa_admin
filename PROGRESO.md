@@ -5,7 +5,7 @@
 _Última actualización: 2026-10-07_
 
 ## Estado actual
-- `desarrollo` en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
+- `desarrollo` actualizado con admin #25 (PROGRESO); código en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
 
 ## Hecho (reciente)
 - #24 (admin) / #41 (app) `codex/seccion-abre-al-instante`, fusionados 2026-10-06: las tarjetas de sección de una parte (Lección, Ejemplos, Repasar, Recursos) abren el modal al instante. Antes `_openSection` esperaba a `onSectionReviewed`, que guarda el progreso local y luego espera el callable `recordPartSectionCompletion` (con posible arranque en frío); por eso la tarjeta salía «revisada» y el modal tardaba en abrirse. Ahora la sección cuenta como revisada al cerrar el modal y el guardado corre en segundo plano. Prueba nueva `part_learning_section_open_test.dart` (falla con el código anterior). App: analyze sin avisos, 282 pruebas OK.
@@ -38,7 +38,8 @@ _Última actualización: 2026-10-07_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
-- App: PR `codex/celebraciones-y-panel-logros` (celebraciones por nivel y panel único de logros). Solo app; sin cambios en Functions ni admin. Falta probar en dispositivo.
+- App: #42 celebraciones por nivel y panel único de logros (fusionado 2026-10-07). Falta probar en dispositivo.
+- App: PR `codex/logros-menu-y-cargas` (sin «Revisar resultado» ni notas de parte, cargador global, menú lateral y tarjetas de tema rediseñados, sin parpadeo de estados). Solo app; reduce llamadas a `getExamAttempt`/`submitExamAttempt`. Sin cambios en Functions ni admin.
 - Plantilla por parte: admin #23 y app #40 fusionados en `desarrollo`. Las 6 partes de TEST ya tienen `part-exam-v1` (asociadas por Kevin desde el admin, verificado 2026-10-06). Falta desplegar `createExamAttempt` en TEST (`$env:FUNCTIONS_DISCOVERY_TIMEOUT=120; firebase deploy --only functions:createExamAttempt --project ingresoya-e5115`; desde Claude lo bloquea el modo automático, lo ejecuta Kevin) y probar en dispositivo.
 - Secciones al instante (#24 / #41): solo app, sin despliegue. Falta probar en dispositivo.
 - Opcional: instalar Node 22 en local (`nvm install 22`).
