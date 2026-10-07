@@ -105,11 +105,18 @@ class SubtopicsTab extends StatelessWidget {
                       primary: 'Eliminar',
                     );
                     if (!ok) return;
-                    await repo.deleteSubtopic(
-                      courseId: courseId,
-                      topicId: topicId!,
-                      subtopicId: s.id,
-                    );
+                    try {
+                      await repo.deleteSubtopic(
+                        courseId: courseId,
+                        topicId: topicId!,
+                        subtopicId: s.id,
+                      );
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
+      );
+                    }
                   },
                 ),
               );

@@ -76,3 +76,16 @@ La app traduce `HttpsError.code` y `details.reason`; el texto inglés es solo de
 | Cualquier llamada: fallo inesperado | `internal` | `unexpected_server_error` | Logs de Functions y excepción del servidor |
 
 Los logs `exam_attempt_*_rejected` y `part_section_completion_rejected` incluyen entorno, `errorCode`, `reason`, actor anonimizado y métricas de lecturas/escrituras. Nunca registran payload, IDs de usuario, respuestas, claves ni el texto de la excepción. Para localizar un fallo, filtrar por evento, entorno y razón. Si se desplegaron Functions sobre `ingresoya-e5115`, verificar además la región `southamerica-east1` de la app. Un `not-found` sin `reason` puede indicar una callable no desplegada o una versión antigua del backend; no se debe diagnosticar como intento inexistente sin más evidencia.
+
+## `reconcileSubtopicAchievement`
+
+```json
+{ "courseId": "course-01", "topicId": "topic-01", "subtopicId": "subtopic-01" }
+```
+
+Vuelve a evaluar un subtema contra sus partes activas actuales y concede
+«Subtema completado» si ya está completo y aún no tiene el logro (por ejemplo,
+cuando el admin desactivó o quitó la única parte que faltaba). Devuelve
+`{complete, awarded, missingPartIds}`. Idempotente: un segundo llamado no crea
+otro logro. La app lo llama una vez por visita cuando todas las partes están
+verificadas en el teléfono pero el resumen no tiene el logro.

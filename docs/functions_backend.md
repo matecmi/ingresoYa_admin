@@ -211,3 +211,18 @@ de clics/vistas no se migran ni cuentan: únicamente la evidencia v2 con
 callable puede satisfacer requisitos. Esto permite que secciones revisadas
 después de aprobar culminen la parte sin convertir interacciones históricas en
 aprobaciones.
+
+## Costos y retención (2026-10-07)
+
+- `recentQuestions` se lee ordenado por `lastSeenAt` descendente (las más
+  recientes de verdad), con el límite `EXAM_RECENT_QUESTION_LIMIT`.
+- `recentQuestions` y `examRequestKeys` guardan `expireAt` (120 y 30 días). Las
+  políticas TTL están en `firestore.indexes.json` (`fieldOverrides`) y se
+  despliegan con `firebase deploy --only firestore:indexes`.
+- `FUNCTIONS_MIN_INSTANCES` (0 a 3; 0 por defecto, 1 en producción) mantiene
+  calientes `createExamAttempt`, `submitExamAttempt` y
+  `recordPartSectionCompletion`. Cada instancia caliente tiene un costo mensual
+  en reposo.
+- El admin no deja borrar una parte, subtema, tema o curso con preguntas no
+  retiradas o plantillas activas que lo usen; para una parte, se recomienda
+  desactivarla.

@@ -54,6 +54,7 @@ import {
 import type {
   CreateExamAttemptInput,
   PartCatalogHint,
+  ReconcileSubtopicAchievementInput,
   RecordPartSectionCompletionInput,
   SaveExamAnswersInput,
   SubmitExamAttemptInput
@@ -280,7 +281,9 @@ export class ExamAttemptService {
       });
       transaction.set(requestRef, {
         attemptId: attemptRef.id,
-        createdAt: FieldValue.serverTimestamp()
+        createdAt: FieldValue.serverTimestamp(),
+        // Idempotency only matters for retries; TTL removes old keys.
+        expireAt: new Date(now + requestKeyRetentionMs)
       });
       for (const question of response.questions) {
         transaction.set(
@@ -291,7 +294,9 @@ export class ExamAttemptService {
             .doc(question.questionId),
           {
             exposureCount: FieldValue.increment(1),
-            lastSeenAt: FieldValue.serverTimestamp()
+            lastSeenAt: FieldValue.serverTimestamp(),
+            // Firestore TTL (firestore.indexes.json) deletes old exposure.
+            expireAt: new Date(now + recentQuestionRetentionMs)
           },
           { merge: true }
         );
@@ -473,6 +478,67 @@ export class ExamAttemptService {
         partCompletion,
         masteryUpdate
       );
+    });
+  }
+
+  /**
+   * Re-checks one subtopic against its current active parts. Awards are
+   * otherwise evaluated only when a part becomes verified, so a student whose
+   * remaining parts were already verified when the admin removed or
+   * deactivated a part would never receive «Subtema completado».
+   */
+  public async reconcileSubtopicAchievement(
+    uid: string,
+    input: ReconcileSubtopicAchievementInput,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<{ complete: boolean; awarded: boolean; missingPartIds: string[] }> {
+    const progressRef = this.progressRef(uid);
+    const courseRef = this.db.collection(this.config.collections.courses).doc(input.courseId);
+    const topicRef = courseRef.collection("topics").doc(input.topicId);
+    const subtopicRef = topicRef.collection("subtopics").doc(input.subtopicId);
+    return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
+      const [progress, course, topic, subtopic] = await Promise.all([
+        transaction.get(progressRef),
+        transaction.get(courseRef),
+        transaction.get(topicRef),
+        transaction.get(subtopicRef)
+      ]);
+      metrics.readDocument(4);
+      const requirement = publishedSubtopicRequirement(
+        input,
+        course.data(),
+        topic.data(),
+        subtopic.data()
+      );
+      if (requirement === undefined) {
+        throw failedPrecondition("The selected subtopic is unavailable.", {
+          reason: "subtopic_not_available"
+        });
+      }
+      const partProgress = progress.data()?.partProgress;
+      const completion = assessSubtopicCompletion(requirement, partProgress);
+      if (!completion.complete) {
+        return { complete: false, awarded: false, missingPartIds: completion.missingPartIds };
+      }
+      const award = await this.subtopicAwardPlan(transaction, uid, requirement, metrics);
+      if (award === undefined) return { complete: true, awarded: false, missingPartIds: [] };
+      const lastPartId = requirement.requiredPartIds.at(-1)!;
+      const examAttemptId = stringValue(objectMap(objectMap(partProgress)[lastPartId]).examAttemptId);
+      this.writeSubtopicAward(
+        transaction,
+        award,
+        lastPartId,
+        {
+          status: "verified",
+          missingSections: [],
+          shouldRecordApproval: false,
+          shouldMarkCompleted: false,
+          effectiveExamAttemptId: examAttemptId ?? "reconciled"
+        },
+        metrics
+      );
+      return { complete: true, awarded: true, missingPartIds: [] };
     });
   }
 
@@ -765,6 +831,16 @@ export class ExamAttemptService {
       context.partId
     );
     if (!completion.complete) return undefined;
+    return this.subtopicAwardPlan(transaction, uid, requirement, metrics);
+  }
+
+  /** Award + summary to write when [requirement] is complete and unawarded. */
+  private async subtopicAwardPlan(
+    transaction: Transaction,
+    uid: string,
+    requirement: SubtopicRequirement,
+    metrics: OperationMetrics
+  ): Promise<PendingSubtopicAward | undefined> {
     const awardsRef = this.progressRef(uid).collection("achievements");
     const ref = awardsRef.doc(requirement.requirementVersion);
     const existing = await transaction.get(ref);
@@ -1144,6 +1220,8 @@ export class ExamAttemptService {
       .collection(this.config.collections.users)
       .doc(uid)
       .collection("recentQuestions")
+      // The most recently seen questions, not the first IDs alphabetically.
+      .orderBy("lastSeenAt", "desc")
       .limit(this.config.selection.recentQuestionLimit)
       .get();
     metrics.readQuery(snapshots.size);
@@ -1477,6 +1555,11 @@ function parseStoredResult(
 function hasPassed(result: StoredExamResult): boolean {
   return result.correct * 100 > result.total * result.passPercentExclusive;
 }
+
+/** How long a seen question keeps lowering its chance of selection. */
+const recentQuestionRetentionMs = 120 * 24 * 60 * 60 * 1000;
+/** Idempotency keys only protect retries of the same request. */
+const requestKeyRetentionMs = 30 * 24 * 60 * 60 * 1000;
 
 function parsePartContext(raw: Record<string, unknown>): PartContext | undefined {
   const partId = typeof raw.partId === "string" ? raw.partId : undefined;

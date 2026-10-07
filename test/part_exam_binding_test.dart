@@ -34,7 +34,7 @@ SubtopicPartEntity part({String id = 'part-1', String templateId = ''}) =>
       idSubtopic: 'subtopic-1',
       idTopic: 'topic-1',
       content: 'Contenido',
-      order: '1',
+      order: id.split('-').last,
       linkVideo: '',
       linkPdf: '',
       examTemplateId: templateId,
@@ -209,4 +209,93 @@ void main() {
       expect((await readParts(courses)).single.active, isFalse);
     },
   );
+
+  test('a part used by questions or templates cannot be deleted', () async {
+    await courses.addPart(
+      courseId: 'course-1',
+      topicId: 'topic-1',
+      subtopicId: 'subtopic-1',
+      part: part(),
+    );
+    await db.collection(AppEnv.questionsCollection).doc('q-1').set({
+      'status': 'published',
+      'partIds': ['part-1'],
+    });
+    await expectLater(
+      courses.deletePart(
+        courseId: 'course-1',
+        topicId: 'topic-1',
+        subtopicId: 'subtopic-1',
+        partId: 'part-1',
+      ),
+      throwsStateError,
+    );
+    expect(await readParts(courses), hasLength(1));
+
+    await db.collection(AppEnv.questionsCollection).doc('q-1').update({
+      'status': 'retired',
+    });
+    await db.collection(AppEnv.examTemplatesCollection).doc('t-1').set({
+      'title': 'Simulacro',
+      'active': true,
+      'blocks': [
+        {
+          'count': 1,
+          'filter': {'partId': 'part-1'},
+        },
+      ],
+    });
+    final blockers = await courses.deletionBlockers(
+      courseId: 'course-1',
+      topicId: 'topic-1',
+      subtopicId: 'subtopic-1',
+      partId: 'part-1',
+    );
+    expect(blockers.single, contains('Simulacro'));
+
+    await db.collection(AppEnv.examTemplatesCollection).doc('t-1').delete();
+    await courses.deletePart(
+      courseId: 'course-1',
+      topicId: 'topic-1',
+      subtopicId: 'subtopic-1',
+      partId: 'part-1',
+    );
+    expect(await readParts(courses), isEmpty);
+  });
+
+  test('part order is stored as a number and cannot repeat', () async {
+    await courses.addPart(
+      courseId: 'course-1',
+      topicId: 'topic-1',
+      subtopicId: 'subtopic-1',
+      part: part(),
+    );
+    await expectLater(
+      courses.addPart(
+        courseId: 'course-1',
+        topicId: 'topic-1',
+        subtopicId: 'subtopic-1',
+        part: SubtopicPartEntity(
+          id: 'part-2',
+          name: 'Repetida',
+          idSubtopic: 'subtopic-1',
+          idTopic: 'topic-1',
+          content: 'Contenido',
+          order: '1',
+          linkVideo: '',
+          linkPdf: '',
+        ),
+      ),
+      throwsStateError,
+    );
+    final raw = await db
+        .collection(AppEnv.coursesCollection)
+        .doc('course-1')
+        .collection(AppEnv.topicsSubcollection)
+        .doc('topic-1')
+        .collection(AppEnv.subtopicsSubcollection)
+        .doc('subtopic-1')
+        .get();
+    expect(((raw.data()!['listPart'] as List).single as Map)['order'], 1);
+  });
 }

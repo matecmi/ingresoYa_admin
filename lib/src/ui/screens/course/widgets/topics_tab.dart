@@ -73,7 +73,14 @@ class TopicsTab extends StatelessWidget {
                       primary: 'Eliminar',
                     );
                     if (!ok) return;
-                    await repo.deleteTopic(courseId: courseId, topicId: t.id);
+                    try {
+                      await repo.deleteTopic(courseId: courseId, topicId: t.id);
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
+      );
+                    }
                   },
                 ),
               );

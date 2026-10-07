@@ -23,13 +23,19 @@ setGlobalOptions({
 });
 
 const callableOptions = { enforceAppCheck: config.enforceAppCheck };
+// The student waits on these three; keep them warm where configured.
+const hotCallableOptions = { ...callableOptions, minInstances: config.minInstances };
 
-export const createExamAttempt = onCall(callableOptions, handlers.createExamAttempt);
+export const createExamAttempt = onCall(hotCallableOptions, handlers.createExamAttempt);
 export const getExamAttempt = onCall(callableOptions, handlers.getExamAttempt);
 export const getAchievementSummary = onCall(callableOptions, handlers.getAchievementSummary);
 export const saveExamAnswers = onCall(callableOptions, handlers.saveExamAnswers);
 export const recordPartSectionCompletion = onCall(
-  callableOptions,
+  hotCallableOptions,
   handlers.recordPartSectionCompletion
 );
-export const submitExamAttempt = onCall(callableOptions, handlers.submitExamAttempt);
+export const submitExamAttempt = onCall(hotCallableOptions, handlers.submitExamAttempt);
+export const reconcileSubtopicAchievement = onCall(
+  callableOptions,
+  handlers.reconcileSubtopicAchievement
+);

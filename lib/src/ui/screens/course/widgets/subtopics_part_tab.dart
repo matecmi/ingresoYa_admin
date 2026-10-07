@@ -133,11 +133,18 @@ class SubtopicsPartTab extends StatelessWidget {
     );
     if (!confirmed) return;
 
-    await repo.deletePart(
-      courseId: courseId,
-      topicId: topicId!,
-      subtopicId: subtopicId!,
-      partId: part.id,
-    );
+    try {
+      await repo.deletePart(
+        courseId: courseId,
+        topicId: topicId!,
+        subtopicId: subtopicId!,
+        partId: part.id,
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
+      );
+    }
   }
 }

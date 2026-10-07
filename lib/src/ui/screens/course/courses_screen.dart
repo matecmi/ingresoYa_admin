@@ -140,7 +140,15 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
     );
     if (!ok) return;
 
-    await ref.read(courseRepoProvider).deleteCourse(c.id);
+    try {
+      await ref.read(courseRepoProvider).deleteCourse(c.id);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
+      );
+      return;
+    }
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(

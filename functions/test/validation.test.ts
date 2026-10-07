@@ -45,6 +45,7 @@ import {
 import {
   parseCreateExamAttempt,
   parseGetAchievementSummary,
+  parseReconcileSubtopicAchievement,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
   parseSubmitExamAttempt
@@ -491,6 +492,22 @@ test("part requests may say where the part lives, all three IDs or none", () => 
     () => parseRecordPartSectionCompletion({ partId: "p-1", section: "lesson", subtopicId: "s-1" }),
     isInvalidArgument
   );
+});
+
+test("warm instances are opt-in outside production and bounded", () => {
+  assert.equal(readBackendConfig({ INGRESOYA_ENV: "test" }).minInstances, 0);
+  assert.equal(
+    readBackendConfig({ INGRESOYA_ENV: "test", FUNCTIONS_MIN_INSTANCES: "1" }).minInstances,
+    1
+  );
+  assert.throws(() => readBackendConfig({ INGRESOYA_ENV: "test", FUNCTIONS_MIN_INSTANCES: "9" }));
+});
+
+test("subtopic reconciliation accepts only the subtopic IDs", () => {
+  const input = { courseId: "c-1", topicId: "t-1", subtopicId: "s-1" };
+  assert.deepEqual(parseReconcileSubtopicAchievement(input), input);
+  assert.throws(() => parseReconcileSubtopicAchievement({ ...input, partId: "p" }), isInvalidArgument);
+  assert.throws(() => parseReconcileSubtopicAchievement({ courseId: "c-1" }), isInvalidArgument);
 });
 
 test("legacy section clicks never become v2 completion evidence", () => {

@@ -55,7 +55,74 @@ class CourseRepo {
     await _col.doc(courseId).update(patch);
   }
 
+  /// Why [courseId] (or one of its topics, subtopics or parts) cannot be
+  /// deleted: questions not retired and exam templates that still point at
+  /// it. Empty = safe to delete. Deactivating keeps the history instead.
+  Future<List<String>> deletionBlockers({
+    required String courseId,
+    String? topicId,
+    String? subtopicId,
+    String? partId,
+  }) async {
+    final questions = db.collection(AppEnv.questionsCollection);
+    final Query<Map<String, dynamic>> query = partId != null
+        ? questions.where('partIds', arrayContains: partId)
+        : subtopicId != null
+        ? questions.where('subtopicId', isEqualTo: subtopicId)
+        : topicId != null
+        ? questions.where('topicId', isEqualTo: topicId)
+        : questions.where('courseId', isEqualTo: courseId);
+    final found = await query.limit(50).get();
+    final liveQuestions = found.docs
+        .where((doc) => doc.data()['status'] != 'retired')
+        .length;
+    final target = partId ?? subtopicId ?? topicId ?? courseId;
+    final templates = await db.collection(AppEnv.examTemplatesCollection).get();
+    final templateTitles = [
+      for (final doc in templates.docs)
+        if (doc.data()['active'] != false &&
+            _mentions(doc.data()['blocks'], target))
+          (doc.data()['title'] ?? doc.id).toString(),
+    ];
+    return [
+      if (liveQuestions > 0)
+        '${liveQuestions == 50 ? '50 o más' : liveQuestions} pregunta(s) '
+            'no retiradas la usan',
+      if (templateTitles.isNotEmpty)
+        'la(s) plantilla(s) activa(s) ${templateTitles.join(', ')} la usan',
+    ];
+  }
+
+  bool _mentions(Object? value, String id) => switch (value) {
+    String text => text == id,
+    Map map => map.values.any((item) => _mentions(item, id)),
+    List list => list.any((item) => _mentions(item, id)),
+    _ => false,
+  };
+
+  Future<void> _ensureDeletable({
+    required String courseId,
+    String? topicId,
+    String? subtopicId,
+    String? partId,
+    required String label,
+  }) async {
+    final blockers = await deletionBlockers(
+      courseId: courseId,
+      topicId: topicId,
+      subtopicId: subtopicId,
+      partId: partId,
+    );
+    if (blockers.isEmpty) return;
+    throw StateError(
+      'No se puede eliminar $label: ${blockers.join('; ')}. '
+      'Retira esas preguntas o cambia las plantillas'
+      '${partId != null ? ', o desactiva la parte' : ''}.',
+    );
+  }
+
   Future<void> deleteCourse(String courseId) async {
+    await _ensureDeletable(courseId: courseId, label: 'el curso');
     final courseRef = _col.doc(courseId);
 
     // borra topics + subtopics
@@ -122,6 +189,11 @@ class CourseRepo {
     required String courseId,
     required String topicId,
   }) async {
+    await _ensureDeletable(
+      courseId: courseId,
+      topicId: topicId,
+      label: 'el tema',
+    );
     final topicRef = _col
         .doc(courseId)
         .collection(AppEnv.topicsSubcollection)
@@ -254,6 +326,12 @@ class CourseRepo {
     required String topicId,
     required String subtopicId,
   }) async {
+    await _ensureDeletable(
+      courseId: courseId,
+      topicId: topicId,
+      subtopicId: subtopicId,
+      label: 'el subtema',
+    );
     await _col
         .doc(courseId)
         .collection(AppEnv.topicsSubcollection)
@@ -284,6 +362,13 @@ class CourseRepo {
     required String subtopicId,
     required String partId,
   }) async {
+    await _ensureDeletable(
+      courseId: courseId,
+      topicId: topicId,
+      subtopicId: subtopicId,
+      partId: partId,
+      label: 'la parte',
+    );
     final doc = await _col
         .doc(courseId)
         .collection(AppEnv.topicsSubcollection)
@@ -354,6 +439,19 @@ class CourseRepo {
       final list = List<Map<String, dynamic>>.from(
         doc.data()?['listPart'] ?? [],
       );
+      final order = int.tryParse(part.order.trim());
+      final clash = list.where(
+        (e) =>
+            e['id'] != part.id &&
+            e['active'] != false &&
+            int.tryParse('${e['order']}'.trim()) == order,
+      );
+      if (order != null && part.active && clash.isNotEmpty) {
+        throw StateError(
+          'Ya existe la parte "${clash.first['name']}" con el orden $order. '
+          'Usa otro número.',
+        );
+      }
       if (create) {
         list.add(_partToMap(part));
       } else {
@@ -441,7 +539,8 @@ class CourseRepo {
     'idSubtopic': part.idSubtopic,
     'idTopic': part.idTopic,
     'content': part.content,
-    'order': part.order,
+    // A number, so «10» sorts after «2» everywhere.
+    'order': int.tryParse(part.order.trim()) ?? part.order,
     'linkVideo': part.linkVideo,
     'linkPdf': part.linkPdf,
     if (part.summary.isNotEmpty) 'summary': part.summary,
