@@ -2,12 +2,17 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-07_
+_Última actualización: 2026-10-08_
 
 ## Estado actual
 - `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- Rama `codex/tarjetas-vacias-y-progreso-inicio` (app; PR abierto 2026-10-08), pedidos de Kevin tras probar en el teléfono:
+  - El «Centro de estudio» solo muestra las tarjetas de las secciones con contenido (`requiredReviewItemsFor`); el recuadro ocupa todo el ancho aunque quede una sola tarjeta.
+  - Inicio mostraba 100 % y luego 9 %: los cursos sin abrir se completaban uno a uno. Ahora se descargan en paralelo y se aplican de una vez (`CourseListState.isLoadingContent`); mientras tanto el Inicio muestra «…» (`CourseProgressSummary.ready`) y la tarjeta del curso, el esqueleto.
+  - Pruebas: `part_requirements_test.dart` (tarjetas según contenido) y `study_guide_module_test.dart` (estado de carga); 337 OK, analyze sin avisos; APK verificado en el teléfono.
+- **Probado en el teléfono (2026-10-08): examen de dominio.** Parte 2 completa (4 secciones ≥ 5 s, examen 5/5) → «Subtema completado» → integrador «Dominio del subtema (prueba)» 8/8 → «¡Dominaste Ecuaciones lineales!». En Firestore: logros `subtopic_completed` y `subtopic_mastery` de `seed-alg-t1-s1`.
 - Rama `codex/contador-partes-y-subtemas` (app; PR abierto 2026-10-07), fallos encontrados probando en el teléfono de Kevin (adb) con los datos de prueba:
   - El contador «Tu avance» de la parte tenía el total fijo en 6 (`'$completedCount/6'`); ahora es requisitos de la parte + examen (p. ej. «1/2» en una parte solo con lección, «0/5» en una completa). `part_interactive_sections.dart`.
   - La lista de cursos mostraba «0 de 0 subtemas» en cursos nunca abiertos (los resúmenes no traen temas) y el % global del Inicio los ignoraba. `CourseController` descarga una vez en segundo plano el contenido de los cursos sin temas en caché (queda en Hive; no se repite por instantánea).
@@ -86,7 +91,7 @@ _Última actualización: 2026-10-07_
 
 ## Pendiente / siguiente paso
 - **Datos de prueba en TEST (2026-10-07):** 5 cursos «(prueba)» (`seed-alg`, `seed-ari`, `seed-geo`, `seed-fis`, `seed-qui`), 10 temas, 20 subtemas, 40 partes (p1 solo lección, p2 completa sin video), 240 preguntas publicadas con clave y versión, plantillas `seed-part-exam-v1` (5 preguntas, aprueba con 4) y `seed-subtopic-mastery-v1` (8, aprueba con 6). Cargados con un script de Claude (`seed_test.js`, con `--delete` para borrarlos; aún no está en el repo).
-- **Probado en el teléfono (2026-10-07):** examen de parte aprobado (5/5), `requiredSections: ["lesson"]`, parte `verified` en `learningProgress` y `courseProgress/seed-alg` subido al salir de la app. Teléfono nuevo simulado (`pm clear` + volver a iniciar sesión): se recuperaron la parte verificada (2/2, «¡Parte completada!»), «1 de 2 partes verificadas», la última parte abierta y RAZONAMIENTO MATEMATICO al 100 %. Falta: examen de dominio. Observación: las tarjetas Ejemplos/Repasar/Recursos se muestran aunque la parte no tenga ese contenido.
+- **Probado en el teléfono (2026-10-07):** examen de parte aprobado (5/5), `requiredSections: ["lesson"]`, parte `verified` en `learningProgress` y `courseProgress/seed-alg` subido al salir de la app. Teléfono nuevo simulado (`pm clear` + volver a iniciar sesión): se recuperaron la parte verificada (2/2, «¡Parte completada!»), «1 de 2 partes verificadas», la última parte abierta y RAZONAMIENTO MATEMATICO al 100 %. Examen de dominio probado el 2026-10-08.
 - **Desplegado en TEST (2026-10-07)** desde `codex/correcciones-media-baja` `1f64213` (incluye `codex/correcciones-severidad-alta`): las 7 callables (`createExamAttempt`, `getExamAttempt`, `saveExamAnswers`, `submitExamAttempt`, `recordPartSectionCompletion`, `getAchievementSummary` y la nueva `reconcileSubtopicAchievement`), todas `nodejs22`, verificadas con `firebase functions:list`; y `firestore:indexes` (políticas TTL de `recentQuestions` y `examRequestKeys`). Las reglas se desplegaron después (ver abajo).
 - Emuladores huérfanos de pruebas: java en los puertos 8080 (desde 2026-10-06) y 8180 (desde 2026-10-07); cerrarlos antes de `npm run test:emulators`.
 - **Reglas de Firestore desplegadas en TEST (2026-10-07)** desde `desarrollo` (`0541f0c` + PROGRESO), por Claude: incluye la lectura del dueño de `learningProgress/current` (#29). Falta probar en dispositivo: estudiar sin cerrar sesión, salir de la app y ver `courseProgress` en Firestore; en un teléfono nuevo, comprobar que se recuperan las partes verificadas. Claude puede desplegar reglas, índices y Functions **solo en TEST** (permiso en `../.claude/settings.local.json`).
