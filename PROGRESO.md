@@ -5,10 +5,10 @@
 _Última actualización: 2026-10-07_
 
 ## Estado actual
-- `desarrollo` en `be901e6` (admin #26, solo PROGRESO); código en `bf200f9` (Merge PR #24). Functions en Node.js 22, desplegadas en test. Plantilla por parte (admin #23 / app #40) y secciones al instante (admin #24 / app #41) fusionadas y aprobadas (2026-10-06).
+- `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; falta desplegar las reglas de Firestore.
 
 ## Hecho (reciente)
-- Rama `codex/correcciones-media-baja` (app + admin, sobre `codex/correcciones-severidad-alta`; PR abierto 2026-10-07): ítems 5 a 20 del análisis de la Guía de estudio.
+- #48 (app) / #31 (admin) `codex/correcciones-media-baja`, fusionados 2026-10-07: ítems 5 a 20 del análisis de la Guía de estudio.
   - 5: «Tomar examen» siempre visible (solo se pliega la lista de requisitos).
   - 6: contenido del curso desde Hive si se descargó hace < 30 min; sin conexión, la última copia.
   - 7: resumen de logros guardado por cuenta (`achievement_summary_v1`), espera máx. 8 s y luego el último; «Favoritos» no espera al servidor; si falla, el panel dice «No pudimos confirmar tus logros» con «Reintentar».
@@ -26,7 +26,7 @@ _Última actualización: 2026-10-07_
   - 19: `FUNCTIONS_MIN_INSTANCES` (0 por defecto, 1 en producción) para create/submit/secciones.
   - 20: `withOpacity` → `withValues` en la Guía de estudio; `part_learning_sections.dart` y `study_guide_sidebar.dart` divididos en archivos `part`. **No hecho:** pasar los textos a archivos de idioma (l10n), es un cambio de toda la app.
   - Pruebas: Functions lint, 34 unitarias, 17 emulador; admin 77; app 334, analyze sin avisos, APK debug development OK.
-- Rama `codex/correcciones-severidad-alta` (app + admin, PR abierto 2026-10-07): ítems 2, 3 y 4 (severidad alta) del análisis de la Guía de estudio.
+- #47 (app) / #30 (admin) `codex/correcciones-severidad-alta`, fusionados 2026-10-07: ítems 2, 3 y 4 (severidad alta) del análisis de la Guía de estudio.
   - **2. Contexto de la parte sin preguntas publicadas:** la app envía `courseId`/`topicId`/`subtopicId` en `createExamAttempt` y `recordPartSectionCompletion`; Functions solo los usa si el catálogo confirma la parte (activa, en ese `listPart`), y si no responde `part_not_available`. Sin ellos (apps anteriores) sigue la deducción por preguntas publicadas. Ante un servidor anterior (`invalid-argument`) la app repite sin la ubicación (mismo `requestId`).
   - **3. Requisitos según el contenido:** `requiredSectionsForPart` (Functions) y `requiredReviewItemsFor` (app): video si hay `linkVideo`; lección si hay descripción/resumen/objetivos/puntos clave/fórmulas; ejemplos si hay ejemplos o ejercicios; repaso si hay tarjetas; recursos si hay PDF/imágenes/enlaces. Se congela en el intento (`partContext.requiredSections`) y se guarda en `partProgress.requiredSections`; registros viejos exigen las 5. En la app la lista de requisitos y «Tomar examen» usan los de la parte, y una confirmación del servidor (`passed: true`) verifica la parte aunque el teléfono no haya visto todas las secciones.
   - **4. Partes activas:** el admin siempre guarda `active` (interruptor «Parte activa» en el formulario, aviso «Inactiva» en la lista) y al editar conserva los campos que no maneja (y borra de verdad los que se vacían). La app oculta las partes con `active: false`.
