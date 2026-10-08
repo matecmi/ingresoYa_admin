@@ -5,7 +5,7 @@
 _Última actualización: 2026-10-07_
 
 ## Estado actual
-- `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; falta desplegar las reglas de Firestore.
+- `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
 - #48 (app) / #31 (admin) `codex/correcciones-media-baja`, fusionados 2026-10-07: ítems 5 a 20 del análisis de la Guía de estudio.
@@ -81,9 +81,9 @@ _Última actualización: 2026-10-07_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
-- **Desplegado en TEST (2026-10-07)** desde `codex/correcciones-media-baja` `1f64213` (incluye `codex/correcciones-severidad-alta`): las 7 callables (`createExamAttempt`, `getExamAttempt`, `saveExamAnswers`, `submitExamAttempt`, `recordPartSectionCompletion`, `getAchievementSummary` y la nueva `reconcileSubtopicAchievement`), todas `nodejs22`, verificadas con `firebase functions:list`; y `firestore:indexes` (políticas TTL de `recentQuestions` y `examRequestKeys`). **No** se desplegaron las reglas: la regla de lectura de `learningProgress/current` (#29) sigue pendiente (`firebase deploy --only firestore:rules --project ingresoya-e5115`).
+- **Desplegado en TEST (2026-10-07)** desde `codex/correcciones-media-baja` `1f64213` (incluye `codex/correcciones-severidad-alta`): las 7 callables (`createExamAttempt`, `getExamAttempt`, `saveExamAnswers`, `submitExamAttempt`, `recordPartSectionCompletion`, `getAchievementSummary` y la nueva `reconcileSubtopicAchievement`), todas `nodejs22`, verificadas con `firebase functions:list`; y `firestore:indexes` (políticas TTL de `recentQuestions` y `examRequestKeys`). Las reglas se desplegaron después (ver abajo).
 - Emuladores huérfanos de pruebas: java en los puertos 8080 (desde 2026-10-06) y 8180 (desde 2026-10-07); cerrarlos antes de `npm run test:emulators`.
-- **Desplegar la regla de Firestore en TEST** (`codex/sync-progreso-automatica`): `firebase deploy --only firestore:rules --project ingresoya-e5115` (lo ejecuta Kevin; desde Claude lo bloquea el modo automático). Sin ella la app funciona igual pero no recupera partes verificadas. Probar en dispositivo: estudiar sin cerrar sesión, salir de la app y ver `courseProgress` en Firestore; instalar en otro teléfono y ver las partes aprobadas.
+- **Reglas de Firestore desplegadas en TEST (2026-10-07)** desde `desarrollo` (`0541f0c` + PROGRESO), por Claude: incluye la lectura del dueño de `learningProgress/current` (#29). Falta probar en dispositivo: estudiar sin cerrar sesión, salir de la app y ver `courseProgress` en Firestore; en un teléfono nuevo, comprobar que se recuperan las partes verificadas. Claude puede desplegar reglas, índices y Functions **solo en TEST** (permiso en `../.claude/settings.local.json`).
 - Favoritos por parte (`codex/favoritos-corazon-pestana`): revisar el PR y probar en dispositivo (corazón arriba a la derecha y pestaña «Favoritos» del Temario). Más adelante, si se quiere, sincronizarlos con el progreso (`favoritePartIds`). `SubtopicProgress.isFavorite` (favorito de subtema) ya no lo usa ninguna pantalla.
 - App: #42 celebraciones por nivel y panel único de logros (fusionado 2026-10-07). Falta probar en dispositivo.
 - App: #43 `codex/logros-menu-y-cargas` fusionado 2026-10-07 (sin «Revisar resultado» ni notas de parte, cargador global, menú lateral y tarjetas rediseñados, sin parpadeo). Falta probar en dispositivo.
