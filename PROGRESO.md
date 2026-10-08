@@ -8,6 +8,10 @@ _Última actualización: 2026-10-07_
 - `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- Rama `codex/contador-partes-y-subtemas` (app; PR abierto 2026-10-07), fallos encontrados probando en el teléfono de Kevin (adb) con los datos de prueba:
+  - El contador «Tu avance» de la parte tenía el total fijo en 6 (`'$completedCount/6'`); ahora es requisitos de la parte + examen (p. ej. «1/2» en una parte solo con lección, «0/5» en una completa). `part_interactive_sections.dart`.
+  - La lista de cursos mostraba «0 de 0 subtemas» en cursos nunca abiertos (los resúmenes no traen temas) y el % global del Inicio los ignoraba. `CourseController` descarga una vez en segundo plano el contenido de los cursos sin temas en caché (queda en Hive; no se repite por instantánea).
+  - Pruebas: `part_requirements_test.dart` (contador 1/2) y `study_guide_module_test.dart` (descarga única); 335 OK, analyze sin avisos; APK debug development instalado y verificado en el teléfono.
 - #48 (app) / #31 (admin) `codex/correcciones-media-baja`, fusionados 2026-10-07: ítems 5 a 20 del análisis de la Guía de estudio.
   - 5: «Tomar examen» siempre visible (solo se pliega la lista de requisitos).
   - 6: contenido del curso desde Hive si se descargó hace < 30 min; sin conexión, la última copia.
@@ -81,6 +85,8 @@ _Última actualización: 2026-10-07_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
+- **Datos de prueba en TEST (2026-10-07):** 5 cursos «(prueba)» (`seed-alg`, `seed-ari`, `seed-geo`, `seed-fis`, `seed-qui`), 10 temas, 20 subtemas, 40 partes (p1 solo lección, p2 completa sin video), 240 preguntas publicadas con clave y versión, plantillas `seed-part-exam-v1` (5 preguntas, aprueba con 4) y `seed-subtopic-mastery-v1` (8, aprueba con 6). Cargados con un script de Claude (`seed_test.js`, con `--delete` para borrarlos; aún no está en el repo).
+- **Probado en el teléfono (2026-10-07):** examen de parte aprobado (5/5), `requiredSections: ["lesson"]`, parte `verified` en `learningProgress` y `courseProgress/seed-alg` subido al salir de la app. Falta: simular teléfono nuevo (borrar datos de la app y volver a iniciar sesión) y probar el examen de dominio.
 - **Desplegado en TEST (2026-10-07)** desde `codex/correcciones-media-baja` `1f64213` (incluye `codex/correcciones-severidad-alta`): las 7 callables (`createExamAttempt`, `getExamAttempt`, `saveExamAnswers`, `submitExamAttempt`, `recordPartSectionCompletion`, `getAchievementSummary` y la nueva `reconcileSubtopicAchievement`), todas `nodejs22`, verificadas con `firebase functions:list`; y `firestore:indexes` (políticas TTL de `recentQuestions` y `examRequestKeys`). Las reglas se desplegaron después (ver abajo).
 - Emuladores huérfanos de pruebas: java en los puertos 8080 (desde 2026-10-06) y 8180 (desde 2026-10-07); cerrarlos antes de `npm run test:emulators`.
 - **Reglas de Firestore desplegadas en TEST (2026-10-07)** desde `desarrollo` (`0541f0c` + PROGRESO), por Claude: incluye la lectura del dueño de `learningProgress/current` (#29). Falta probar en dispositivo: estudiar sin cerrar sesión, salir de la app y ver `courseProgress` en Firestore; en un teléfono nuevo, comprobar que se recuperan las partes verificadas. Claude puede desplegar reglas, índices y Functions **solo en TEST** (permiso en `../.claude/settings.local.json`).
