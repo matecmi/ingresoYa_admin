@@ -2,12 +2,13 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-08_
+_Última actualización: 2026-10-10_
 
 ## Estado actual
 - `desarrollo` en `0541f0c` (Merge PR #31, correcciones media y baja de la Guía de estudio; antes #30 severidad alta, 2026-10-07). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- 2026-10-10: el l10n (#54) se fusionó por error en `codex/cache-favoritos-limpieza`; se reabre hacia `desarrollo` como app #55 (y admin #37 cambia su base a `desarrollo`). Se corrige el formato de `test/profile_sync_conflict_test.dart` que hacía fallar el paso «Check formatting» del CI desde #53.
 - Rama `codex/l10n-espanol` (app; PR abierto 2026-10-08, sobre `codex/cache-favoritos-limpieza`): **todos los textos visibles pasan a `lib/l10n/app_es.arb`** (669 claves, solo español) con gen-l10n (`l10n.yaml`, `flutter_localizations`, `intl`, código en `lib/l10n/generated/`). Uso: `context.l10n.clave` y `appStrings.clave` sin contexto (`lib/l10n/l10n.dart`; cae a español si no hay `Localizations`, así las pruebas de widgets no cambian). Prefijos por módulo (`common`, `app`, `auth`, `home`, `sync`, `studyGuide`, `simulator`, `profile`, `achievements`, `statistics`, `onboarding`, `savedQuestions`, `questions`, `config`). `AppFailure` toma su mensaje por defecto del ARB. La prueba de arquitectura de 1000 líneas excluye `lib/l10n/generated/`. Quedan en el código (a propósito): logs y mensajes técnicos, la página de depuración de sync, datos de ejemplo (noticias, exámenes de demo), formatos sin palabras y 7 mensajes de validación en `domain/usecases` de perfil y onboarding (la capa de dominio no puede importar Flutter). «Topics» (etiqueta accesible) pasó a «Temas». Pruebas: 340 OK, analyze sin avisos; pantallas revisadas en el teléfono.
 - Rama `codex/cache-favoritos-limpieza` (app; PR abierto 2026-10-08):
   - **Caché del catálogo:** la hora de descarga se guarda en Hive (`CourseHiveModel.contentFetchedAtMs`, HiveField 5); reabrir la app dentro de 30 min ya no vuelve a leer Firestore.
