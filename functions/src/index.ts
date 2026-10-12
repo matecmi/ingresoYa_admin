@@ -29,6 +29,7 @@ const hotCallableOptions = { ...callableOptions, minInstances: config.minInstanc
 export const createExamAttempt = onCall(hotCallableOptions, handlers.createExamAttempt);
 export const getExamAttempt = onCall(callableOptions, handlers.getExamAttempt);
 export const getAchievementSummary = onCall(callableOptions, handlers.getAchievementSummary);
+export const startExamAttempt = onCall(callableOptions, handlers.startExamAttempt);
 export const saveExamAnswers = onCall(callableOptions, handlers.saveExamAnswers);
 export const recordPartSectionCompletion = onCall(
   hotCallableOptions,

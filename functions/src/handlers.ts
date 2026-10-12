@@ -20,6 +20,7 @@ import {
   parseReconcileSubtopicAchievement,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
+  parseStartExamAttempt,
   parseSubmitExamAttempt
 } from "./validation";
 
@@ -102,6 +103,23 @@ export function createCallableHandlers(config: BackendConfig) {
         return response;
       } catch (error) {
         safeError("exam_attempt_get_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
+        throw asHttpsError(error);
+      }
+    },
+    async startExamAttempt(request: CallableRequest<unknown>): Promise<ExamAttemptResponse> {
+      const metrics = new OperationMetrics();
+      try {
+        const uid = requireUid(request);
+        const input = parseStartExamAttempt(request.data);
+        safeLog("exam_attempt_start_requested", uid);
+        const response = await attempts.start(uid, input.attemptId, metrics);
+        safeLog("exam_attempt_start_completed", uid, metrics.logFields());
+        return response;
+      } catch (error) {
+        safeError("exam_attempt_start_rejected", error, metrics.logFields(), {
           environment: config.environment,
           uid: request.auth?.uid
         });

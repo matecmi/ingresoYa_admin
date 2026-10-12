@@ -48,6 +48,7 @@ import {
   parseReconcileSubtopicAchievement,
   parseRecordPartSectionCompletion,
   parseSaveExamAnswers,
+  parseStartExamAttempt,
   parseSubmitExamAttempt
 } from "../src/validation";
 
@@ -285,6 +286,45 @@ test("selection never uses an unauthorized fallback and random starts are distin
   assert.deepEqual(shuffle(["a", "b", "c"], "stable"), shuffle(["a", "b", "c"], "stable"));
 });
 
+test("selection keeps alternatives in the order the admin stored them", () => {
+  const filter = {
+    universityId: "",
+    sourceExamId: "",
+    modalityId: "",
+    courseId: "course-1",
+    topicId: "topic-1",
+    subtopicId: "subtopic-1",
+    partId: "part-1",
+    sourceType: "any" as const,
+    difficulty: "any" as const
+  };
+  const question = {
+    ...candidate("ordered", "university-1", "original"),
+    alternatives: ["d", "a", "c", "b", "e"].map((id) => ({ id, label: id.toUpperCase(), content: [] }))
+  };
+  for (const seed of ["one", "two", "three", "four"]) {
+    const [selected] = chooseQuestions({
+      candidates: [question],
+      selectedIds: new Set(),
+      filter,
+      count: 1,
+      selectionPolicy: "strict",
+      profileUniversityId: "university-1",
+      allowedFallbackSources: [],
+      recentExposure: new Map(),
+      seed
+    });
+    assert.deepEqual(selected?.alternativeOrder, ["d", "a", "c", "b", "e"]);
+  }
+});
+
+test("start accepts only the attempt ID", () => {
+  assert.deepEqual(parseStartExamAttempt({ attemptId: "attempt-1" }), { attemptId: "attempt-1" });
+  for (const data of [null, [], {}, { attemptId: "bad id" }, { attemptId: "attempt-1", expiresAt: 1 }]) {
+    assert.throws(() => parseStartExamAttempt(data), isInvalidArgument);
+  }
+});
+
 test("submit accepts IDs only and bounds answer payloads", () => {
   assert.deepEqual(
     parseSubmitExamAttempt({
@@ -364,6 +404,27 @@ test("recovery projects a frozen public snapshot and saved answers without keys"
 test("recovery distinguishes expired and submitted attempts", () => {
   assert.equal(projectAttemptResponse("expired", attemptRecord("in_progress", yesterday())).status, "expired");
   assert.equal(projectAttemptResponse("submitted", attemptRecord("submitted", yesterday())).status, "submitted");
+});
+
+test("recovery exposes the duration and the start time only once started", () => {
+  const notStarted = projectAttemptResponse("attempt-1", {
+    ...attemptRecord("in_progress", tomorrow()),
+    templateSnapshot: { title: "Práctica", durationSeconds: 1200 }
+  });
+  assert.equal(notStarted.durationSeconds, 1200);
+  assert.equal(Object.hasOwn(notStarted, "startedAtMs"), false);
+  const started = projectAttemptResponse("attempt-1", {
+    ...attemptRecord("in_progress", tomorrow()),
+    templateSnapshot: { title: "Práctica", durationSeconds: 1200 },
+    startedAtMs: 5_000
+  });
+  assert.equal(started.startedAtMs, 5_000);
+  // Older attempts without a frozen duration derive it from their window.
+  const legacy = projectAttemptResponse("attempt-1", {
+    ...attemptRecord("in_progress", new Date(1_800_001)),
+    createdAtMs: 1
+  });
+  assert.equal(legacy.durationSeconds, 1800);
 });
 
 test("answer patches must target an alternative in the frozen attempt", () => {

@@ -37,16 +37,16 @@ al despliegue, pero no se ejecuta `firebase deploy` como parte de este trabajo.
 
 ## Superficie callable
 
-Las funciones `createExamAttempt`, `getExamAttempt`, `saveExamAnswers`,
-`recordPartSectionCompletion` y `submitExamAttempt` requieren autenticación y
+Las funciones `createExamAttempt`, `getExamAttempt`, `startExamAttempt`,
+`saveExamAnswers`, `recordPartSectionCompletion` y `submitExamAttempt` requieren autenticación y
 aceptan únicamente
 identificadores acotados. La creación recibe `requestId`, `templateId` y
-`partId`; la recuperación recibe sólo `attemptId`; el guardado incremental y
+`partId`; la recuperación y el inicio del reloj reciben sólo `attemptId`; el guardado incremental y
 la entrega reciben `attemptId` y el mapa `questionId -> alternativeId`. Se
 rechazan campos extra como `userId`, puntaje, duración, lista de preguntas o
 versión.
 
-Las cinco callables están disponibles. Las escrituras usan
+Las seis callables están disponibles. Las escrituras usan
 `serverTimestamp()` de Admin SDK, nunca el reloj enviado por el cliente.
 
 Los errores se traducen a códigos callable tipados y los logs registran sólo
@@ -126,6 +126,13 @@ sigue almacenado como `in_progress` pero cuyo `expiresAt` ya pasó se trata como
 `expired` con el reloj del servidor; un intento enviado o calificado se expone
 como `submitted`. La recuperación no reordena ni vuelve a consultar el banco,
 por lo que una edición posterior de una pregunta no afecta al intento.
+
+El reloj empieza con `startExamAttempt` («Comenzar examen»), no al crear: hasta
+entonces `expiresAt` es el plazo para empezar (creación + duración). Al
+empezar se guarda `startedAtMs` y `expiresAt` pasa a ahora + `durationSeconds`
+(de `templateSnapshot`; en intentos antiguos sin ese campo, `expiresAt -
+createdAtMs`). Repetir la llamada no mueve el reloj. La entrega y el estado
+`expired` usan siempre el `expiresAt` almacenado.
 
 `saveExamAnswers` está implementada para persistir borradores. Sólo acepta un
 mapa de hasta 50 pares `questionId -> alternativeId`; cada par se comprueba

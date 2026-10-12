@@ -30,6 +30,10 @@ export interface GetExamAttemptInput {
   attemptId: string;
 }
 
+export interface StartExamAttemptInput {
+  attemptId: string;
+}
+
 export interface SubmitExamAttemptInput {
   attemptId: string;
   answers: Readonly<Record<string, string>>;
@@ -119,6 +123,13 @@ export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
 }
 
 export function parseGetExamAttempt(data: unknown): GetExamAttemptInput {
+  const value = object(data, "data");
+  onlyKeys(value, ["attemptId"]);
+  return { attemptId: id(value.attemptId, "attemptId") };
+}
+
+/** Only the attempt ID; the start time and duration come from the server. */
+export function parseStartExamAttempt(data: unknown): StartExamAttemptInput {
   const value = object(data, "data");
   onlyKeys(value, ["attemptId"]);
   return { attemptId: id(value.attemptId, "attemptId") };
