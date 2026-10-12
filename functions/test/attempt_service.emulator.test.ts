@@ -119,6 +119,60 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(metrics.logFields().queryCalls, 0);
 });
 
+test("the clock starts on demand, once, and alternatives keep the admin order", async () => {
+  await seed();
+  const request = { requestId: "request-start", purpose: "part_completion" as const, partId, templateId };
+  const created = await service.create(uid, request);
+  assert.equal(created.durationSeconds, 60 * 60);
+  assert.equal(Object.hasOwn(created, "startedAtMs"), false);
+  for (const question of created.questions) {
+    assert.deepEqual(question.alternativeOrder, ["a", "b"]);
+  }
+  const attemptRef = db.collection(config.collections.attempts).doc(created.attemptId);
+  // Shrink the start window: starting still grants the full duration.
+  await attemptRef.update({ expiresAt: new Date(Date.now() + 5_000) });
+
+  await assert.rejects(
+    service.start("another-student", created.attemptId),
+    hasReason("not-found", "attempt_not_found")
+  );
+  const before = Date.now();
+  const started = await service.start(uid, created.attemptId);
+  const startedAtMs = started.startedAtMs ?? 0;
+  assert.ok(startedAtMs >= before && startedAtMs <= Date.now());
+  assert.equal(started.durationSeconds, 60 * 60);
+  assert.equal(Date.parse(started.expiresAt), startedAtMs + 60 * 60 * 1000);
+  const stored = (await attemptRef.get()).data();
+  assert.equal(stored?.startedAtMs, startedAtMs);
+  assert.equal(stored?.expiresAt.toDate().getTime(), startedAtMs + 60 * 60 * 1000);
+  assert.notEqual(stored?.startedAt, undefined);
+
+  const metrics = new OperationMetrics();
+  const repeated = await service.start(uid, created.attemptId, metrics);
+  assert.deepEqual(repeated, started);
+  assert.equal(metrics.logFields().plannedDocumentWrites, 0);
+  const recovered = await service.get(uid, created.attemptId);
+  assert.equal(recovered.startedAtMs, startedAtMs);
+  assert.equal(recovered.expiresAt, started.expiresAt);
+  assert.equal((await service.create(uid, request)).startedAtMs, startedAtMs);
+
+  await service.submit(uid, { attemptId: created.attemptId, answers: answers(created.questions, 9) });
+  await assert.rejects(
+    service.start(uid, created.attemptId),
+    (error: unknown) => error instanceof ExamBackendError && error.code === "failed-precondition" &&
+      error.details?.reason === "attempt_not_open" && error.details.status === "submitted"
+  );
+
+  const expired = await service.create(uid, { ...request, requestId: "request-start-expired" });
+  await db.collection(config.collections.attempts).doc(expired.attemptId)
+    .update({ expiresAt: new Date(Date.now() - 1_000) });
+  await assert.rejects(
+    service.start(uid, expired.attemptId),
+    (error: unknown) => error instanceof ExamBackendError && error.code === "failed-precondition" &&
+      error.details?.reason === "attempt_not_open" && error.details.status === "expired"
+  );
+});
+
 test("an award snapshots all active parts and survives a later catalog expansion", async () => {
   await seed();
   const profile = db.collection(config.collections.users).doc(uid);

@@ -22,7 +22,9 @@ servidor solo los acepta si la parte está, activa, en el `listPart` de ese
 subtema. Así una parte se localiza aunque no tenga preguntas publicadas.
 `recordPartSectionCompletion` acepta los mismos tres campos.
 
-Devuelve `{attemptId, status: "in_progress", title, questionCount, requiredCorrectAnswers, expiresAt, questions}`. Cada pregunta tiene `questionId`, `version`, `order`, `content`, `alternatives`, `sourceLabel` y `alternativeOrder`; no contiene `correctAlternativeId`, `isCorrect` ni `explanation`.
+Devuelve `{attemptId, status: "in_progress", title, questionCount, requiredCorrectAnswers, expiresAt, durationSeconds, startedAtMs?, questions}`. Cada pregunta tiene `questionId`, `version`, `order`, `content`, `alternatives`, `sourceLabel` y `alternativeOrder`; no contiene `correctAlternativeId`, `isCorrect` ni `explanation`. El orden de preguntas se baraja; `alternativeOrder` conserva el orden de alternativas guardado en el admin (no se baraja).
+
+Al crear, el reloj aún no corre: `expiresAt` es solo el plazo para empezar (creación + `durationSeconds`) y `startedAtMs` no viene. `durationSeconds` es la duración completa del examen y se devuelve siempre (create, get, save y start).
 
 ## `getExamAttempt`
 
@@ -31,6 +33,21 @@ Devuelve `{attemptId, status: "in_progress", title, questionCount, requiredCorre
 ```
 
 Devuelve la misma instantánea y orden, más `answers` y estado `in_progress`, `submitted` o `expired`. No devuelve claves ni explicación.
+
+## `startExamAttempt`
+
+```json
+{ "attemptId": "attempt-123" }
+```
+
+La app la llama cuando el alumno pulsa «Comenzar examen». En una transacción
+fija `startedAtMs` (y `startedAt`) con el reloj del servidor y mueve
+`expiresAt` a ahora + `durationSeconds`; devuelve la misma proyección que
+`getExamAttempt` con el nuevo `expiresAt` y `startedAtMs`. Es idempotente: si
+ya empezó, devuelve el estado actual sin escribir ni mover el reloj. Si el
+intento no está abierto (`submitted` o ya `expired` porque no se empezó a
+tiempo) responde `failed-precondition` con `reason: "attempt_not_open"` y
+`status`; un intento ausente o ajeno da `not-found`/`attempt_not_found`.
 
 ## `saveExamAnswers`
 
@@ -67,7 +84,8 @@ La app traduce `HttpsError.code` y `details.reason`; el texto inglés es solo de
 | `create`: bloque no corresponde a la parte resuelta por el servidor | `failed-precondition` | `template_part_mismatch` | Filtros del bloque y relación curso/tema/subtema/parte |
 | `create`: preguntas elegibles insuficientes | `failed-precondition` | `insufficient_questions` | Banco publicado y filtros; el detalle incluye conteos, no claves |
 | `create`: referencia idempotente apunta a intento eliminado | `failed-precondition` | `request_key_orphaned` | Integridad entre `iya-profile-*/{uid}/examRequestKeys/{requestId}` e intentos; la app rota la clave una vez |
-| `get`/`save`/`submit`: intento ausente o ajeno | `not-found` | `attempt_not_found` | ID del intento y propietario, sin distinguir públicamente un intento ajeno |
+| `start`/`save`/`submit`: intento entregado o vencido | `failed-precondition` | `attempt_not_open` | `details.status`; un intento no empezado vence al terminar su plazo de inicio |
+| `get`/`start`/`save`/`submit`: intento ausente o ajeno | `not-found` | `attempt_not_found` | ID del intento y propietario, sin distinguir públicamente un intento ajeno |
 | `save`: demasiados cambios | `resource-exhausted` | `answer_save_rate_limit` | Esperar `retryAfterMs` y reintentar las respuestas pendientes |
 | `submit`: clave de revisión congelada ausente | `failed-precondition` | `answer_key_unavailable` | Documento de clave para la versión exacta de la pregunta |
 | Sección o entrega aprobada: parte fuera de la lista autorizada | `failed-precondition` | `part_not_enabled` | `allowedParts` explícito o contexto legacy validado; la ausencia de `learningProgress/current` ya no impide registrar progreso |

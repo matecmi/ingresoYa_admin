@@ -71,6 +71,10 @@ export interface CreateExamAttemptResponse {
   questionCount: number;
   requiredCorrectAnswers: number;
   expiresAt: string;
+  /** Full exam duration; the clock only runs once the student starts. */
+  durationSeconds: number;
+  /** Present once startExamAttempt has started the clock. */
+  startedAtMs?: number;
   questions: AttemptQuestionSnapshot[];
   courseId?: string;
   topicId?: string;
@@ -235,7 +239,8 @@ export class ExamAttemptService {
       attemptRef.id,
       template,
       ordered,
-      expiresAtMs
+      expiresAtMs,
+      durationSeconds
     );
     const response: CreateExamAttemptResponse = input.purpose === "subtopic_mastery"
       ? { ...selectedResponse, ...context }
@@ -318,6 +323,43 @@ export class ExamAttemptService {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
     metrics.readDocument();
     return this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
+  }
+
+  /**
+   * Starts the exam clock when the student leaves the intro screen. Until then
+   * expiresAt is only the window to start (creation + duration); starting
+   * grants the full duration from now. Repeated calls never move the clock.
+   */
+  public async start(
+    uid: string,
+    attemptId: string,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<ExamAttemptResponse> {
+    const attemptRef = this.db.collection(this.config.collections.attempts).doc(attemptId);
+    return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
+      const attempt = await transaction.get(attemptRef);
+      metrics.readDocument();
+      const current = this.readAttempt(uid, attemptId, attempt.exists ? attempt.data() : undefined);
+      if (current.status !== "in_progress") {
+        throw failedPrecondition("The exam attempt is not open.", {
+          reason: "attempt_not_open",
+          status: current.status
+        });
+      }
+      if (current.startedAtMs !== undefined) return current;
+
+      const now = Date.now();
+      const expiresAt = new Date(now + current.durationSeconds * 1000);
+      transaction.update(attemptRef, {
+        startedAt: FieldValue.serverTimestamp(),
+        startedAtMs: now,
+        expiresAt,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      metrics.writeDocument();
+      return { ...current, expiresAt: expiresAt.toISOString(), startedAtMs: now };
+    });
   }
 
   /**
@@ -649,6 +691,8 @@ export class ExamAttemptService {
       questionCount: response.questionCount,
       requiredCorrectAnswers: response.requiredCorrectAnswers,
       expiresAt: response.expiresAt,
+      durationSeconds: response.durationSeconds,
+      ...(response.startedAtMs === undefined ? {} : { startedAtMs: response.startedAtMs }),
       questions: response.questions,
       ...(response.courseId === undefined ? {} : {
         courseId: response.courseId,
@@ -1329,7 +1373,8 @@ export class ExamAttemptService {
     attemptId: string,
     template: ExamTemplateRecord,
     selected: readonly SelectedQuestion[],
-    expiresAtMs: number
+    expiresAtMs: number,
+    durationSeconds: number
   ): CreateExamAttemptResponse {
     const questions = selected.map(({ question, alternativeOrder }, order) => ({
       questionId: question.questionId,
@@ -1347,6 +1392,7 @@ export class ExamAttemptService {
       questionCount: questions.length,
       requiredCorrectAnswers: Math.floor((questions.length * template.passPercentExclusive) / 100) + 1,
       expiresAt: new Date(expiresAtMs).toISOString(),
+      durationSeconds,
       questions
     };
   }
@@ -1369,6 +1415,7 @@ export function projectAttemptResponse(
   const partId = stringValue(data.partId);
   const masteryContext = parseSubtopicContext(data);
   const createdAtMs = numberField(data.createdAtMs);
+  const startedAtMs = numberField(data.startedAtMs);
   if (
     expiresAtMs === undefined ||
     expiresAt === undefined ||
@@ -1384,6 +1431,9 @@ export function projectAttemptResponse(
     throw failedPrecondition("The stored exam attempt is invalid.");
   }
   const status = attemptStatus(data.status, expiresAtMs);
+  // Older attempts did not freeze the duration; derive it from their window.
+  const durationSeconds = numberProperty(data.templateSnapshot, "durationSeconds") ??
+    Math.max(0, Math.round((expiresAtMs - (startedAtMs ?? createdAtMs)) / 1000));
   return {
     attemptId,
     status,
@@ -1391,6 +1441,8 @@ export function projectAttemptResponse(
     questionCount: questions.length,
     requiredCorrectAnswers,
     expiresAt,
+    durationSeconds,
+    ...(startedAtMs === undefined ? {} : { startedAtMs }),
     questions,
     answers: sanitizeAnswers(data.answers, questions),
     requestId,

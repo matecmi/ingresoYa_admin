@@ -151,12 +151,10 @@ export function chooseQuestions({
     selectionPolicy === "strict"
       ? rank(eligible, recentExposure, seed)
       : [...rank(primary, recentExposure, `${seed}:primary`), ...rank(fallback, recentExposure, `${seed}:fallback`)];
-  return ordered.slice(0, count).map((question, index) => ({
+  return ordered.slice(0, count).map((question) => ({
     question,
-    alternativeOrder: shuffle(
-      question.alternatives.map((alternative) => alternative.id),
-      `${seed}:alternative:${index}`
-    )
+    // Alternatives keep the order the admin stored; only questions are shuffled.
+    alternativeOrder: question.alternatives.map((alternative) => alternative.id)
   }));
 }
 
