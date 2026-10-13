@@ -78,3 +78,7 @@ Las reglas se editan en el admin («Configuración» → «Revisión de la guía
 | `sectionMinSeconds` | 5 (0–300) | Tiempo mínimo abierta para Lección, Ejemplos, Repasar y Recursos |
 
 La app lee el documento una vez por sesión y lo guarda en el equipo (`study_review_rules_v1`); sin documento usa los valores por defecto. El callable `recordPartSectionCompletion` no valida tiempo ni porcentaje: estas reglas se aplican en la app.
+
+## Fórmulas dentro del texto
+
+En resumen, contenido, objetivos, puntos clave, problema/pasos/respuesta de ejemplos, enunciado/pista/respuesta de ejercicios y tarjetas, lo que va entre `$…$` se dibuja como fórmula LaTeX dentro de la línea (`MathText` en la app y en la vista previa del admin). Ejemplo: `Suma de los naturales: $\frac{n(n+1)}{2}$`. Una fórmula que no se puede interpretar se muestra tal cual.

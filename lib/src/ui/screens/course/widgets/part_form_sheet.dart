@@ -8,6 +8,7 @@ import 'package:ingresoya_admin/src/domain/part_learning_contract.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_entity_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
+import 'package:ingresoya_admin/src/ui/widgets/math_text.dart';
 import 'package:uuid/uuid.dart';
 
 class PartFormSheet extends ConsumerStatefulWidget {
@@ -343,12 +344,14 @@ class _PartFormSheetState extends ConsumerState<PartFormSheet> {
           const SizedBox(height: 12),
           _StringListEditor(
             title: 'Objetivos',
+            helper: _formulaHelp,
             values: _objectives,
             onChanged: (values) => setState(() => _objectives = values),
           ),
           const SizedBox(height: 12),
           _StringListEditor(
             title: 'Puntos clave',
+            helper: _formulaHelp,
             values: _keyPoints,
             onChanged: (values) => setState(() => _keyPoints = values),
           ),
@@ -496,15 +499,20 @@ class _DifficultySelector extends StatelessWidget {
   );
 }
 
+/// The student app draws `$…$` as a formula inside the text.
+const _formulaHelp = r'Fórmulas entre $…$, por ejemplo: $\frac{n(n+1)}{2}$';
+
 class _StringListEditor extends StatelessWidget {
   const _StringListEditor({
     required this.title,
     required this.values,
     required this.onChanged,
+    this.helper,
   });
   final String title;
   final List<String> values;
   final ValueChanged<List<String>> onChanged;
+  final String? helper;
 
   @override
   Widget build(BuildContext context) => _EditorCard(
@@ -518,7 +526,11 @@ class _StringListEditor extends StatelessWidget {
             Expanded(
               child: TextFormField(
                 initialValue: values[i],
-                decoration: InputDecoration(labelText: '$title ${i + 1}'),
+                decoration: InputDecoration(
+                  labelText: '$title ${i + 1}',
+                  helperText: helper,
+                  helperMaxLines: 2,
+                ),
                 onChanged: (value) {
                   final next = [...values];
                   next[i] = value;
@@ -973,9 +985,15 @@ class _MobilePartPreview extends StatelessWidget {
           style: TextStyle(color: Colors.white.withOpacity(.65)),
         ),
         if (summary.trim().isNotEmpty)
-          Padding(padding: const EdgeInsets.only(top: 8), child: Text(summary)),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: MathText(summary),
+          ),
         if (content.trim().isNotEmpty)
-          Padding(padding: const EdgeInsets.only(top: 8), child: Text(content)),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: MathText(content),
+          ),
         if (objectives.isNotEmpty) _previewList('Objetivos', objectives),
         if (keyPoints.isNotEmpty) _previewList('Puntos clave', keyPoints),
         for (final formula in formulas)
@@ -1069,7 +1087,9 @@ class _MobilePartPreview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        ...values.where((v) => v.trim().isNotEmpty).map((v) => Text('• $v')),
+        ...values
+            .where((v) => v.trim().isNotEmpty)
+            .map((v) => MathText('• $v')),
       ],
     ),
   );
@@ -1092,10 +1112,15 @@ class _MobilePartPreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(section, style: const TextStyle(fontWeight: FontWeight.w900)),
-          if (title.trim().isNotEmpty) Text(title),
+          if (title.trim().isNotEmpty) MathText(title),
           if (body.trim().isNotEmpty)
-            Text(body, style: TextStyle(color: Colors.white.withOpacity(.72))),
-          ...details.where((value) => value.trim().isNotEmpty).map(Text.new),
+            MathText(
+              body,
+              style: TextStyle(color: Colors.white.withOpacity(.72)),
+            ),
+          ...details
+              .where((value) => value.trim().isNotEmpty)
+              .map(MathText.new),
         ],
       ),
     ),
