@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/study_review_rules.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 
@@ -31,6 +32,35 @@ class AppConfigRepo {
     if (problem != null) throw StateError(problem);
     await _sync.set({
       ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  DocumentReference<Map<String, dynamic>> get _study => db
+      .collection(AppEnv.configCollection)
+      .doc(AppEnv.studyReviewRulesDocument);
+
+  Stream<StudyReviewRulesRecord> watchStudyReviewRules() =>
+      _study.snapshots().map((snapshot) {
+        final data = snapshot.data();
+        final updatedAt = data?['updatedAt'];
+        return StudyReviewRulesRecord(
+          rules: StudyReviewRules.fromMap(data),
+          exists: snapshot.exists,
+          updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
+          updatedBy: (data?['updatedBy'] ?? '').toString(),
+        );
+      });
+
+  Future<void> saveStudyReviewRules(
+    StudyReviewRules rules, {
+    required String editor,
+  }) async {
+    final problem = rules.validate();
+    if (problem != null) throw StateError(problem);
+    await _study.set({
+      ...rules.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
     });

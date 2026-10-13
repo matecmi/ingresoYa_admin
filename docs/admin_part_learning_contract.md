@@ -64,3 +64,17 @@ escape doble solamente aparece al representar el valor como JSON.
   "quizQuestions": [{"id":"quiz-1","question":"¿Cuánto vale x en 2x=8?","options":["2","4","8"],"correctIndex":1,"explanation":"8 dividido entre 2 es 4"}]
 }
 ```
+
+## Cuándo una sección cuenta como «Revisado»
+
+Solo se exigen las secciones con contenido (`requiredReviewItemsFor` en la app, `requiredSectionsForPart` en Functions): `video` (hay `linkVideo`), `lesson` (contenido, resumen, objetivos, puntos clave o fórmulas), `examples` (ejemplos o ejercicios), `review` (flashcards), `resources` (PDF, imágenes o enlaces). Con todas revisadas se habilita el examen de la parte.
+
+Las reglas se editan en el admin («Configuración» → «Revisión de la guía de estudio») y se guardan en `{config}/study` (`iya-config-test/study` en TEST):
+
+| Campo | Por defecto | Efecto |
+|---|---|---|
+| `strict` | `true` | `false`: basta con entrar a la sección (se marca al cerrarla) y, en el video, con reproducirlo |
+| `videoMinPercent` | 60 (1–100) | Porcentaje del video en reproducción real (adelantar no suma) |
+| `sectionMinSeconds` | 5 (0–300) | Tiempo mínimo abierta para Lección, Ejemplos, Repasar y Recursos |
+
+La app lee el documento una vez por sesión y lo guarda en el equipo (`study_review_rules_v1`); sin documento usa los valores por defecto. El callable `recordPartSectionCompletion` no valida tiempo ni porcentaje: estas reglas se aplican en la app.

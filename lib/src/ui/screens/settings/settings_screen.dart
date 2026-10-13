@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
+import 'package:ingresoya_admin/src/ui/screens/settings/study_review_rules_card.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 /// «Configuración»: values the student app reads at startup.
@@ -57,6 +58,14 @@ class SettingsScreen extends ConsumerWidget {
                           key: ValueKey(record.settings.hashCode),
                           record: record,
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: const StudyReviewRulesSection(),
                       ),
                     ),
                   ],
@@ -188,7 +197,7 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
               ),
               Text(
                 record.exists
-                    ? 'Guardado${_updatedLabel(record)}'
+                    ? 'Guardado${settingsUpdatedLabel(record.updatedAt, record.updatedBy)}'
                     : 'Usando valores por defecto',
                 style: TextStyle(color: muted, fontSize: 12),
               ),
@@ -215,7 +224,7 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
               style: TextStyle(color: muted),
             ),
           ),
-          _NumberField(
+          SettingsNumberField(
             key: const ValueKey('sync-debounce'),
             controller: _debounce,
             enabled: _enabled && !_saving,
@@ -226,7 +235,7 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
                 '(${SyncSettings.minDebounceSeconds} a '
                 '${SyncSettings.maxDebounceSeconds} s).',
           ),
-          _NumberField(
+          SettingsNumberField(
             key: const ValueKey('sync-max-wait'),
             controller: _maxWait,
             enabled: _enabled && !_saving,
@@ -236,7 +245,7 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
                 'Sube aunque sigan llegando cambios (hasta '
                 '${SyncSettings.maxMaxWaitSeconds} s).',
           ),
-          _NumberField(
+          SettingsNumberField(
             key: const ValueKey('sync-refresh'),
             controller: _refresh,
             enabled: _enabled && !_saving,
@@ -275,21 +284,10 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
       ),
     );
   }
-
-  String _updatedLabel(SyncSettingsRecord record) {
-    final at = record.updatedAt;
-    final parts = [
-      if (at != null)
-        '${at.day.toString().padLeft(2, '0')}/'
-            '${at.month.toString().padLeft(2, '0')}/${at.year}',
-      if (record.updatedBy.isNotEmpty) record.updatedBy,
-    ];
-    return parts.isEmpty ? '' : ' · ${parts.join(' · ')}';
-  }
 }
 
-class _NumberField extends StatelessWidget {
-  const _NumberField({
+class SettingsNumberField extends StatelessWidget {
+  const SettingsNumberField({
     super.key,
     required this.controller,
     required this.enabled,
@@ -323,4 +321,15 @@ class _NumberField extends StatelessWidget {
       ),
     );
   }
+}
+
+/// « · 12/10/2026 · editor@…» for a saved settings document.
+String settingsUpdatedLabel(DateTime? at, String updatedBy) {
+  final parts = [
+    if (at != null)
+      '${at.day.toString().padLeft(2, '0')}/'
+          '${at.month.toString().padLeft(2, '0')}/${at.year}',
+    if (updatedBy.isNotEmpty) updatedBy,
+  ];
+  return parts.isEmpty ? '' : ' · ${parts.join(' · ')}';
 }

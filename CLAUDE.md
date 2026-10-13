@@ -19,6 +19,9 @@ En cada desarrollo, commit o PR, actualizar `PROGRESO.md` (y este `CLAUDE.md` si
 - Flutter (Dart ^3.9.2), Riverpod, go_router, Firebase Auth, Cloud Firestore, flutter_math_fork.
 - Functions: Node 22 (runtime `nodejs22`)/TypeScript, firebase-functions 7, firebase-admin 13. Código en `functions/src/` (`attempt_service.ts`, `selection.ts`, `subtopic_achievement.ts`, `achievement_summary.ts`, `handlers.ts`, ...).
 
+## Configuración que lee la app
+Colección `AppEnv.configCollection` (`iya-config-test`): `sync` (sincronización del progreso) y `study` (reglas de «Revisado» de la guía), editables en «Configuración» (`lib/src/ui/screens/settings/`).
+
 ## Comandos
 ```powershell
 # Flutter (admin)
