@@ -8,7 +8,15 @@ _Última actualización: 2026-10-12_
 - `desarrollo` en `afa9818` (Merge PR #46, PROGRESO del login/onboarding de la app, 2026-10-12). Antes: #45, #44 (búho animado), #43, #42 (PROGRESO de la app). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
-- Rama `codex/secciones-estudio` (app + admin; PR abierto 2026-10-12): **secciones de estudio rediseñadas (opciones «A» del lienzo y ruta del Centro)**, elegidas por Kevin.
+- Rama `codex/subtema-compacto` (app; PR abierto 2026-10-13): **pantalla del subtema compacta (opción A del lienzo, elegida por Kevin)**. Una parte pasa de ~3 pantallas a ~1,5.
+  - Se quita la tarjeta del subtema (`SubtopicOverviewCard`): curso, tema y subtema ya están en la cabecera.
+  - «Tu camino en este subtema» (`SubtopicMasterySection`) solo aparece cuando todas las partes están verificadas o el subtema está completado (logro y examen de dominio); antes, el avance de partes lo muestra la barra de la cabecera.
+  - «Tu avance» (`PartPersonalStudyCard`, eliminado) se integra en la ruta: título «Tu ruta · X de N» con % y barra, el búho y el **examen de la parte como último paso** (candado «Se abre al terminar la ruta» → botón «Rendir» → «¡Aprobaste!»). Sin el botón grande «Continuar»: la fila que toca va marcada «Siguiente».
+  - Tiempo y dificultad de la parte en una línea sobre su nombre («PARTE 2 DE 4 · 30 MIN»).
+  - Se quitaron los textos que ya no usa ningún código (26 claves `studyGuide…`).
+  - CI: `test/part_exam_attempt_screen_test.dart` usaba `'clave': ?valor` en un mapa; `build_runner` del CI no lo acepta y fallaba «Check generated files» desde que se agregó esa línea (commit cbe20fa). Ahora usa `if (valor != null)`.
+  - Pruebas: 363 OK, analyze y formato OK, `build_runner` sin cambios reales. Verificado en el teléfono.
+- Rama `codex/secciones-estudio` (app #68 / admin #50, fusionados 2026-10-13; su CI falló por la prueba con `?valor` en un mapa, corregido en `codex/subtema-compacto`): **secciones de estudio rediseñadas (opciones «A» del lienzo y ruta del Centro)**, elegidas por Kevin.
   - **Centro de estudio = ruta** (`part_learning_navigator.dart`): filas en orden (Video, Lección, Ejemplos, Repasar, Recursos) con detalle («2 min de lectura», «1 resuelto · 1 de práctica», «2 tarjetas», «Guía PDF · 2 enlaces»), «Revisado» con check o «Siguiente» en la que toca; el búho dice «Te toca …» y botón «Continuar: …» (o «¡Repasaste todo!»). La fila del video abre el reproductor.
   - **Al pie de cada sección, «Siguiente: …»**: cierra, registra la revisión con las reglas del admin y abre la siguiente.
   - **Lección**: pestañas Resumen · Objetivos · Puntos clave · Fórmulas que siguen la lectura y saltan al bloque, barra de avance, el resumen lo dice el búho («EN CORTO») y ya no se oculta el contenido cuando hay resumen. Fórmulas dentro del texto con `$…$` (`MathText`, en lección, ejemplos, ejercicios y tarjetas).
