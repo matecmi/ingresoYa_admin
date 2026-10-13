@@ -16,6 +16,7 @@ class AppEnv {
   // Settings the student app reads at startup (signed-in read, admin write).
   static const String configCollection = 'iya-config-test';
   static const String syncSettingsDocument = 'sync';
+  static const String studyReviewRulesDocument = 'study';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =
