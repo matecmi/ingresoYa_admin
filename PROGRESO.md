@@ -5,10 +5,10 @@
 _Última actualización: 2026-10-12_
 
 ## Estado actual
-- `desarrollo` en `c1a10ab` (Merge PR #45, PROGRESO de las cabeceras de la app, 2026-10-12). Antes: #44 (búho animado), #43, #42 (PROGRESO de la app). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
+- `desarrollo` en `afa9818` (Merge PR #46, PROGRESO del login/onboarding de la app, 2026-10-12). Antes: #45, #44 (búho animado), #43, #42 (PROGRESO de la app). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
-- Rama `codex/login-onboarding-carga` (app; PR abierto 2026-10-12): **correcciones y búho en login, onboarding y carga**.
+- Rama `codex/login-onboarding-carga` (app #64 / admin #46, fusionados 2026-10-12; el CI falló solo por formato de `test/subtopic_parts_presentation_test.dart`, heredado de #63, corregido en `codex/formato-ci`): **correcciones y búho en login, onboarding y carga**.
   - Estadísticas: sin flecha de volver (es pestaña) y título «Estadísticas» con tilde.
   - Barra inferior: `AppShell.currentIndexFromLocation` asigna rutas fuera de las pestañas a su dueña (`/course-topic` → Cursos, `/admission_exams` y `/generator_exam` → Simulador, `/saved_question` → Inicio).
   - Nombre de la cuenta: `AuthIdentity.displayName` (de Google); `SessionState.displayName` (perfil `userName` o el de Google, cada palabra con mayúscula) y `firstName`. Perfil muestra el nombre completo, Inicio saluda «Hola, {primer nombre}», y al terminar el onboarding se guarda en `userName`. Los perfiles existentes con `userName` vacío usan el nombre de Google.
