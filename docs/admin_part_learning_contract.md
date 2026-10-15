@@ -18,11 +18,20 @@ Campos opcionales:
 - `difficulty`: `basic`, `intermediate` o `advanced`.
 - `formulas`: `{id, title, latex, description}`.
 - `examples`: `{id, title, problem, steps: string[], answer}`.
-- `exercises`: `{id, statement, hint, answer, difficulty}`.
+- `exercises`: `{id, statement, hint, answer, difficulty}`. La app muestra
+  «Intenta primero» (el alumno escribe su respuesta y la comprueba antes de ver
+  la solución) cuando `answer` es de una línea y su valor final (lo que va
+  después del último `=`) tiene hasta 20 caracteres: «x = 4», «650»,
+  «S = 25(2 + 50)/2 = 650». Compara sin mayúsculas, tildes, espacios ni `$`, y
+  los números por valor («0,5» = «1/2»).
 - `images`: `{id, url, caption}`.
 - `externalLinks`: `{id, title, url, type}`.
 - `flashcards`: `{id, front, back}`.
 - `quizQuestions`: `{id, question, options: string[], correctIndex, explanation}`.
+  La app los muestra como «Repaso relámpago», un paso opcional de la ruta: no
+  se califica en el servidor ni cuenta para el examen de la parte. Descarta las
+  preguntas sin texto, con menos de dos opciones o con `correctIndex` fuera de
+  rango. Pregunta, opciones y explicación aceptan fórmulas entre `$…$`.
 - `active`: bool. Lo escribe siempre el formulario («Parte activa»). Una parte
   inactiva no se muestra en la app ni cuenta para el logro del subtema. Editar
   una parte conserva los campos que el admin no maneja.
