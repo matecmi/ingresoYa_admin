@@ -6,6 +6,7 @@ import '../../../../data/repo/admission_exam_repo.dart';
 import '../../../../domain/entities/university_entities.dart';
 import '../../../../providers/providers.dart';
 import '../../../../providers/question_catalog_providers.dart';
+import 'exam_simulator_dialog.dart';
 
 class AdmissionExamsTab extends ConsumerWidget {
   const AdmissionExamsTab({super.key, required this.university});
@@ -20,6 +21,8 @@ class AdmissionExamsTab extends ConsumerWidget {
             const Expanded(
               child: Text('Exámenes de origen de esta universidad'),
             ),
+            _SimulatorVisibleSwitch(university: university),
+            const SizedBox(width: 12),
             FilledButton.icon(
               onPressed: () => _edit(context),
               icon: const Icon(Icons.add),
@@ -55,12 +58,25 @@ class AdmissionExamsTab extends ConsumerWidget {
                         return ListTile(
                           title: Text(exam.name),
                           subtitle: Text(
-                            '${exam.typeLabel} · ${exam.modalityName} · ${exam.year}${exam.period.isEmpty ? '' : ' · Período ${exam.period}'}${exam.active ? '' : ' · Inactivo'}${exam.syncPending ? '\nActualización de preguntas pendiente' : ''}',
+                            '${exam.typeLabel} · ${exam.modalityName} · ${exam.year}${exam.period.isEmpty ? '' : ' · Período ${exam.period}'}${exam.active ? '' : ' · Inactivo'}${exam.syncPending ? '\nActualización de preguntas pendiente' : ''}\n${_simulatorLabel(exam)}',
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (exam.syncPending) _ExamSyncAction(exam: exam),
+                              IconButton(
+                                key: ValueKey('exam-simulator-${exam.id}'),
+                                tooltip: 'Reglas del Simulador',
+                                icon: const Icon(Icons.timer_outlined),
+                                onPressed: () => showDialog<void>(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => ExamSimulatorDialog(
+                                    university: university,
+                                    exam: exam,
+                                  ),
+                                ),
+                              ),
                               IconButton(
                                 tooltip: 'Editar examen',
                                 icon: const Icon(Icons.edit),
@@ -76,6 +92,17 @@ class AdmissionExamsTab extends ConsumerWidget {
       ),
     ],
   );
+  static String _simulatorLabel(AdmissionExam exam) {
+    final rules = exam.simulator;
+    if (rules.questionCount == 0) return 'Simulador: sin reglas';
+    final state = rules.available
+        ? 'disponible'
+        : rules.complete
+        ? 'completo, no disponible'
+        : 'incompleto (${rules.publishedQuestions}/${rules.questionCount})';
+    return 'Simulador: $state · ${rules.durationMinutes} min';
+  }
+
   void _edit(BuildContext context, [AdmissionExam? exam]) => showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -473,5 +500,55 @@ class _ExamSyncActionState extends ConsumerState<_ExamSyncAction> {
               if (mounted) setState(() => busy = false);
             }
           },
+  );
+}
+
+class _SimulatorVisibleSwitch extends ConsumerStatefulWidget {
+  const _SimulatorVisibleSwitch({required this.university});
+  final UniversityEntity university;
+  @override
+  ConsumerState<_SimulatorVisibleSwitch> createState() =>
+      _SimulatorVisibleSwitchState();
+}
+
+class _SimulatorVisibleSwitchState
+    extends ConsumerState<_SimulatorVisibleSwitch> {
+  late bool visible = widget.university.simulatorVisible;
+  bool saving = false;
+
+  Future<void> _toggle(bool value) async {
+    setState(() {
+      visible = value;
+      saving = true;
+    });
+    try {
+      await ref
+          .read(universityRepoProvider)
+          .updateUniversity(
+            widget.university.id,
+            patch: {'simulatorVisible': value},
+          );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => visible = !value);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cambiar. Reintenta.')),
+      );
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Text('Visible en el Simulador'),
+      Switch(
+        key: const ValueKey('university-simulator-visible'),
+        value: visible,
+        onChanged: saving ? null : _toggle,
+      ),
+    ],
   );
 }

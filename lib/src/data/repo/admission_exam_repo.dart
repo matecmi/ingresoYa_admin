@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/admission_exam.dart';
+import '../../domain/entities/exam_simulator_rules.dart';
 import '../../env/app_env.dart';
 
 class ExamCatalogException implements Exception {
@@ -134,6 +135,75 @@ class AdmissionExamRepo {
     } catch (_) {
       throw ExamSyncPending(saved);
     }
+  }
+
+  /// Recounts the exam's published questions and saves its Simulator rules.
+  /// Kept apart from [save]: it does not touch the revision nor the linked
+  /// questions. An incomplete exam can never be left available.
+  Future<ExamSimulatorRules> saveSimulatorRules(
+    String universityId,
+    String examId,
+    ExamSimulatorRules rules,
+  ) async {
+    final invalid = rules.validate();
+    if (invalid != null) throw ExamCatalogException(invalid);
+    final counted = await countPublishedQuestions(universityId, examId);
+    final complete = ExamSimulatorRules.isComplete(
+      questionCount: rules.questionCount,
+      publishedQuestions: counted.published,
+      numberedQuestions: counted.numbered,
+      numbersAreUnique: counted.uniqueNumbers,
+      questionOrder: rules.questionOrder,
+    );
+    if (rules.available && !complete) {
+      throw const ExamCatalogException(
+        'El examen aún no está completo: no se puede ofrecer en el Simulador.',
+      );
+    }
+    final saved = rules.copyWith(
+      publishedQuestions: counted.published,
+      numberedQuestions: counted.numbered,
+      complete: complete,
+    );
+    final target = exams(universityId).doc(examId);
+    await db.runTransaction((transaction) async {
+      final current = await transaction.get(target);
+      if (!current.exists) {
+        throw const ExamCatalogException('El examen ya no existe.');
+      }
+      transaction.update(target, {
+        'simulator': {
+          ...saved.toJson(),
+          'checkedAt': FieldValue.serverTimestamp(),
+        },
+      });
+    });
+    return saved;
+  }
+
+  /// Published questions of the exam and how many carry a distinct number in
+  /// the original exam (`originalNumber`).
+  Future<({int published, int numbered, bool uniqueNumbers})>
+  countPublishedQuestions(String universityId, String examId) async {
+    final snapshot = await db
+        .collection(AppEnv.questionsCollection)
+        .where('examId', isEqualTo: examId)
+        .get();
+    var published = 0;
+    final numbers = <int>[];
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['universityId'] != universityId) continue;
+      if (data['status'] != 'published') continue;
+      published++;
+      final number = data['originalNumber'];
+      if (number is num && number > 0) numbers.add(number.toInt());
+    }
+    return (
+      published: published,
+      numbered: numbers.length,
+      uniqueNumbers: numbers.toSet().length == numbers.length,
+    );
   }
 
   /// Safe to restart after interruption. Each page reads the latest catalog version

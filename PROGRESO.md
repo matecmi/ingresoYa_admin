@@ -2,12 +2,19 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-14_
+_Última actualización: 2026-10-15_
 
 ## Estado actual
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Simulador base · PR 1** (admin `codex/simulador-datos-examen`, 2026-10-15; trabajo nocturno autorizado por Kevin: fusionar si CI/pruebas pasan, desplegar solo en TEST): **reglas de cada examen pasado para el Simulador**.
+  - Contrato nuevo compartido `docs/simulator_contract.md` (copia en la app): reglas por examen, puntaje, «completo», `{config}/simulator` y los intentos `past_exam` / `practice` que vienen en el PR 3.
+  - Universidades → Exámenes de origen: botón «Reglas del Simulador» (`exam_simulator_dialog.dart`) con preguntas del examen original, duración, puntaje máximo, puntos por correcta / incorrecta / en blanco, orden (original por `originalNumber` o mezclado), «Disponible en el Simulador» y **puntaje mínimo de ingreso por carrera**. Se guardan en el campo `simulator` del examen, aparte del catálogo: no cambian `revision` ni reescriben preguntas.
+  - **Completo** calculado al guardar (`AdmissionExamRepo.saveSimulatorRules`): publicadas de ese examen y universidad = preguntas del examen y, con orden original, todas con número original distinto. Un examen incompleto no se puede marcar disponible. La lista muestra «Simulador: disponible / completo / incompleto (n/N)».
+  - Universidad: interruptor «Visible en el Simulador» (`simulatorVisible`, por defecto sí).
+  - Dato: las 24 preguntas de UNPRG 2026-I no tienen «Número original»; para probarlo ya, usar orden **mezclado** con 24 preguntas, o cargar los números.
+  - Pruebas: admin `exam_simulator_rules_test.dart` (6) OK.
 - Rama `codex/avance-por-partes` (app; PR abierto 2026-10-14): **el avance de la guía cuenta partes aprobadas, no solo subtemas completos**. Antes, con 1 de 4 partes aprobadas, el Inicio decía «Llevas 0% de tu guía» y el curso marcaba 0%. `CourseProgressSummary` suma `partsVerified`/`partsTotal` (partes activas; un subtema completo cuenta todas sus partes; una parte cuenta si está en `verifiedCompletedPartIds` o `partVerifiedExamPassed`) y `progress` usa las partes cuando hay. Lo usan el Inicio («Llevas X%» y la tarjeta «Guía de estudio») y la barra y el % de cada curso; los contadores «x de y subtemas completados», completados y dominados siguen siendo de subtemas (logros). Pruebas: 374 OK (nuevas en `guide_progress_by_parts_test.dart`), analyze OK. Verificado en el teléfono: Inicio 2 %, RAZONAMIENTO MATEMATICO 17 % (1 de 6 partes).
 - Rama `codex/repaso-relampago` (app #71 / admin #53, fusionados 2026-10-14): **«Repaso relámpago» e «Intenta primero»**.
   - **Repaso relámpago**: la app lee `quizQuestions` de cada parte (`PartQuizQuestionEntity`; DTO y Hive `HiveField 21`, el 17 sigue retirado) y descarta las inválidas (sin texto, < 2 opciones o `correctIndex` fuera de rango). Es un paso **opcional** de la ruta (`PartLearningDestination.optional`: pastilla «Opcional», no cuenta en «Tu ruta · X de N», nunca es «Siguiente» ni se exige para el examen; Functions no cambia). Una pregunta a la vez con opciones A-D, al elegir marca la correcta/incorrecta, el búho da la explicación y la pantalla baja sola hasta «Siguiente pregunta»; al final «Acertaste X de N» (queda en la fila mientras la pantalla está abierta) e «Intentar de nuevo». Archivo: `part_quiz_section.dart`.

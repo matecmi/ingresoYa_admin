@@ -1,8 +1,8 @@
 import 'package:ingresoya_admin/src/domain/entities/profession_entity.dart';
 
 class UniversityEntity {
-  final String id;      // internal (igual al docId)
-  final String idDoc;   // si lo usas distinto, si no = id
+  final String id; // internal (igual al docId)
+  final String idDoc; // si lo usas distinto, si no = id
   final String name;
   final String acronym;
   final bool active;
@@ -17,6 +17,9 @@ class UniversityEntity {
   final List<String>? links;
   final List<ModeEntity> modes;
   final List<ProfessionEntity> professions;
+
+  /// Its past exams appear in the app's Simulator (default true).
+  final bool simulatorVisible;
 
   const UniversityEntity({
     required this.id,
@@ -35,6 +38,7 @@ class UniversityEntity {
     required this.links,
     required this.modes,
     required this.professions,
+    this.simulatorVisible = true,
   });
 
   UniversityEntity copyWith({
@@ -68,6 +72,7 @@ class UniversityEntity {
       links: links ?? this.links,
       modes: modes,
       professions: professions,
+      simulatorVisible: simulatorVisible,
     );
   }
 }
@@ -87,5 +92,3 @@ class ModeEntity {
     required this.universityId,
   });
 }
-
-

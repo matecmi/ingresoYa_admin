@@ -56,6 +56,8 @@ class UniversityRepo {
           modes: _toModes(data['modes'], doc.id),
 
           professions: _toProfessions(data['professions']),
+
+          simulatorVisible: data['simulatorVisible'] != false,
         );
       }).toList();
     });
