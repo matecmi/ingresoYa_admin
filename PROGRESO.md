@@ -8,6 +8,7 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Revisión tras fusionar #83, #84 y #85** (2026-10-15): `desarrollo` de la app sin marcas de conflicto, analyze sin avisos, 388 pruebas OK y verificado en el teléfono (plan, semana, racha, modo libre). Única corrección: formato de `simulator_attempt.dart` tras la mezcla (rama `codex/formato-merge`).
 - **Plan de entrenamiento · PR B** (app `codex/plan-app`, 2026-10-15): el camino guiado del Simulador B+, encima de «Elige tu examen» (el modo libre sigue igual y cualquier examen cuenta).
   - Dominio puro `training_plan.dart`: `TrainingGoal` (meta del alumno en `{perfil}/simulatorPlan/current`), `TopicAccuracy`, `PlanSettings` (en `simulator_catalog.dart`, de `{config}/simulator.plan`) y `buildPlanWeek`: semana lunes→domingo con sesiones (intentos de ≥ N preguntas), racha con días de gracia, días para el examen y la propuesta de hoy (`PlanNeedsGoal` → «Arma tu plan», `PlanDiagnostic`, `PlanWeeklyMock` en el día del simulacro sin examen pasado esa semana, `PlanDaily` con el tema más débil o «Sesión de hoy cumplida»).
   - Inicio del Simulador: `PlanHomeCard` (chips «faltan N días» y «N días seguidos», «X de Y sesiones esta semana», franja de la semana con ✓/Hoy/★, tarjeta «Hoy te toca» con «¿Por qué? Fallaste X de Y en {tema}» y «Empezar sesión» → intento `plan`).
