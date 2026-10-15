@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
+import 'package:ingresoya_admin/src/ui/screens/settings/simulator_settings_card.dart';
 import 'package:ingresoya_admin/src/ui/screens/settings/study_review_rules_card.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
@@ -66,6 +67,14 @@ class SettingsScreen extends ConsumerWidget {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 720),
                         child: const StudyReviewRulesSection(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: const SimulatorSettingsSection(),
                       ),
                     ),
                   ],

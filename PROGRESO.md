@@ -8,6 +8,10 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Simulador base · PR 2** (admin `codex/simulador-config`, 2026-10-15): **Configuración → Simulador** (`{config}/simulator`, en TEST `iya-config-test/simulator`), como «Revisión de la guía».
+  - `SimulatorSettings` (`lib/src/domain/simulator_settings.dart`): tamaños de práctica (1 a 5, entre 10 y 100 preguntas, uno por defecto; de fábrica Corto 10·15, Normal 20·30, Largo 40·60), reloj por defecto, penalidad en práctica (no), días sin repetir preguntas (14), origen y dificultad por defecto, otras universidades, ocultar incompletos y explicaciones al revisar. Si falta el documento o un campo, valores de fábrica (contrato §2).
+  - Tarjeta `simulator_settings_card.dart` en Configuración; `AppConfigRepo.watchSimulatorSettings` / `saveSimulatorSettings`.
+  - Pruebas: admin 93 OK (nuevas en `simulator_settings_test.dart`).
 - **Simulador base · PR 1** (admin `codex/simulador-datos-examen`, 2026-10-15; trabajo nocturno autorizado por Kevin: fusionar si CI/pruebas pasan, desplegar solo en TEST): **reglas de cada examen pasado para el Simulador**.
   - Contrato nuevo compartido `docs/simulator_contract.md` (copia en la app): reglas por examen, puntaje, «completo», `{config}/simulator` y los intentos `past_exam` / `practice` que vienen en el PR 3.
   - Universidades → Exámenes de origen: botón «Reglas del Simulador» (`exam_simulator_dialog.dart`) con preguntas del examen original, duración, puntaje máximo, puntos por correcta / incorrecta / en blanco, orden (original por `originalNumber` o mezclado), «Disponible en el Simulador» y **puntaje mínimo de ingreso por carrera**. Se guardan en el campo `simulator` del examen, aparte del catálogo: no cambian `revision` ni reescriben preguntas.
