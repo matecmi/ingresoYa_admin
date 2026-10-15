@@ -609,7 +609,15 @@ class _EntrySpec {
   static const exercises = _EntrySpec('Ejercicios', Icons.edit_note_rounded, [
     _EntryField('statement', 'Enunciado', multiline: true),
     _EntryField('hint', 'Pista', multiline: true),
-    _EntryField('answer', 'Respuesta', multiline: true),
+    _EntryField(
+      'answer',
+      'Respuesta',
+      multiline: true,
+      helper:
+          'Termina con el valor final (p. ej. «S = 25(2 + 50)/2 = 650»): '
+          'la app lo usa en «Intenta primero» para comprobar lo que escribe '
+          'el alumno.',
+    ),
     _EntryField('difficulty', 'Dificultad'),
   ], exercise: true);
   static const images = _EntrySpec('Imágenes', Icons.image_outlined, [
@@ -627,7 +635,7 @@ class _EntrySpec {
     _EntryField('back', 'Reverso', multiline: true),
   ]);
   static const quizQuestions = _EntrySpec(
-    'Preguntas de quiz',
+    'Preguntas de quiz (Repaso relámpago)',
     Icons.quiz_outlined,
     [
       _EntryField('question', 'Pregunta', multiline: true),
@@ -646,12 +654,14 @@ class _EntryField {
     this.multiline = false,
     this.url = false,
     this.number = false,
+    this.helper,
   });
   final String key;
   final String label;
   final bool multiline;
   final bool url;
   final bool number;
+  final String? helper;
 }
 
 class _LearningCollectionEditor extends StatelessWidget {
@@ -888,7 +898,11 @@ class _EntryDialogState extends State<_EntryDialog> {
                       : TextInputType.text,
                   maxLines: field.multiline ? 4 : 1,
                   onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(labelText: field.label),
+                  decoration: InputDecoration(
+                    labelText: field.label,
+                    helperText: field.helper,
+                    helperMaxLines: 3,
+                  ),
                 ),
               ),
             ),

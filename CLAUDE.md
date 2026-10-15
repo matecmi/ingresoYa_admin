@@ -38,5 +38,7 @@ npm run test:emulators   # reglas + attempt_service con emuladores
 npm run emulators
 ```
 
+Datos de prueba en TEST: `node tools/seed_test.js <service-account.json> [--delete]` desde `functions/` (cursos «(prueba)» `seed-*`; la cuenta de servicio nunca va al repo). Node local: 22 (`nvm use 22.23.3`).
+
 ## Documentación clave
 `docs/` — arquitectura de exámenes, contrato de callables, seguridad y costos del backend, banco de preguntas publicable, editor visual, runbook de promoción a test, reglas de logros de subtema y dominio.
