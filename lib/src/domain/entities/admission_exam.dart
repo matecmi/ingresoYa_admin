@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../../shared/question_contract/question_contract.dart';
+import 'exam_simulator_rules.dart';
 
 class AdmissionExam {
   AdmissionExam.fromJson(Json data)
@@ -20,7 +21,8 @@ class AdmissionExam {
       syncPending = data['syncPending'] == true,
       year = intField(data, 'year', min: 1900),
       period = stringField(data, 'period', fallback: ''),
-      active = data['active'] != false {
+      active = data['active'] != false,
+      simulator = ExamSimulatorRules.fromJson(data['simulator']) {
     if (year > 2100 || !['', 'I', 'II', 'III'].contains(period)) {
       throw const FormatException('Año o período inválido');
     }
@@ -32,6 +34,9 @@ class AdmissionExam {
   final bool syncPending;
   final int year;
   final bool active;
+
+  /// Simulator rules; never part of [toJson] (questions copy that).
+  final ExamSimulatorRules simulator;
   String get label => '$universityAcronym - $name';
   String get typeLabel => switch (examType) {
     'admission_exam' => 'Admisión',
