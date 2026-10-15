@@ -196,14 +196,16 @@ service cloud.firestore {
           && subcollection != 'learningProgress'
           && subcollection != 'simulatorResults'
           && subcollection != 'pastExamBest'
-          && subcollection != 'learningEvents';
+          && subcollection != 'learningEvents'
+          && subcollection != 'simulatorTopicStats';
     }
 
     // Simulator results, best score per past exam and learning events are
     // written only by Functions; the owner reads them (history, statistics).
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isOwner(userId)
-        && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents'];
+        && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents',
+          'simulatorTopicStats'];
     }
 
     // These records are server-owned: request IDs provide idempotency and

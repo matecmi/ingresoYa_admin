@@ -20,6 +20,7 @@ import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
 import type {
   MistakesAttemptInput,
+  PlanAttemptInput,
   PastExamAttemptInput,
   PracticeAttemptInput,
   PracticeDifficulty,
@@ -30,7 +31,12 @@ import type {
 /** Purposes served by this module; the others belong to the study guide. */
 export type SimulatorPurpose = "past_exam" | "practice";
 
-export type SimulatorAttemptInput = PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput;
+export type SimulatorAttemptInput =
+  PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput;
+
+function isPlanInput(input: SimulatorAttemptInput): input is PlanAttemptInput {
+  return input.purpose === "practice" && (input.mode === "plan" || input.mode === "diagnostic");
+}
 
 export function isSimulatorPurpose(value: unknown): value is SimulatorPurpose {
   return value === "past_exam" || value === "practice";
@@ -65,6 +71,51 @@ export interface SimulatorSettings {
   defaultDifficulty: PracticeDifficulty;
   showOtherUniversities: boolean;
   showExplanations: boolean;
+  plan: PlanSettings;
+}
+
+/** `{config}/simulator.plan` (contract §4), only what Functions uses. */
+export interface PlanSettings {
+  dailyQuestions: number;
+  dailyMinutes: number;
+  weakSharePercent: number;
+  weakThresholdPercent: number;
+  minAnswersToJudge: number;
+  diagnosticPerCourse: number;
+  diagnosticMinutes: number;
+}
+
+export interface TopicStat {
+  topicId: string;
+  courseId: string;
+  answered: number;
+  correct: number;
+}
+
+/** Weakest first: judged topics below the threshold (contract §4). */
+export function weakTopics(stats: readonly TopicStat[], plan: PlanSettings, limit = 3): TopicStat[] {
+  return stats
+    .filter((stat) => stat.answered >= plan.minAnswersToJudge &&
+      stat.correct * 100 < stat.answered * plan.weakThresholdPercent)
+    .sort((a, b) => a.correct / a.answered - b.correct / b.answered || b.answered - a.answered)
+    .slice(0, limit);
+}
+
+export function parsePlanSettings(value: unknown): PlanSettings {
+  const raw = record(value) ?? {};
+  const bounded = (key: string, fallback: number, min: number, max: number): number => {
+    const parsed = integer(raw[key]);
+    return parsed !== undefined && parsed >= min && parsed <= max ? parsed : fallback;
+  };
+  return {
+    dailyQuestions: bounded("dailyQuestions", 10, 5, 40),
+    dailyMinutes: bounded("dailyMinutes", 15, 5, 120),
+    weakSharePercent: bounded("weakSharePercent", 60, 0, 100),
+    weakThresholdPercent: bounded("weakThresholdPercent", 50, 1, 99),
+    minAnswersToJudge: bounded("minAnswersToJudge", 5, 1, 50),
+    diagnosticPerCourse: bounded("diagnosticPerCourse", 4, 1, 10),
+    diagnosticMinutes: bounded("diagnosticMinutes", 30, 5, 180)
+  };
 }
 
 export interface SimulatorScoring {
@@ -114,6 +165,8 @@ export interface PublicSimulatorContext {
   mode?: string;
   courseIds: string[];
   size?: string;
+  /** Plan session: the weak topics it focuses on. */
+  focusTopicIds?: string[];
   /** Course of each question, aligned with `questions` by order. */
   questionCourseIds: string[];
 }
@@ -218,7 +271,8 @@ export function parseSimulatorSettings(value: unknown): SimulatorSettings {
       ? raw.defaultDifficulty
       : "mixed",
     showOtherUniversities: raw.showOtherUniversities !== false,
-    showExplanations: raw.showExplanations !== false
+    showExplanations: raw.showExplanations !== false,
+    plan: parsePlanSettings(raw.plan)
   };
 }
 
@@ -323,7 +377,11 @@ export class SimulatorService {
       ? await this.pastExamPlan(uid, input, profile, settings, metrics)
       : input.mode === "mistakes"
         ? await this.mistakesPlan(uid, input, settings, metrics)
-        : await this.practicePlan(uid, input, settings, metrics);
+        : isPlanInput(input)
+          ? input.mode === "plan"
+            ? await this.dailyPlan(uid, input, settings, metrics)
+            : await this.diagnosticPlan(uid, input, settings, metrics)
+          : await this.practicePlan(uid, input, settings, metrics);
 
     const attemptRef = this.db.collection(this.config.collections.attempts).doc();
     const now = Date.now();
@@ -557,6 +615,21 @@ export class SimulatorService {
           updatedAt: FieldValue.serverTimestamp()
         }, { merge: true });
       }
+      // Per-topic accuracy for the training plan (contract §4).
+      const topicCourses = new Map<string, string>();
+      for (const info of meta.values()) {
+        if (info.topicId.length > 0) topicCourses.set(info.topicId, info.courseId);
+      }
+      for (const topic of result.byTopic) {
+        transaction.set(this.userRef(uid).collection("simulatorTopicStats").doc(topic.id), {
+          topicId: topic.id,
+          courseId: topicCourses.get(topic.id) ?? "",
+          answered: FieldValue.increment(topic.total),
+          correct: FieldValue.increment(topic.correct),
+          updatedAtMs: now
+        }, { merge: true });
+      }
+      metrics.writeDocument(result.byTopic.length);
       transaction.set(
         this.userRef(uid).collection("learningEvents").doc(`${purpose}_completed_${input.attemptId}`),
         learningEvent(`${purpose}_completed`, {
@@ -735,6 +808,136 @@ export class SimulatorService {
         courseIds: [...new Set(picked.map(({ question }) => question.courseId).filter((id) => id.length > 0))]
       }
     };
+  }
+
+  /**
+   * «Hoy te toca»: a share of the session from the weakest topics, the rest
+   * from all active courses; without weak topics everything is mixed.
+   */
+  private async dailyPlan(
+    uid: string,
+    input: PlanAttemptInput,
+    settings: SimulatorSettings,
+    metrics: OperationMetrics
+  ) {
+    const plan = settings.plan;
+    const [stats, seen] = await Promise.all([
+      this.topicStats(uid, metrics),
+      this.seenSince(uid, settings.repeatWindowDays, metrics)
+    ]);
+    const focus = weakTopics(stats, plan);
+    const seed = `${uid}:${input.requestId}`;
+    const taken = new Set<string>();
+    const picked: CandidateQuestion[] = [];
+    const weakWanted = focus.length === 0 ? 0 : Math.round(plan.dailyQuestions * plan.weakSharePercent / 100);
+    const perTopic = splitEvenly(focus.map((topic) => topic.topicId), weakWanted);
+    for (const topic of focus) {
+      const pool = await this.coursePool(topic.courseId, [topic.topicId], (perTopic.get(topic.topicId) ?? 0) * 3,
+        `${seed}:${topic.topicId}`, metrics);
+      const chosen = pickFresh(pool, perTopic.get(topic.topicId) ?? 0, seen, taken, `${seed}:${topic.topicId}:pick`);
+      chosen.forEach((question) => taken.add(question.questionId));
+      picked.push(...chosen);
+    }
+    const courseIds = await this.randomCourses(uid, input.requestId, metrics);
+    let missing = plan.dailyQuestions - picked.length;
+    const want = splitEvenly(courseIds, missing);
+    const pools = new Map<string, CandidateQuestion[]>();
+    for (const courseId of courseIds) {
+      pools.set(courseId, await this.coursePool(courseId, [], (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics));
+    }
+    for (const courseId of courseIds) {
+      const chosen = pickFresh(pools.get(courseId) ?? [], want.get(courseId) ?? 0, seen, taken, `${seed}:${courseId}:pick`);
+      chosen.forEach((question) => taken.add(question.questionId));
+      picked.push(...chosen);
+    }
+    missing = plan.dailyQuestions - picked.length;
+    for (const courseId of courseIds) {
+      if (missing <= 0) break;
+      const extra = pickFresh(pools.get(courseId) ?? [], missing, seen, taken, `${seed}:${courseId}:extra`);
+      extra.forEach((question) => taken.add(question.questionId));
+      picked.push(...extra);
+      missing -= extra.length;
+    }
+    if (missing > 0) {
+      throw failedPrecondition("There are not enough questions for this session.", {
+        reason: "insufficient_questions",
+        available: picked.length,
+        required: plan.dailyQuestions
+      });
+    }
+    return {
+      title: "Hoy te toca",
+      durationSeconds: input.timed ? plan.dailyMinutes * 60 : untimedPracticeSeconds,
+      picked: this.shuffled(picked, seed),
+      scoring: practiceScoring(picked.length, settings),
+      cutoffScore: undefined,
+      context: {
+        timed: input.timed,
+        mode: "plan",
+        courseIds: [...new Set(picked.map((question) => question.courseId))],
+        focusTopicIds: focus.map((topic) => topic.topicId)
+      }
+    };
+  }
+
+  /** First session without history: a few questions of every active course. */
+  private async diagnosticPlan(
+    uid: string,
+    input: PlanAttemptInput,
+    settings: SimulatorSettings,
+    metrics: OperationMetrics
+  ) {
+    const plan = settings.plan;
+    const courses = await this.db.collection(this.config.collections.courses).get();
+    metrics.readQuery(courses.size);
+    const seed = `${uid}:${input.requestId}`;
+    const taken = new Set<string>();
+    const picked: CandidateQuestion[] = [];
+    const courseIds: string[] = [];
+    for (const course of courses.docs) {
+      if (!isActive(course.data())) continue;
+      const pool = await this.coursePool(course.id, [], plan.diagnosticPerCourse * 3, `${seed}:${course.id}`, metrics);
+      // Only courses with enough questions (contract §4).
+      if (pool.length < plan.diagnosticPerCourse) continue;
+      const chosen = pickFresh(pool, plan.diagnosticPerCourse, new Set(), taken, `${seed}:${course.id}:pick`);
+      chosen.forEach((question) => taken.add(question.questionId));
+      picked.push(...chosen);
+      courseIds.push(course.id);
+    }
+    if (picked.length === 0) {
+      throw failedPrecondition("There are no questions for a diagnostic yet.", {
+        reason: "insufficient_questions",
+        available: 0,
+        required: plan.diagnosticPerCourse
+      });
+    }
+    return {
+      title: "Diagnóstico inicial",
+      durationSeconds: untimedPracticeSeconds,
+      picked: this.shuffled(picked, seed),
+      scoring: practiceScoring(picked.length, settings),
+      cutoffScore: undefined,
+      context: { timed: false, mode: "diagnostic", courseIds }
+    };
+  }
+
+  private shuffled(questions: readonly CandidateQuestion[], seed: string): Picked[] {
+    return shuffle(questions, `${seed}:questions`).map((question) => ({
+      question,
+      alternativeOrder: shuffle(question.alternatives.map((alternative) => alternative.id), `${seed}:${question.questionId}`)
+    }));
+  }
+
+  private async topicStats(uid: string, metrics: OperationMetrics): Promise<TopicStat[]> {
+    const snapshot = await this.userRef(uid).collection("simulatorTopicStats").get();
+    metrics.readQuery(snapshot.size);
+    return snapshot.docs.flatMap((doc) => {
+      const data = doc.data();
+      const answered = integer(data.answered) ?? 0;
+      const correct = integer(data.correct) ?? 0;
+      const courseId = typeof data.courseId === "string" ? data.courseId : "";
+      return answered > 0 && courseId.length > 0 ? [{ topicId: doc.id, courseId, answered, correct }] : [];
+    });
   }
 
   private async practicePlan(
@@ -940,7 +1143,9 @@ export class SimulatorService {
         ? simulator?.examId === input.examId && simulator?.examUniversityId === input.universityId
         : input.mode === "mistakes"
           ? simulator?.mode === "mistakes" && simulator?.fromAttemptId === input.fromAttemptId
-          : simulator?.mode === input.mode && simulator?.size === input.size);
+          : isPlanInput(input)
+            ? simulator?.mode === input.mode
+            : simulator?.mode === input.mode && simulator?.size === input.size);
     if (!sameRequest) {
       throw failedPrecondition("The request ID belongs to another exam request.", { reason: "request_id_conflict" });
     }
@@ -1004,6 +1209,7 @@ export function publicSimulatorContext(
     ...(typeof raw.mode === "string" ? { mode: raw.mode } : {}),
     courseIds: stringList(raw.courseIds),
     ...(typeof raw.size === "string" ? { size: raw.size } : {}),
+    ...(Array.isArray(raw.focusTopicIds) ? { focusTopicIds: stringList(raw.focusTopicIds) } : {}),
     questionCourseIds: [...(questionCourseIds ?? [])]
   };
 }
@@ -1116,4 +1322,15 @@ function firstId(...values: unknown[]): string | undefined {
 function isActive(data: Record<string, unknown> | undefined): boolean {
   const value = data?.active;
   return value !== false && value !== "N" && value !== "false" && value !== 0;
+}
+
+/** Practice scoring: over 100, penalty only with `practicePenalty`. */
+function practiceScoring(questionCount: number, settings: SimulatorSettings): SimulatorScoring {
+  return {
+    questionCount,
+    maxScore: 100,
+    correctPoints: 1,
+    incorrectPoints: settings.practicePenalty ? practicePenaltyPoints : 0,
+    blankPoints: 0
+  };
 }

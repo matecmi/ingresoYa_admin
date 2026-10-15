@@ -66,6 +66,7 @@ import type {
   PartCatalogHint,
   PracticeAttemptInput,
   MistakesAttemptInput,
+  PlanAttemptInput,
   ReconcileSubtopicAchievementInput,
   RecordPartSectionCompletionInput,
   SaveExamAnswersInput,
@@ -76,7 +77,7 @@ const defaultAttemptDurationSeconds = 60 * 60;
 /** Study-guide attempts: a part exam or a subtopic mastery exam. */
 type GuideAttemptInput = Exclude<
   CreateExamAttemptInput,
-  PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput
+  PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput
 >;
 /** One changed incremental answer payload per second per attempt. */
 export const answerSaveIntervalMs = 1_000;

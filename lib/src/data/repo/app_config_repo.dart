@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
+import 'package:ingresoya_admin/src/domain/plan_settings.dart';
 import 'package:ingresoya_admin/src/domain/study_review_rules.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -89,10 +90,29 @@ class AppConfigRepo {
   }) async {
     final problem = settings.validate();
     if (problem != null) throw StateError(problem);
+    // Merge: the training plan (`plan`) is saved by its own card.
     await _simulator.set({
       ...settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
-    });
+    }, SetOptions(merge: true));
+  }
+
+  /// The training plan (`plan` of `{config}/simulator`).
+  Stream<PlanSettings> watchPlanSettings() => _simulator.snapshots().map(
+    (snapshot) => PlanSettings.fromMap(snapshot.data()?['plan']),
+  );
+
+  Future<void> savePlanSettings(
+    PlanSettings plan, {
+    required String editor,
+  }) async {
+    final problem = plan.validate();
+    if (problem != null) throw StateError(problem);
+    await _simulator.set({
+      'plan': plan.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    }, SetOptions(merge: true));
   }
 }
