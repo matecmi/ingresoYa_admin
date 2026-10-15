@@ -77,6 +77,33 @@ test("a past exam keeps the original order, official score, best score and event
   const second = await service.create(uid, { requestId: "sim-past-2", purpose: "past_exam", universityId, examId });
   const worse = await service.submit(uid, { attemptId: second.attemptId, answers: {} });
   assert.equal(worse.simulator?.score, 0);
+  assert.equal(worse.simulator?.previousScore, 44);
+  assert.equal(result.simulator?.previousScore, undefined);
+
+  // «Practicar mis errores»: the incorrect and the blank question only.
+  const mistakes = await service.create(uid, {
+    requestId: "sim-mistakes", purpose: "practice", mode: "mistakes", fromAttemptId: created.attemptId, timed: true
+  });
+  assert.deepEqual(
+    mistakes.questions.map((question) => question.questionId).sort(),
+    [q3!.questionId, created.questions[3]!.questionId].sort()
+  );
+  assert.equal(mistakes.durationSeconds, 2 * 90);
+  assert.equal(mistakes.simulator?.mode, "mistakes");
+  const retried = await service.submit(uid, {
+    attemptId: mistakes.attemptId,
+    answers: Object.fromEntries(mistakes.questions.map((question) => [question.questionId, "a"]))
+  });
+  assert.equal(retried.simulator?.percentage, 100);
+  await assert.rejects(
+    service.create(uid, { requestId: "sim-mistakes-none", purpose: "practice", mode: "mistakes", fromAttemptId: mistakes.attemptId, timed: false }),
+    hasReason("failed-precondition", "no_mistakes")
+  );
+  await db.collection(config.collections.users).doc("another-student").set({ universityId });
+  await assert.rejects(
+    service.create("another-student", { requestId: "sim-mistakes-other", purpose: "practice", mode: "mistakes", fromAttemptId: created.attemptId, timed: false }),
+    hasReason("failed-precondition", "mistakes_unavailable")
+  );
   const after = (await user.collection("pastExamBest").doc(examId).get()).data();
   assert.equal(after?.bestScore, 44);
   assert.equal(after?.lastScore, 0);

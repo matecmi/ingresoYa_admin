@@ -113,6 +113,10 @@ test("create accepts past_exam and practice requests with strict shapes", () => 
       size: "normal", timed: false, source: "real", difficulty: "hard"
     }
   );
+  assert.deepEqual(
+    parseCreateExamAttempt({ requestId: "r3", purpose: "practice", mode: "mistakes", fromAttemptId: "a1", timed: false }),
+    { requestId: "r3", purpose: "practice", mode: "mistakes", fromAttemptId: "a1", timed: false }
+  );
   const invalid = (data: unknown) => assert.throws(
     () => parseCreateExamAttempt(data),
     (error: unknown) => error instanceof ExamBackendError && error.code === "invalid-argument"
@@ -126,4 +130,6 @@ test("create accepts past_exam and practice requests with strict shapes", () => 
   invalid({ requestId: "r", purpose: "practice", mode: "mix", courseIds: ["a", "a"], size: "x", timed: true });
   invalid({ requestId: "r", purpose: "practice", mode: "random", size: "x", timed: "yes" });
   invalid({ requestId: "r", purpose: "practice", mode: "random", size: "x", timed: true, source: "web" });
+  invalid({ requestId: "r", purpose: "practice", mode: "mistakes", timed: true });
+  invalid({ requestId: "r", purpose: "practice", mode: "mistakes", fromAttemptId: "a", timed: true, size: "x" });
 });

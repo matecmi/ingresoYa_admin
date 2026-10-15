@@ -24,7 +24,16 @@ export type CreateExamAttemptInput = {
   courseId: string;
   topicId: string;
   subtopicId: string;
-} | PastExamAttemptInput | PracticeAttemptInput;
+} | PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput;
+
+/** «Practicar mis errores»: the wrong or blank questions of one submitted attempt. */
+export interface MistakesAttemptInput {
+  requestId: string;
+  purpose: "practice";
+  mode: "mistakes";
+  fromAttemptId: string;
+  timed: boolean;
+}
 
 /** «Exámenes pasados»: every published question of one registered exam. */
 export interface PastExamAttemptInput {
@@ -185,6 +194,17 @@ function parsePractice(value: Record<string, unknown>): PracticeAttemptInput {
 
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
+  if (value.purpose === "practice" && value.mode === "mistakes") {
+    onlyKeys(value, ["requestId", "purpose", "mode", "fromAttemptId", "timed"]);
+    if (typeof value.timed !== "boolean") throw invalidArgument("timed must be a boolean.");
+    return {
+      requestId: id(value.requestId, "requestId"),
+      purpose: "practice",
+      mode: "mistakes",
+      fromAttemptId: id(value.fromAttemptId, "fromAttemptId"),
+      timed: value.timed
+    };
+  }
   if (value.purpose === "past_exam") {
     onlyKeys(value, ["requestId", "purpose", "universityId", "examId"]);
     return {

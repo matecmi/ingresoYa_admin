@@ -19,6 +19,7 @@ import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
 import type {
+  MistakesAttemptInput,
   PastExamAttemptInput,
   PracticeAttemptInput,
   PracticeDifficulty,
@@ -28,6 +29,8 @@ import type {
 
 /** Purposes served by this module; the others belong to the study guide. */
 export type SimulatorPurpose = "past_exam" | "practice";
+
+export type SimulatorAttemptInput = PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput;
 
 export function isSimulatorPurpose(value: unknown): value is SimulatorPurpose {
   return value === "past_exam" || value === "practice";
@@ -97,6 +100,8 @@ export interface SimulatorResult {
   examId?: string;
   cutoffScore?: number;
   reachedCutoff?: boolean;
+  /** Past exam: score of the student's previous try at the same exam. */
+  previousScore?: number;
   gradedAtMs: number;
 }
 
@@ -134,6 +139,9 @@ const factorySizes: PracticeSize[] = [
 
 /** Practice without a clock still needs an end: the attempt closes after this. */
 export const untimedPracticeSeconds = 4 * 60 * 60;
+/** «Practicar mis errores»: at most this many questions, 90 s each. */
+export const maxMistakes = 100;
+export const mistakeSecondsPerQuestion = 90;
 /** Late submissions within this window still count the answers they carry. */
 export const submitGraceMs = 2 * 60 * 1000;
 /** Penalty per wrong answer when `practicePenalty` is on (contract §2). */
@@ -299,7 +307,7 @@ export class SimulatorService {
 
   public async create(
     uid: string,
-    input: PastExamAttemptInput | PracticeAttemptInput,
+    input: SimulatorAttemptInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<CreateExamAttemptResponse> {
     const requestRef = this.userRef(uid).collection("examRequestKeys").doc(input.requestId);
@@ -313,7 +321,9 @@ export class SimulatorService {
     ]);
     const plan = input.purpose === "past_exam"
       ? await this.pastExamPlan(uid, input, profile, settings, metrics)
-      : await this.practicePlan(uid, input, settings, metrics);
+      : input.mode === "mistakes"
+        ? await this.mistakesPlan(uid, input, settings, metrics)
+        : await this.practicePlan(uid, input, settings, metrics);
 
     const attemptRef = this.db.collection(this.config.collections.attempts).doc();
     const now = Date.now();
@@ -491,6 +501,9 @@ export class SimulatorService {
       const bestRef = examId === undefined ? undefined : this.userRef(uid).collection("pastExamBest").doc(examId);
       const best = bestRef === undefined ? undefined : await transaction.get(bestRef);
       if (bestRef !== undefined) metrics.readDocument();
+      // «+N vs. anterior»: the score of the previous try at the same exam.
+      const previousScore = best?.data()?.lastScore;
+      if (typeof previousScore === "number") result.previousScore = previousScore;
 
       transaction.update(attemptRef, {
         answers,
@@ -642,6 +655,84 @@ export class SimulatorService {
         examUniversityId: input.universityId,
         questionOrder: rules.questionOrder,
         courseIds: [] as string[]
+      }
+    };
+  }
+
+  /**
+   * The questions the student got wrong or left blank in one of their own
+   * submitted Simulador attempts, with the same frozen revisions.
+   */
+  private async mistakesPlan(
+    uid: string,
+    input: MistakesAttemptInput,
+    settings: SimulatorSettings,
+    metrics: OperationMetrics
+  ) {
+    const source = await this.db.collection(this.config.collections.attempts).doc(input.fromAttemptId).get();
+    metrics.readDocument();
+    const data = source.data();
+    const simulator = record(data?.simulator);
+    if (!source.exists || data?.userId !== uid || !isSimulatorPurpose(simulator?.purpose) ||
+      data?.status !== "submitted") {
+      throw failedPrecondition("That attempt cannot be practiced again.", { reason: "mistakes_unavailable" });
+    }
+    const attempt = projectAttemptResponse(input.fromAttemptId, data);
+    const keys = await this.db.getAll(
+      ...attempt.questions.map((question) =>
+        this.db.collection(this.config.collections.answerKeys).doc(`${question.questionId}_${question.version}`)
+      )
+    );
+    metrics.readDocument(keys.length);
+    const meta = parseQuestionMeta(data.questionMeta);
+    const missed = attempt.questions.filter((question, index) => {
+      const key = keys[index]?.data();
+      return key === undefined || attempt.answers[question.questionId] !== key.correctAlternativeId;
+    }).slice(0, maxMistakes);
+    if (missed.length === 0) {
+      throw failedPrecondition("There are no mistakes to practice.", { reason: "no_mistakes" });
+    }
+    const seed = `${uid}:${input.requestId}`;
+    const picked: Picked[] = shuffle(missed, `${seed}:questions`).map((question) => {
+      const info = meta.get(question.questionId);
+      return {
+        question: {
+          questionId: question.questionId,
+          version: question.version,
+          randomKey: 0,
+          sourceLabel: question.sourceLabel,
+          universityId: "",
+          sourceType: "other",
+          sourceExamId: "",
+          modalityId: "",
+          courseId: info?.courseId ?? "",
+          topicId: info?.topicId ?? "",
+          subtopicId: info?.subtopicId ?? "",
+          partIds: info?.partIds ?? [],
+          difficulty: "medium",
+          content: question.content,
+          alternatives: question.alternatives
+        },
+        alternativeOrder: shuffle(question.alternativeOrder, `${seed}:${question.questionId}`)
+      };
+    });
+    return {
+      title: "Mis errores",
+      durationSeconds: input.timed ? picked.length * mistakeSecondsPerQuestion : untimedPracticeSeconds,
+      picked,
+      scoring: {
+        questionCount: picked.length,
+        maxScore: 100,
+        correctPoints: 1,
+        incorrectPoints: settings.practicePenalty ? practicePenaltyPoints : 0,
+        blankPoints: 0
+      },
+      cutoffScore: undefined,
+      context: {
+        timed: input.timed,
+        mode: "mistakes",
+        fromAttemptId: input.fromAttemptId,
+        courseIds: [...new Set(picked.map(({ question }) => question.courseId).filter((id) => id.length > 0))]
       }
     };
   }
@@ -829,7 +920,7 @@ export class SimulatorService {
   private async existing(
     uid: string,
     attemptId: unknown,
-    input: PastExamAttemptInput | PracticeAttemptInput,
+    input: SimulatorAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     if (typeof attemptId !== "string" || attemptId.length === 0) {
@@ -847,7 +938,9 @@ export class SimulatorService {
     const sameRequest = data.requestId === input.requestId && simulator?.purpose === input.purpose &&
       (input.purpose === "past_exam"
         ? simulator?.examId === input.examId && simulator?.examUniversityId === input.universityId
-        : simulator?.mode === input.mode && simulator?.size === input.size);
+        : input.mode === "mistakes"
+          ? simulator?.mode === "mistakes" && simulator?.fromAttemptId === input.fromAttemptId
+          : simulator?.mode === input.mode && simulator?.size === input.size);
     if (!sameRequest) {
       throw failedPrecondition("The request ID belongs to another exam request.", { reason: "request_id_conflict" });
     }
