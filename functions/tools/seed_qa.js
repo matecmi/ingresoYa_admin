@@ -22,6 +22,7 @@ const C = {
   questions: 'iya-questions-test',
   keys: 'iya-question-answer-keys-test',
   templates: 'iya-exam-templates-test',
+  universities: 'iya-universities-test',
 };
 for (const name of Object.values(C)) if (!name.endsWith('-test')) throw new Error('Colección no test: ' + name);
 
@@ -321,6 +322,21 @@ function partDoc(id, topicId, subtopicId, order, name, subName, samples) {
   };
 }
 
+/**
+ * Question content (contract v2): `$…$` becomes formula spans of a `paragraph`
+ * block, as the admin editor saves it; a `text` block would show the dollars.
+ */
+function content(text, id) {
+  if (!text.includes('$')) return [{ id, type: 'text', text }];
+  const spans = text.split(/(\$[^$]+\$)/).filter((s) => s !== '').map((s) => (s.startsWith('$') && s.endsWith('$') && s.length > 2
+    ? { type: 'formula', latex: s.slice(1, -1).replace(/−/g, '-') }
+    : { type: 'text', text: s }));
+  return [{ id, type: 'paragraph', spans }];
+}
+
+/** Plain text of a statement for search tokens. */
+const plain = (text) => text.replace(/\$/g, '');
+
 function tokens(text) {
   return [...new Set(text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter((t) => t.length >= 3))].slice(0, 30);
 }
@@ -330,6 +346,101 @@ function template(id, title, purpose, count, pass) {
   return { schemaVersion: 2, id, version: 1, title, purpose, mode: 'dynamic', selectionPolicy: 'strict', allowedFallbackSources: [],
     questionCount: count, passPercentExclusive: pass, durationSeconds: purpose === 'subtopic_mastery' ? 1800 : 900, blocks: [{ count, filter: blank }], fixedQuestions: [],
     status: 'published', active: true };
+}
+
+/** One published question with its version 1 and answer key. `origin` adds the past-exam fields. */
+function writeQuestion(set, questionId, g, meta, origin) {
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const unique = [g.ok, ...g.bad.filter((v, i, l) => v !== g.ok && l.indexOf(v) === i).slice(0, 4)];
+  if (unique.length < 5) unique.push('Ninguna de las anteriores');
+  if (unique.length < 4 || new Set(unique).size !== unique.length) throw new Error(`Alternativas inválidas en ${questionId}: ${JSON.stringify(unique)}`);
+  const options = shuffle(unique);
+  const correctId = ids[options.indexOf(g.ok)];
+  const tk = tokens(plain(`${g.text} ${meta.courseName} ${meta.topicName} ${meta.subName}`));
+  const q = { schemaVersion: 2, questionId, version: 1, status: 'published', sourceType: 'original',
+    courseId: meta.courseId, topicId: meta.topicId, subtopicId: meta.subtopicId, partIds: [meta.partId], difficulty: meta.difficulty,
+    content: content(g.text, `${questionId}-c1`),
+    alternatives: options.map((v, i) => ({ id: ids[i], label: ids[i].toUpperCase(), content: content(v, `${questionId}-${ids[i]}`) })),
+    sourceExamId: '', universityId: '', modalityId: '', year: null, period: '', sourceLabel: 'Pregunta de práctica IngresoYa (QA)',
+    courseName: meta.courseName, topicName: meta.topicName, subtopicName: meta.subName,
+    randomKey: rnd(), searchTokens: tk, partSearchTokens: tk.map((t) => `${meta.partId}|${t}`), ...(origin || {}) };
+  const qRef = db.collection(C.questions).doc(questionId);
+  set(qRef, { ...q, createdAt: TS(), updatedAt: TS(), publishedAt: TS() });
+  set(qRef.collection('versions').doc('1'), { ...q, createdAt: TS(), updatedAt: TS(), publishedAt: TS() });
+  set(db.collection(C.keys).doc(`${questionId}_1`), { schemaVersion: 2, questionId, version: 1, correctAlternativeId: correctId,
+    explanation: content(g.exp, `${questionId}-e1`), createdAt: TS(), updatedAt: TS() });
+}
+
+// ---------------------------------------------------------------- Exámenes pasados (Simulador)
+// UNPRG, modalidad Ordinario. Si la convocatoria ya existe en el catálogo se reutiliza (solo se le agregan
+// preguntas y reglas); si no, se crea con ID qa- y su reserva en admissionExamKeys. 2026 I no se toca.
+// Reglas y puntajes mínimos son de EJEMPLO para validar en QA.
+const PAST_EXAMS = [
+  { year: 2025, period: 'I', order: 'original', cutoffs: { sistemas: 690, civil: 640 } },
+  { year: 2025, period: 'II', order: 'shuffled', cutoffs: { sistemas: 698, civil: 650 } },
+  { year: 2026, period: 'II', order: 'shuffled', cutoffs: { sistemas: 710, civil: 660 } },
+];
+const PER_COURSE_IN_EXAM = 5;
+
+const examKey = (modalityId, year, period) =>
+  Buffer.from(JSON.stringify(['admission_exam', modalityId, year, period])).toString('base64url');
+
+async function unprg() {
+  const unis = await db.collection(C.universities).where('acronym', '==', 'UNPRG').get();
+  if (unis.empty) throw new Error('No existe la universidad UNPRG en TEST');
+  const uni = unis.docs[0];
+  const modes = await uni.ref.collection('modes').get();
+  const mode = modes.docs.find((m) => /ordinari/i.test(m.data().name || ''));
+  if (!mode) throw new Error('UNPRG no tiene modalidad Ordinario');
+  const professions = (uni.data().professions || []).map((p) => ({ id: p.id || p.idDoc, name: p.name || '' }));
+  const exams = await uni.ref.collection('admissionExams').get();
+  return { uni, mode, professions, exams };
+}
+
+async function addPastExams(set, catalog, stats) {
+  const { uni, mode, professions, exams } = await unprg();
+  const profId = (re) => (professions.find((p) => re.test(p.name)) || {}).id;
+  const byCourse = new Map();
+  for (const item of catalog) byCourse.set(item.courseId, [...(byCourse.get(item.courseId) || []), item]);
+  for (const spec of PAST_EXAMS) {
+    const existing = exams.docs.find((e) => e.data().year === spec.year && e.data().period === spec.period && e.data().modalityId === mode.id);
+    const examId = existing ? existing.id : `qa-unprg-ord-${spec.year}-${spec.period.toLowerCase()}`;
+    const name = `EXAMEN DE ADMISIÓN ORDINARIO ${spec.year} ${spec.period}`;
+    const label = `${uni.data().acronym} - ${name}`;
+    const snapshot = { schemaVersion: 2, id: examId, name, universityId: uni.id, universityName: uni.data().name, universityAcronym: uni.data().acronym,
+      examType: 'admission_exam', modalityId: mode.id, modalityName: mode.data().name, year: spec.year, period: spec.period, reference: '' };
+    const origin = { sourceType: 'admission_exam', sourceExam: snapshot, admissionExam: snapshot, examId, sourceExamId: examId, universityId: uni.id,
+      modalityId: mode.id, year: spec.year, period: spec.period, sourceLabel: label, label };
+    let number = 0;
+    for (const subtopics of byCourse.values()) {
+      for (let k = 0; k < PER_COURSE_IN_EXAM; k++) {
+        const sub = subtopics[(k + spec.year + (spec.period === 'II' ? 1 : 0)) % subtopics.length];
+        number++;
+        const questionId = `qa-pex-${spec.year}-${spec.period.toLowerCase()}-q${String(number).padStart(2, '0')}`;
+        writeQuestion(set, questionId, sub.next(), { ...sub, partId: sub.partIds[k % sub.partIds.length], difficulty: ['easy', 'medium', 'hard'][number % 3] },
+          { ...origin, originalNumber: number });
+      }
+    }
+    const cutoffs = {};
+    const sistemas = profId(/sistemas/i);
+    const civil = profId(/civil/i);
+    if (sistemas) cutoffs[sistemas] = spec.cutoffs.sistemas;
+    if (civil) cutoffs[civil] = spec.cutoffs.civil;
+    const simulator = { questionCount: number, durationMinutes: 2 * number, maxScore: 1000, correctPoints: 4, incorrectPoints: -1, blankPoints: 0,
+      questionOrder: spec.order, available: true, cutoffs, publishedQuestions: number, numberedQuestions: number, complete: true, checkedAt: TS() };
+    const examRef = uni.ref.collection('admissionExams').doc(examId);
+    if (existing) {
+      // Solo las reglas: el catálogo (nombre, revisión, sincronización) lo maneja el admin.
+      set(examRef, { simulator, updatedAt: TS() }, { merge: true });
+    } else {
+      const { schemaVersion, ...catalogFields } = snapshot;
+      void schemaVersion;
+      set(examRef, { ...catalogFields, active: true, revision: 1, syncPending: false, createdAt: TS(), updatedAt: TS(), syncedAt: TS(), simulator });
+      set(uni.ref.collection('admissionExamKeys').doc(examKey(mode.id, spec.year, spec.period)), { examId });
+    }
+    stats.pastExams++;
+    stats.pastExamQuestions += number;
+  }
 }
 
 async function commitAll(ops) {
@@ -348,14 +459,30 @@ async function removeAll() {
   const qs = await db.collection(C.questions).where(FP, '>=', PREFIX).where(FP, '<', PREFIX.slice(0, -1) + '.').get();
   for (const q of qs.docs) { await db.recursiveDelete(q.ref); await db.collection(C.keys).doc(`${q.id}_1`).delete(); }
   for (const t of [PART_TEMPLATE, MASTERY_TEMPLATE]) await db.recursiveDelete(db.collection(C.templates).doc(t));
-  console.log(`Borrado: ${MATH.length + FACTS.length} cursos, ${qs.size} preguntas y 2 plantillas.`);
+  // Exámenes pasados: los creados por este script se borran con su reserva; a los que ya existían
+  // solo se les quitan las reglas del Simulador.
+  const { uni, mode, exams } = await unprg();
+  let removedExams = 0;
+  for (const spec of PAST_EXAMS) {
+    const exam = exams.docs.find((e) => e.data().year === spec.year && e.data().period === spec.period && e.data().modalityId === mode.id);
+    if (!exam) continue;
+    if (exam.id.startsWith(PREFIX)) {
+      await exam.ref.delete();
+      await uni.ref.collection('admissionExamKeys').doc(examKey(mode.id, spec.year, spec.period)).delete();
+    } else {
+      await exam.ref.update({ simulator: admin.firestore.FieldValue.delete(), updatedAt: TS() });
+    }
+    removedExams++;
+  }
+  console.log(`Borrado: ${MATH.length + FACTS.length} cursos, ${qs.size} preguntas, 2 plantillas y ${removedExams} exámenes pasados.`);
 }
 
 async function main() {
   if (DELETE) return removeAll();
   const ops = [];
-  const set = (ref, data) => ops.push((b) => b.set(ref, data));
-  const stats = { courses: 0, topics: 0, subtopics: 0, parts: 0, questions: 0 };
+  const set = (ref, data, options) => ops.push((b) => (options ? b.set(ref, data, options) : b.set(ref, data)));
+  const stats = { courses: 0, topics: 0, subtopics: 0, parts: 0, questions: 0, pastExams: 0, pastExamQuestions: 0 };
+  const catalog = [];
 
   // Plantillas genéricas: Functions completan curso, tema, subtema y parte desde la solicitud.
   for (const t of [template(PART_TEMPLATE, 'Examen de la parte (QA)', 'part_completion', 5, 79),
@@ -395,38 +522,22 @@ async function main() {
         stats.parts += parts.length;
         set(topicRef.collection('subtopics').doc(subtopicId), { name: subName, content: `Subtema ${subName} del curso ${name}.`, order: si + 1, linkVideo: '', idTopic: topicId,
           masteryTemplateId: MASTERY_TEMPLATE, active: true, listPart: parts, createdAt: TS(), updatedAt: TS() });
+        catalog.push({ courseId, courseName: name, topicId, topicName, subtopicId, subName, partIds: parts.map((p) => p.id), next: pool ? next : () => G[source]() });
         parts.forEach((p, pi) => banks[pi].forEach((g, k) => {
-          const questionId = `${p.id}-q${String(k + 1).padStart(2, '0')}`;
-          const ids = ['a', 'b', 'c', 'd', 'e'];
-          const unique = [g.ok, ...g.bad.filter((v, i, l) => v !== g.ok && l.indexOf(v) === i).slice(0, 4)];
-          if (unique.length < 5) unique.push('Ninguna de las anteriores');
-          if (unique.length < 4 || new Set(unique).size !== unique.length) throw new Error(`Alternativas inválidas en ${questionId}: ${JSON.stringify(unique)}`);
-          const options = shuffle(unique);
-          const correctId = ids[options.indexOf(g.ok)];
-          const tk = tokens(`${g.text} ${name} ${topicName} ${subName}`);
-          const q = { schemaVersion: 2, questionId, version: 1, status: 'published', sourceType: 'original',
-            courseId, topicId, subtopicId, partIds: [p.id], difficulty: ['easy', 'medium', 'hard'][k % 3],
-            content: [{ id: `${questionId}-c1`, type: 'text', text: g.text }],
-            alternatives: options.map((v, i) => ({ id: ids[i], label: ids[i].toUpperCase(), content: [{ id: `${questionId}-${ids[i]}`, type: 'text', text: v }] })),
-            sourceExamId: '', universityId: '', modalityId: '', year: null, period: '', sourceLabel: 'Pregunta de práctica IngresoYa (QA)',
-            randomKey: rnd(), searchTokens: tk, partSearchTokens: tk.map((t) => `${p.id}|${t}`) };
-          const qRef = db.collection(C.questions).doc(questionId);
-          set(qRef, { ...q, createdAt: TS(), updatedAt: TS(), publishedAt: TS() });
-          set(qRef.collection('versions').doc('1'), { ...q, createdAt: TS(), updatedAt: TS(), publishedAt: TS() });
-          set(db.collection(C.keys).doc(`${questionId}_1`), { schemaVersion: 2, questionId, version: 1, correctAlternativeId: correctId,
-            explanation: [{ id: `${questionId}-e1`, type: 'text', text: g.exp }], createdAt: TS(), updatedAt: TS() });
+          writeQuestion(set, `${p.id}-q${String(k + 1).padStart(2, '0')}`, g, { courseId, courseName: name, topicId, topicName, subtopicId, subName, partId: p.id, difficulty: ['easy', 'medium', 'hard'][k % 3] });
           stats.questions++;
         }));
       });
     });
   }
+  await addPastExams(set, catalog, stats);
   if (process.argv.includes('--dry-run')) {
     console.log('Simulación (sin escribir):', JSON.stringify(stats), 'escrituras:', ops.length);
     return;
   }
   await commitAll(ops);
-  console.log(`OK: ${stats.courses} cursos, ${stats.topics} temas, ${stats.subtopics} subtemas, ${stats.parts} partes, ${stats.questions} preguntas (+claves y versiones), 2 plantillas.`);
+  console.log(`OK: ${stats.courses} cursos, ${stats.topics} temas, ${stats.subtopics} subtemas, ${stats.parts} partes, ${stats.questions} preguntas, ${stats.pastExams} exámenes pasados con ${stats.pastExamQuestions} preguntas (+claves y versiones), 2 plantillas.`);
 }
 
-module.exports = { G, T, factItems };
+module.exports = { G, T, factItems, content };
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });

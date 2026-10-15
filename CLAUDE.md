@@ -38,7 +38,7 @@ npm run test:emulators   # reglas + attempt_service con emuladores
 npm run emulators
 ```
 
-Datos de prueba en TEST: `node tools/seed_test.js <service-account.json> [--delete]` desde `functions/` (cursos «(prueba)» `seed-*`; la cuenta de servicio nunca va al repo). Datos amplios de QA: `node tools/seed_qa.js <service-account.json> [--dry-run|--delete]` (12 cursos «(QA)» `qa-*`, 988 preguntas con respuesta calculada o de tablas verificadas, contenido completo en cada parte y plantillas `qa-part-exam-v1` / `qa-subtopic-mastery-v1`). Node local: 22 (`nvm use 22.23.3`).
+Datos de prueba en TEST: `node tools/seed_test.js <service-account.json> [--delete]` desde `functions/` (cursos «(prueba)» `seed-*`; la cuenta de servicio nunca va al repo). Datos amplios de QA: `node tools/seed_qa.js <service-account.json> [--dry-run|--delete]` (12 cursos «(QA)» `qa-*`, 988 preguntas con respuesta calculada o de tablas verificadas, contenido completo en cada parte y plantillas `qa-part-exam-v1` / `qa-subtopic-mastery-v1`; además exámenes pasados UNPRG Ordinario 2025 I, 2025 II y 2026 II con 60 preguntas `qa-pex-*` y reglas de ejemplo). Node local: 22 (`nvm use 22.23.3`).
 
 Simulador: reglas por examen pasado en el campo `simulator` de `admissionExams` (no tocan `revision`), configuración en `{config}/simulator`, intentos `past_exam`/`practice` en `functions/src/simulator_service.ts` (resultados en `{users}/{uid}/simulatorResults`, `pastExamBest`, `learningEvents`); contrato `docs/simulator_contract.md`.
 
