@@ -90,6 +90,9 @@ test("frozen attempts preserve ownership, order, grading and verified progress",
   assert.equal(stored.completed, true);
   assert.equal(stored.verificationStatus, "verified");
   assert.equal(stored.examAttemptId, passing.attemptId);
+  const events = db.collection(config.collections.users).doc(uid).collection("learningEvents");
+  assert.equal((await events.doc(`part_passed_${partId}`).get()).data()?.type, "part_passed");
+  assert.equal((await events.doc("subtopic_completed_subtopic-1").get()).data()?.examAttemptId, passing.attemptId);
   const awardsRef = db.collection(config.collections.users).doc(uid)
     .collection("learningProgress").doc("current").collection("achievements");
   const awarded = await awardsRef.get();

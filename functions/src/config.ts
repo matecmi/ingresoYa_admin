@@ -7,6 +7,10 @@ export interface BackendCollections {
   attempts: string;
   users: string;
   courses: string;
+  /** Catalog with `admissionExams` (and their Simulator rules). */
+  universities: string;
+  /** Admin-edited settings, e.g. `simulator`. */
+  config: string;
 }
 
 export interface BackendConfig {
@@ -34,7 +38,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     templates: "iya-exam-templates-test",
     attempts: "iya-exam-attempts-test",
     users: "iya-profile-test",
-    courses: "iya-courses-test"
+    courses: "iya-courses-test",
+    universities: "iya-universities-test",
+    config: "iya-config-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -42,7 +48,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     templates: "iya-exam-templates-staging",
     attempts: "iya-exam-attempts-staging",
     users: "iya-profile-staging",
-    courses: "iya-courses-staging"
+    courses: "iya-courses-staging",
+    universities: "iya-universities-staging",
+    config: "iya-config-staging"
   },
   production: {
     questions: "iya-questions",
@@ -50,7 +58,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     templates: "iya-exam-templates",
     attempts: "iya-exam-attempts",
     users: "iya-profile",
-    courses: "iya-courses"
+    courses: "iya-courses",
+    universities: "iya-universities",
+    config: "iya-config"
   }
 };
 

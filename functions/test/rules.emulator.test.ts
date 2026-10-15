@@ -166,6 +166,23 @@ test("owner can only read its own server part evidence, never write it", async (
   await assertFails(learner.collection("iya-profile-test/student-1/learningProgress").get());
 });
 
+test("simulator results, best scores and learning events are owner-read, server-written", async () => {
+  const learner = firestoreFor("student-1");
+  const other = firestoreFor("student-2");
+  for (const name of ["simulatorResults", "pastExamBest", "learningEvents"]) {
+    const path = `iya-profile-test/student-1/${name}/doc-1`;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(path).set({ score: 1 });
+    });
+    await assertSucceeds(learner.doc(path).get());
+    await assertSucceeds(learner.collection(`iya-profile-test/student-1/${name}`).get());
+    await assertFails(other.doc(path).get());
+    await assertFails(learner.doc(path).set({ score: 1000 }));
+    await assertFails(learner.doc(`iya-profile-test/student-1/${name}/doc-2`).set({ score: 1000 }));
+    await assertFails(learner.doc(path).delete());
+  }
+});
+
 test("admin claim can administer the bank while answer keys remain student-private", async () => {
   const admin = firestoreFor("editor-1", true);
   const learner = firestoreFor("student-1");

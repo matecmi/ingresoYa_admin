@@ -64,33 +64,65 @@ Si falta un campo se usa el valor de fábrica.
 ## 3. Intentos (Functions)
 
 Se reutiliza el servicio de intentos (`createExamAttempt` → `startExamAttempt`
-→ `saveExamAnswers` → `submitExamAttempt`, `getExamAttempt`). Dos propósitos
-nuevos:
+→ `saveExamAnswers` → `submitExamAttempt`, `getExamAttempt`). Código:
+`functions/src/simulator_service.ts`. Dos propósitos nuevos:
 
 - `past_exam`: `{requestId, purpose, universityId, examId}`. Todas las
-  preguntas publicadas del examen, en el orden de `questionOrder`. Duración y
-  reglas de puntaje se copian al intento.
+  preguntas publicadas del examen (`examId` y misma `universityId`), en el
+  orden de `questionOrder` (`original`: por `originalNumber` y alternativas en
+  su orden; `shuffled`: preguntas y alternativas mezcladas). Duración
+  `durationMinutes` y reglas de puntaje se copian al intento. Se rechaza con
+  `past_exam_unavailable` (universidad oculta o inactiva, examen sin
+  `available`, otra universidad con `showOtherUniversities: false`) o
+  `past_exam_incomplete` (las publicadas no coinciden con `questionCount`).
 - `practice`: `{requestId, purpose, mode: 'course'|'mix'|'random',
-  courseIds[], topicIds?[], size, timed, source?, difficulty?}`. El servidor
-  valida los cursos contra el catálogo, reparte las preguntas entre los cursos,
-  evita las vistas en `repeatWindowDays` y rechaza con `insufficient_questions`
-  si no alcanzan. Sin penalidad salvo `practicePenalty`.
+  courseIds[], topicIds?[], size, timed, source?, difficulty?}`.
+  `course` = 1 curso (los `topicIds` opcionales lo acotan); `mix` = 2 a 10
+  cursos; `random` = sin cursos (el servidor elige hasta 3 activos). `size` es
+  la `key` de un tamaño de `practiceSizes` (si no existe:
+  `practice_size_unavailable`). `source`/`difficulty` por defecto los de la
+  configuración; `real` = `admission_exam` u `official_practice`. Las
+  preguntas se reparten parejo entre cursos (lo que falte en uno lo cubren los
+  otros); primero las no vistas en `repeatWindowDays` y, solo si no alcanzan,
+  vistas. Si aun así faltan: `insufficient_questions`. Puntaje sobre 100; sin
+  penalidad salvo `practicePenalty` (−0,25 por incorrecta). Sin reloj
+  (`timed: false`) el intento igual cierra a las 4 h.
 
-Cada intento guarda el **contexto**: `universityId` y `professionId` del perfil
-al crearlo, `purpose`, `examId` o `mode`/`courseIds`, `size`, `timed`.
+Cada intento guarda el **contexto** en `simulator` (`purpose`, `timed`,
+`universityId` y `professionId` del perfil al crearlo, `examId` y
+`examUniversityId` o `mode`/`courseIds`/`topicIds`/`size`/`source`/
+`difficulty`, `scoring` y `cutoffScore` = mínimo de la carrera del perfil si el
+examen es de su universidad) y `questionMeta` (curso, tema, subtema y
+`partIds` por pregunta). `templateId` es `simulator_past_exam` o
+`simulator_practice` y `partId` va vacío.
 
-El **resultado** guarda correctas, incorrectas, en blanco, `rawScore`, `score`
-(oficial) o porcentaje (práctica), tiempo usado y aciertos por curso y por tema
-(`byCourse`, `byTopic`). La revisión trae, por pregunta, la marcada, la
-correcta, la explicación y sus `partIds` (para «Ir a la guía»).
+Las respuestas de crear/obtener traen `simulator` público: `{purpose, timed,
+examId?, examUniversityId?, mode?, courseIds, size?, questionCourseIds}`
+(`questionCourseIds[i]` = curso de la pregunta `i`).
 
-Además, el servidor guarda:
+**Entrega**: se califica una sola vez (repetir devuelve lo mismo). Si el reloj
+ya venció se califica igual con lo guardado; las respuestas que llegan con la
+entrega solo cuentan hasta 2 min después del vencimiento. El resultado
+(`simulator` en la respuesta y `simulatorResult` en el intento): `total`,
+`correct`, `incorrect`, `blank`, `rawScore`, `score` (oficial sobre
+`maxScore`, o 0–100 en práctica), `maxScore`, `percentage`,
+`timeUsedSeconds`, `byCourse`, `byTopic` (`{id,total,correct,incorrect,blank}`),
+`examId?`, `cutoffScore?`, `reachedCutoff?`. `passed` = `reachedCutoff`
+(falso si no hay mínimo). La revisión trae, por pregunta, la marcada, la
+correcta, la explicación (vacía si `showExplanations: false`) y `courseId`,
+`topicId`, `subtopicId`, `partIds` (para «Ir a la guía»).
 
-- `pastExamBest/{uid}_{examId}`: mejor puntaje y último intento por examen.
-- `learningEvents/{uid}_{eventId}`: eventos verificados con id fijo
+Además, el servidor guarda en el perfil (`{users}/{uid}/…`, el dueño solo lee):
+
+- `simulatorResults/{attemptId}`: resumen para el historial y Estadísticas
+  (`purpose`, `title`, `examId`, `mode`, `courseIds`, conteos, `score`,
+  `maxScore`, `percentage`, `timeUsedSeconds`, `byCourse`, `cutoffScore?`,
+  `reachedCutoff?`, `submittedAtMs`). El historial se lee ordenado por
+  `submittedAtMs`.
+- `pastExamBest/{examId}`: `bestScore`, `bestAttemptId`, `lastScore`,
+  `lastAttemptId`, `attempts`, `maxScore`.
+- `learningEvents/{eventId}`: eventos verificados con id fijo
   (`past_exam_completed_{attemptId}`, `practice_completed_{attemptId}`,
   `part_passed_{partId}`, `subtopic_completed_{subtopicId}`,
-  `subtopic_mastered_{subtopicId}`). Base del XP futuro; no se muestran aún.
-
-El historial se lee de los intentos propios (reglas: el dueño lee los suyos),
-ordenados por fecha de entrega.
+  `subtopic_mastered_{subtopicId}`), con `type` y `occurredAtMs`. Base del XP
+  futuro; no se muestran aún.

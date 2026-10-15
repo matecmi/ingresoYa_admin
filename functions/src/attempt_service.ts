@@ -46,6 +46,15 @@ import {
 } from "./selection";
 import { OperationMetrics } from "./operation_metrics";
 import {
+  SimulatorService,
+  isSimulatorPurpose,
+  learningEvent,
+  publicSimulatorContext,
+  questionCourseIds,
+  type PublicSimulatorContext,
+  type SimulatorResult
+} from "./simulator_service";
+import {
   assessSubtopicCompletion,
   masteryAwardId,
   publishedSubtopicRequirement,
@@ -53,7 +62,9 @@ import {
 } from "./subtopic_achievement";
 import type {
   CreateExamAttemptInput,
+  PastExamAttemptInput,
   PartCatalogHint,
+  PracticeAttemptInput,
   ReconcileSubtopicAchievementInput,
   RecordPartSectionCompletionInput,
   SaveExamAnswersInput,
@@ -61,6 +72,8 @@ import type {
 } from "./validation";
 
 const defaultAttemptDurationSeconds = 60 * 60;
+/** Study-guide attempts: a part exam or a subtopic mastery exam. */
+type GuideAttemptInput = Exclude<CreateExamAttemptInput, PastExamAttemptInput | PracticeAttemptInput>;
 /** One changed incremental answer payload per second per attempt. */
 export const answerSaveIntervalMs = 1_000;
 
@@ -79,6 +92,8 @@ export interface CreateExamAttemptResponse {
   courseId?: string;
   topicId?: string;
   subtopicId?: string;
+  /** Simulator attempts only (`past_exam`, `practice`). */
+  simulator?: PublicSimulatorContext;
 }
 
 export type AttemptStatus = "in_progress" | "submitted" | "expired";
@@ -132,6 +147,8 @@ export interface SubmittedAttemptResponse {
   /** Compatibility projection consumed by the mobile app. */
   progressUpdate?: { partId: string; completed: boolean };
   masteryUpdate?: SubtopicContext & { mastered: true };
+  /** Score and per-course/topic results of a Simulator attempt. */
+  simulator?: SimulatorResult;
 }
 
 export interface AttemptReview {
@@ -142,6 +159,11 @@ export interface AttemptReview {
   correctAlternativeId: string;
   isCorrect: boolean;
   explanation: unknown[];
+  /** Simulator review: where the question lives, for «Ir a la guía». */
+  courseId?: string;
+  topicId?: string;
+  subtopicId?: string;
+  partIds?: string[];
 }
 
 export interface PartCompletionResponse {
@@ -159,10 +181,14 @@ interface PendingSubtopicAward {
 }
 
 export class ExamAttemptService {
+  private readonly simulator: SimulatorService;
+
   public constructor(
     private readonly db: Firestore,
     private readonly config: BackendConfig
-  ) {}
+  ) {
+    this.simulator = new SimulatorService(db, config);
+  }
 
   /** Profile reads one small projection, never the exam-attempt collection. */
   public async getAchievementSummary(
@@ -195,6 +221,9 @@ export class ExamAttemptService {
     input: CreateExamAttemptInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<CreateExamAttemptResponse> {
+    if (input.purpose === "past_exam" || input.purpose === "practice") {
+      return this.simulator.create(uid, input, metrics);
+    }
     const requestRef = this.db
       .collection(this.config.collections.users)
       .doc(uid)
@@ -428,6 +457,7 @@ export class ExamAttemptService {
       throw notFound("Exam attempt not found.", "attempt_not_found");
     }
     const purpose = stringField(beforeSubmit.data()?.templateSnapshot, "purpose");
+    if (isSimulatorPurpose(purpose)) return this.simulator.submit(uid, input, metrics);
     const partId = stringValue(beforeSubmit.data()?.partId);
     const frozenContext = parsePartContext(objectMap(beforeSubmit.data()?.partContext));
     const partContext = purpose === "part_completion" && partId !== undefined
@@ -634,7 +664,7 @@ export class ExamAttemptService {
   private async responseForExisting(
     uid: string,
     request: Record<string, unknown> | undefined,
-    input: CreateExamAttemptInput,
+    input: GuideAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attemptId = typeof request?.attemptId === "string" ? request.attemptId : "";
@@ -646,7 +676,7 @@ export class ExamAttemptService {
 
   private async responseForRequest(
     uid: string,
-    input: CreateExamAttemptInput,
+    input: GuideAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const request = await this.db
@@ -662,7 +692,7 @@ export class ExamAttemptService {
   private async responseForAttempt(
     uid: string,
     attemptId: string,
-    input: CreateExamAttemptInput,
+    input: GuideAttemptInput,
     metrics: OperationMetrics
   ): Promise<CreateExamAttemptResponse> {
     const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
@@ -833,6 +863,11 @@ export class ExamAttemptService {
       examAttemptId: attemptId,
       awardedAt: FieldValue.serverTimestamp()
     });
+    transaction.set(
+      this.userRef(uid).collection("learningEvents").doc(`subtopic_mastered_${context.subtopicId}`),
+      learningEvent("subtopic_mastered", { ...context, examAttemptId: attemptId })
+    );
+    metrics.writeDocument();
     transaction.set(summaryRef, includeMastery(previous, {
       ...context,
       templateId,
@@ -934,6 +969,18 @@ export class ExamAttemptService {
       awardedAtMs: Date.now()
     }));
     metrics.writeDocument();
+    transaction.set(
+      userOfProgress(award.summaryRef).collection("learningEvents").doc(
+        `subtopic_completed_${award.requirement.subtopicId}`
+      ),
+      learningEvent("subtopic_completed", {
+        courseId: award.requirement.courseId,
+        topicId: award.requirement.topicId,
+        subtopicId: award.requirement.subtopicId,
+        examAttemptId: assessment.effectiveExamAttemptId
+      })
+    );
+    metrics.writeDocument();
   }
 
   private applyPartProgress(
@@ -981,6 +1028,17 @@ export class ExamAttemptService {
       next.verificationStatus = "verified";
       next.examAttemptId = assessment.effectiveExamAttemptId;
       next.completedAt = FieldValue.serverTimestamp();
+      transaction.set(
+        progressRef.parent.parent!.collection("learningEvents").doc(`part_passed_${context.partId}`),
+        learningEvent("part_passed", {
+          partId: context.partId,
+          courseId: context.courseId,
+          topicId: context.topicId,
+          subtopicId: context.subtopicId,
+          examAttemptId: assessment.effectiveExamAttemptId
+        })
+      );
+      metrics?.writeDocument();
     } else if (assessment.effectiveExamAttemptId !== undefined) {
       next.verificationStatus = "provisional";
     } else {
@@ -994,6 +1052,10 @@ export class ExamAttemptService {
     );
     metrics?.writeDocument();
     return progressResponse(context.partId, assessment);
+  }
+
+  private userRef(uid: string) {
+    return this.db.collection(this.config.collections.users).doc(uid);
   }
 
   private progressRef(uid: string) {
@@ -1431,6 +1493,9 @@ export function projectAttemptResponse(
     throw failedPrecondition("The stored exam attempt is invalid.");
   }
   const status = attemptStatus(data.status, expiresAtMs);
+  const simulator = isSimulatorPurpose(purpose)
+    ? publicSimulatorContext(data.simulator, questionCourseIds(data, questions))
+    : undefined;
   // Older attempts did not freeze the duration; derive it from their window.
   const durationSeconds = numberProperty(data.templateSnapshot, "durationSeconds") ??
     Math.max(0, Math.round((expiresAtMs - (startedAtMs ?? createdAtMs)) / 1000));
@@ -1450,6 +1515,7 @@ export function projectAttemptResponse(
     templateVersion,
     partId: partId ?? "",
     ...(masteryContext === undefined ? {} : masteryContext),
+    ...(simulator === undefined ? {} : { simulator }),
     createdAtMs
   };
 }
@@ -1549,7 +1615,7 @@ function submittedResponse(
   };
 }
 
-function parseFrozenAnswerKey(
+export function parseFrozenAnswerKey(
   data: Record<string, unknown> | undefined,
   question: AttemptQuestionSnapshot
 ): FrozenAnswerKey {
@@ -1602,6 +1668,11 @@ function parseStoredResult(
     throw failedPrecondition("The stored exam result is invalid.");
   }
   return { total, correct, passPercentExclusive, gradedAtMs };
+}
+
+/** `{users}/{uid}` from `.../learningProgress/current/achievementSummary/current`. */
+function userOfProgress(summaryRef: DocumentReference): DocumentReference {
+  return summaryRef.parent.parent!.parent.parent!;
 }
 
 function hasPassed(result: StoredExamResult): boolean {

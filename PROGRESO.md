@@ -8,6 +8,13 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Simulador base · PR 3** (admin `codex/simulador-functions`, 2026-10-15): Functions de **examen pasado** (`past_exam`) y **práctica libre** (`practice`) en `functions/src/simulator_service.ts`, usando los mismos callables (`createExamAttempt`, `startExamAttempt`, `saveExamAnswers`, `submitExamAttempt`, `getExamAttempt`). Contrato `docs/simulator_contract.md` §3 (copia en la app).
+  - Examen pasado: todas las preguntas publicadas del examen en orden original (`originalNumber`) o mezclado; rechaza `past_exam_unavailable` / `past_exam_incomplete`. Puntaje oficial con las reglas del examen y «¿te alcanzaba?» con el mínimo de la carrera del perfil (`cutoffScore`, `reachedCutoff`).
+  - Práctica: por curso (con temas opcionales), mezcla (2–10 cursos) o aleatoria (hasta 3); tamaños de Configuración → Simulador; reparte parejo, primero preguntas no vistas en `repeatWindowDays`; filtra origen y dificultad; `insufficient_questions` si no alcanzan. Sin reloj = cierra a las 4 h.
+  - Entrega: aciertos/incorrectas/blancas, puntaje, tiempo usado, `byCourse`/`byTopic`; revisión con `courseId`/`topicId`/`partIds` para «Ir a la guía». Si venció el reloj se califica con lo guardado (gracia de 2 min para la última respuesta).
+  - El servidor guarda en el perfil (solo lectura del dueño): `simulatorResults/{attemptId}` (historial), `pastExamBest/{examId}` (mejor puntaje) y `learningEvents/{id}` (examen/práctica terminada, parte aprobada, subtema completado/dominado: base del XP).
+  - Reglas e índices nuevos (`status+courseId+randomKey`, `status+courseId+topicId+randomKey`). Desplegado en TEST (Functions, reglas, índices).
+  - Pruebas: Functions unitarias 44 OK, emulador 30 OK (4 nuevas del Simulador + reglas).
 - **Simulador base · PR 2** (admin `codex/simulador-config`, 2026-10-15): **Configuración → Simulador** (`{config}/simulator`, en TEST `iya-config-test/simulator`), como «Revisión de la guía».
   - `SimulatorSettings` (`lib/src/domain/simulator_settings.dart`): tamaños de práctica (1 a 5, entre 10 y 100 preguntas, uno por defecto; de fábrica Corto 10·15, Normal 20·30, Largo 40·60), reloj por defecto, penalidad en práctica (no), días sin repetir preguntas (14), origen y dificultad por defecto, otras universidades, ocultar incompletos y explicaciones al revisar. Si falta el documento o un campo, valores de fábrica (contrato §2).
   - Tarjeta `simulator_settings_card.dart` en Configuración; `AppConfigRepo.watchSimulatorSettings` / `saveSimulatorSettings`.

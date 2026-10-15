@@ -24,7 +24,32 @@ export type CreateExamAttemptInput = {
   courseId: string;
   topicId: string;
   subtopicId: string;
-};
+} | PastExamAttemptInput | PracticeAttemptInput;
+
+/** «Exámenes pasados»: every published question of one registered exam. */
+export interface PastExamAttemptInput {
+  requestId: string;
+  purpose: "past_exam";
+  universityId: string;
+  examId: string;
+}
+
+export type PracticeMode = "course" | "mix" | "random";
+export type PracticeSource = "both" | "real" | "original";
+export type PracticeDifficulty = "mixed" | "easy" | "medium" | "hard";
+
+/** «Arma tu práctica»: the server picks the questions within these limits. */
+export interface PracticeAttemptInput {
+  requestId: string;
+  purpose: "practice";
+  mode: PracticeMode;
+  courseIds: string[];
+  topicIds: string[];
+  size: string;
+  timed: boolean;
+  source?: PracticeSource;
+  difficulty?: PracticeDifficulty;
+}
 
 export interface GetExamAttemptInput {
   attemptId: string;
@@ -56,7 +81,10 @@ export type RecordPartSectionCompletionInput = ({
 
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
 export const maxAnswersPerSave = 50;
-const maxAnswersAtSubmit = 200;
+/** A past exam may have up to 300 questions (simulator contract §1). */
+const maxAnswersAtSubmit = 300;
+export const maxPracticeCourses = 10;
+export const maxPracticeTopics = 20;
 
 function object(value: unknown, name: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -95,8 +123,78 @@ function id(value: unknown, name: string): string {
   return value;
 }
 
+function idList(value: unknown, name: string, maximum: number): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > maximum) {
+    throw invalidArgument(`${name} must be a list of up to ${maximum} identifiers.`);
+  }
+  const ids = value.map((entry) => id(entry, name));
+  if (new Set(ids).size !== ids.length) throw invalidArgument(`${name} has duplicates.`);
+  return ids;
+}
+
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], name: string): T {
+  if (typeof value !== "string" || !allowed.includes(value as T)) {
+    throw invalidArgument(`${name} must be one of ${allowed.join(", ")}.`);
+  }
+  return value as T;
+}
+
+function parsePractice(value: Record<string, unknown>): PracticeAttemptInput {
+  onlyKeys(value, [
+    "requestId", "purpose", "mode", "courseIds", "topicIds", "size", "timed", "source", "difficulty"
+  ]);
+  const mode = oneOf(value.mode, ["course", "mix", "random"] as const, "mode");
+  const courseIds = idList(value.courseIds, "courseIds", maxPracticeCourses);
+  const topicIds = idList(value.topicIds, "topicIds", maxPracticeTopics);
+  if (mode === "course" && courseIds.length !== 1) {
+    throw invalidArgument("A course practice needs exactly one course.");
+  }
+  if (mode === "mix" && courseIds.length < 2) {
+    throw invalidArgument("A mixed practice needs at least two courses.");
+  }
+  if (mode === "random" && courseIds.length > 0) {
+    throw invalidArgument("A random practice chooses its own courses.");
+  }
+  if (topicIds.length > 0 && mode !== "course") {
+    throw invalidArgument("Topics can only narrow a single-course practice.");
+  }
+  if (typeof value.timed !== "boolean") throw invalidArgument("timed must be a boolean.");
+  return {
+    requestId: id(value.requestId, "requestId"),
+    purpose: "practice",
+    mode,
+    courseIds,
+    topicIds,
+    size: id(value.size, "size"),
+    timed: value.timed,
+    ...(value.source === undefined
+      ? {}
+      : { source: oneOf(value.source, ["both", "real", "original"] as const, "source") }),
+    ...(value.difficulty === undefined
+      ? {}
+      : {
+          difficulty: oneOf(
+            value.difficulty,
+            ["mixed", "easy", "medium", "hard"] as const,
+            "difficulty"
+          )
+        })
+  };
+}
+
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
+  if (value.purpose === "past_exam") {
+    onlyKeys(value, ["requestId", "purpose", "universityId", "examId"]);
+    return {
+      requestId: id(value.requestId, "requestId"),
+      purpose: "past_exam",
+      universityId: id(value.universityId, "universityId"),
+      examId: id(value.examId, "examId")
+    };
+  }
+  if (value.purpose === "practice") return parsePractice(value);
   if (value.purpose === "subtopic_mastery") {
     onlyKeys(value, ["requestId", "purpose", "templateId", "courseId", "topicId", "subtopicId"]);
     return {
@@ -109,7 +207,7 @@ export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
     };
   }
   if (value.purpose !== "part_completion") {
-    throw invalidArgument("purpose must be part_completion or subtopic_mastery.");
+    throw invalidArgument("purpose must be part_completion, subtopic_mastery, past_exam or practice.");
   }
   onlyKeys(value, ["requestId", "purpose", "templateId", "partId", "courseId", "topicId", "subtopicId"]);
   const catalog = catalogHint(value);
