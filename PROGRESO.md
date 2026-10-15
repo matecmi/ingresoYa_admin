@@ -2,13 +2,20 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-12_
+_Última actualización: 2026-10-14_
 
 ## Estado actual
-- `desarrollo` en `afa9818` (Merge PR #46, PROGRESO del login/onboarding de la app, 2026-10-12). Antes: #45, #44 (búho animado), #43, #42 (PROGRESO de la app). Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
+- `desarrollo` en `9d6df06` (Merge PR #51, PROGRESO del subtema compacto, 2026-10-14). Antes: #50, #49, #48, #46. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
-- Rama `codex/subtema-compacto` (app; PR abierto 2026-10-13): **pantalla del subtema compacta (opción A del lienzo, elegida por Kevin)**. Una parte pasa de ~3 pantallas a ~1,5.
+- Rama `codex/cabeceras-pestanas` (app; PR abierto 2026-10-14): **cabeceras de Simulador, Estadísticas y Perfil con el diseño del Inicio (propuestas del lienzo) y estados vacíos con el búho**.
+  - `generic_sliver_app_bar.dart`: nuevos `HeaderSurface` (el bloque con degradado, esquinas y barra de estado) y `HeaderGlassCard` (la tarjeta translúcida de «Continúa donde lo dejaste», que ahora lo usa).
+  - **Simulador**: «Simulador» + «Practica con exámenes como el real.», búho, y tarjeta «Tus simulacros» (precisión, n simulacros · n preguntas; lleva a Estadísticas) o, sin simulacros, «Empieza con un examen de admisión». Se quitan las campanas y compartir sin acción.
+  - **Estadísticas**: «Estadísticas» + «Cómo vas en tus simulacros.» y los periodos Total/7/30/90 dentro de la cabecera (pastilla blanca para el elegido). Sin ninguna pregunta respondida: estado vacío con el búho y «Ir al Simulador».
+  - **Perfil**: título, inicial grande, nombre, correo y carrera en la cabecera, y el rango con su barra («Rango Plata · Nivel 2», «20/300 pts»; sigue siendo un cálculo de ejemplo). Se quita el botón de ajustes sin acción; en debug queda el de DEV Sync.
+  - **`OwlEmptyState`** (`lib/app/widgets/owl_empty_state.dart`): búho, título, mensaje y acción opcional (`compact` con el búho al lado). Usado en favoritos, preguntas guardadas (con «Limpiar filtros» solo si hay filtros), logros (vacío y error), novedades, cursos, partes sin publicar y ventanas de estadísticas sin datos.
+  - Pruebas: 365 OK (nuevas en `page_header_test.dart`: tarjeta del simulador y estado vacío), analyze OK. Revisado en el teléfono (Inicio, Simulador, Estadísticas y Perfil).
+- Rama `codex/subtema-compacto` (app #69 / admin #51, fusionados 2026-10-14; la compilación «Android development debug» se colgó una vez hasta el límite de 30 min y al reintentarla pasó en 12 min): **pantalla del subtema compacta (opción A del lienzo, elegida por Kevin)**. Una parte pasa de ~3 pantallas a ~1,5.
   - Se quita la tarjeta del subtema (`SubtopicOverviewCard`): curso, tema y subtema ya están en la cabecera.
   - «Tu camino en este subtema» (`SubtopicMasterySection`) solo aparece cuando todas las partes están verificadas o el subtema está completado (logro y examen de dominio); antes, el avance de partes lo muestra la barra de la cabecera.
   - «Tu avance» (`PartPersonalStudyCard`, eliminado) se integra en la ruta: título «Tu ruta · X de N» con % y barra, el búho y el **examen de la parte como último paso** (candado «Se abre al terminar la ruta» → botón «Rendir» → «¡Aprobaste!»). Sin el botón grande «Continuar»: la fila que toca va marcada «Siguiente».
@@ -140,7 +147,7 @@ _Última actualización: 2026-10-12_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
-- Cabeceras de Simulador, Estadísticas y Perfil con el mismo diseño (propuestas en el lienzo). Estados vacíos con el búho. Siguiente etapa de secciones: «Intenta primero» (respuesta corta comprobable) y «Repaso relámpago» (el admin ya tiene `quizQuestions` por parte: pregunta, opciones, correcta y explicación; la app no las lee hoy).
+- Siguiente etapa de secciones: «Intenta primero» (respuesta corta comprobable) y «Repaso relámpago» (el admin ya tiene `quizQuestions` por parte: pregunta, opciones, correcta y explicación; la app no las lee hoy).
 - l10n fusionado en `desarrollo` (app #55 / admin #37, 2026-10-10). Al agregar textos nuevos, usar el ARB (ver CLAUDE.md de la app).
 - **Datos de prueba en TEST (2026-10-07):** 5 cursos «(prueba)» (`seed-alg`, `seed-ari`, `seed-geo`, `seed-fis`, `seed-qui`), 10 temas, 20 subtemas, 40 partes (p1 solo lección, p2 completa sin video), 240 preguntas publicadas con clave y versión, plantillas `seed-part-exam-v1` (5 preguntas, aprueba con 4) y `seed-subtopic-mastery-v1` (8, aprueba con 6). Cargados con un script de Claude (`seed_test.js`, con `--delete` para borrarlos; aún no está en el repo).
 - **Probado en el teléfono (2026-10-07):** examen de parte aprobado (5/5), `requiredSections: ["lesson"]`, parte `verified` en `learningProgress` y `courseProgress/seed-alg` subido al salir de la app. Teléfono nuevo simulado (`pm clear` + volver a iniciar sesión): se recuperaron la parte verificada (2/2, «¡Parte completada!»), «1 de 2 partes verificadas», la última parte abierta y RAZONAMIENTO MATEMATICO al 100 %. Examen de dominio probado el 2026-10-08.
