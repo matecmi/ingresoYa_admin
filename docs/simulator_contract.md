@@ -133,3 +133,58 @@ Además, el servidor guarda en el perfil (`{users}/{uid}/…`, el dueño solo le
   `part_passed_{partId}`, `subtopic_completed_{subtopicId}`,
   `subtopic_mastered_{subtopicId}`), con `type` y `occurredAtMs`. Base del XP
   futuro; no se muestran aún.
+
+## 4. Plan de entrenamiento (Simulador B+)
+
+El plan **nunca bloquea**: el modo libre (§3) sigue igual y cualquier examen
+entregado cuenta para la semana.
+
+### Configuración `{config}/simulator.plan` (admin)
+
+| Campo | Fábrica | Uso |
+|---|---|---|
+| `sessionOptions` | `[3,5,7]` | Sesiones por semana que el alumno puede elegir |
+| `recommendedSessions` | `5` | Opción marcada «recomendado» |
+| `dailyQuestions` / `dailyMinutes` | `10` / `15` | Tamaño de «Hoy te toca» |
+| `weakSharePercent` | `60` | Parte de la sesión tomada de temas débiles |
+| `weakThresholdPercent` | `50` | Un tema es débil si sus aciertos están bajo este % |
+| `minAnswersToJudge` | `5` | Respuestas mínimas para juzgar un tema |
+| `diagnosticPerCourse` / `diagnosticMinutes` | `4` / `30` | Diagnóstico inicial |
+| `showWhy` | `true` | Mostrar «¿Por qué?» |
+| `defaultMockDay` | `6` | Día del simulacro semanal (1 = lunes … 7 = domingo) |
+| `defaultReminderTime` | `"19:00"` | Hora del recordatorio |
+| `minQuestionsPerSession` | `10` | Un examen cuenta como sesión desde este tamaño |
+| `streakGraceDays` | `1` | Días sin practicar antes de perder la racha |
+| `freeExamsCount` | `true` | Los exámenes libres cuentan para la semana |
+
+### Meta del alumno `{users}/{uid}/simulatorPlan/current` (la escribe el alumno)
+
+`examMonth` (`"YYYY-MM"` o `null` = aún no sé), `sessionsPerWeek`, `mockDay`
+(1–7), `reminderEnabled`, `reminderTime` (`"HH:mm"`), `createdAtMs`,
+`updatedAtMs`. Sin documento no hay plan: el Inicio invita a crearlo y el modo
+libre funciona igual.
+
+### Aciertos por tema `{users}/{uid}/simulatorTopicStats/{topicId}` (servidor)
+
+Functions suma al entregar cualquier intento del Simulador: `courseId`,
+`topicId`, `answered` (respondidas o en blanco), `correct`, `updatedAtMs`. El
+dueño solo lee. Un tema es débil con `answered ≥ minAnswersToJudge` y
+`correct/answered < weakThresholdPercent`.
+
+### Intentos del plan (`practice`)
+
+- `mode: 'plan'` — «Hoy te toca»: `{requestId, purpose: 'practice', mode:
+  'plan', timed}`. `dailyQuestions` preguntas: `weakSharePercent` de los temas
+  más débiles (repartidas entre ellos) y el resto de todos los cursos activos;
+  si no hay temas débiles, todo mezclado. El contexto público trae
+  `focusTopicIds` (los temas débiles usados).
+- `mode: 'diagnostic'` — primera sesión sin historial: `{requestId, purpose:
+  'practice', mode: 'diagnostic'}`. `diagnosticPerCourse` preguntas de cada
+  curso activo con preguntas suficientes, sin reloj ni penalidad.
+
+### Semana y racha (app)
+
+Se calculan con `simulatorResults` (§3): una sesión es un intento entregado
+con `total ≥ minQuestionsPerSession` (los libres solo si `freeExamsCount`). La
+semana va de lunes a domingo; la racha cuenta días seguidos con sesión,
+tolerando `streakGraceDays` días sin práctica.

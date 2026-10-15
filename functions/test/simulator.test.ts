@@ -4,6 +4,8 @@ import test from "node:test";
 import { ExamBackendError } from "../src/errors";
 import {
   groupResults,
+  parsePlanSettings,
+  weakTopics,
   matchesPractice,
   officialScore,
   parsePastExamRules,
@@ -132,4 +134,25 @@ test("create accepts past_exam and practice requests with strict shapes", () => 
   invalid({ requestId: "r", purpose: "practice", mode: "random", size: "x", timed: true, source: "web" });
   invalid({ requestId: "r", purpose: "practice", mode: "mistakes", timed: true });
   invalid({ requestId: "r", purpose: "practice", mode: "mistakes", fromAttemptId: "a", timed: true, size: "x" });
+});
+
+test("the plan reads its settings and finds the weakest judged topics", () => {
+  const plan = parsePlanSettings({ dailyQuestions: 12, weakSharePercent: 200 });
+  assert.equal(plan.dailyQuestions, 12);
+  assert.equal(plan.weakSharePercent, 60);
+  const weak = weakTopics([
+    { topicId: "a", courseId: "c", answered: 10, correct: 2 },
+    { topicId: "b", courseId: "c", answered: 10, correct: 4 },
+    { topicId: "c", courseId: "c", answered: 3, correct: 0 },
+    { topicId: "d", courseId: "c", answered: 10, correct: 8 }
+  ], plan);
+  assert.deepEqual(weak.map((topic) => topic.topicId), ["a", "b"]);
+  assert.deepEqual(
+    parseCreateExamAttempt({ requestId: "r", purpose: "practice", mode: "diagnostic", timed: true }),
+    { requestId: "r", purpose: "practice", mode: "diagnostic", timed: false }
+  );
+  assert.deepEqual(
+    parseCreateExamAttempt({ requestId: "r", purpose: "practice", mode: "plan", timed: true }),
+    { requestId: "r", purpose: "practice", mode: "plan", timed: true }
+  );
 });

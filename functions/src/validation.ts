@@ -24,7 +24,15 @@ export type CreateExamAttemptInput = {
   courseId: string;
   topicId: string;
   subtopicId: string;
-} | PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput;
+} | PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput;
+
+/** Training plan sessions: «Hoy te toca» (`plan`) or the first `diagnostic`. */
+export interface PlanAttemptInput {
+  requestId: string;
+  purpose: "practice";
+  mode: "plan" | "diagnostic";
+  timed: boolean;
+}
 
 /** «Practicar mis errores»: the wrong or blank questions of one submitted attempt. */
 export interface MistakesAttemptInput {
@@ -194,6 +202,19 @@ function parsePractice(value: Record<string, unknown>): PracticeAttemptInput {
 
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
+  if (value.purpose === "practice" && (value.mode === "plan" || value.mode === "diagnostic")) {
+    onlyKeys(value, ["requestId", "purpose", "mode", "timed"]);
+    if (value.timed !== undefined && typeof value.timed !== "boolean") {
+      throw invalidArgument("timed must be a boolean.");
+    }
+    return {
+      requestId: id(value.requestId, "requestId"),
+      purpose: "practice",
+      mode: value.mode,
+      // The diagnostic never has a clock (contract §4).
+      timed: value.mode === "plan" && value.timed !== false
+    };
+  }
   if (value.purpose === "practice" && value.mode === "mistakes") {
     onlyKeys(value, ["requestId", "purpose", "mode", "fromAttemptId", "timed"]);
     if (typeof value.timed !== "boolean") throw invalidArgument("timed must be a boolean.");
