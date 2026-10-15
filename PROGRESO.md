@@ -8,6 +8,10 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Simulador · Practicar mis errores y «+N vs. anterior»** (admin y app `codex/simulador-errores`, 2026-10-15):
+  - Functions: `practice` con `mode: 'mistakes'` y `fromAttemptId` crea una práctica con las preguntas incorrectas o en blanco de un intento propio entregado del Simulador (hasta 100, mismas revisiones, mezcladas, 90 s por pregunta con reloj); rechaza `mistakes_unavailable` / `no_mistakes`. El resultado de un examen pasado trae `previousScore` (el intento anterior en ese examen). Contrato §3 actualizado; desplegado en TEST. Pruebas: unitarias 44 OK, emulador 30 OK.
+  - App: en el resultado, botón «Practicar mis N errores» (o «Volver al Simulador» si no hubo errores; cerrar con la X) que abre la práctica `SimulatorAttemptRequest.mistakes`; en el examen pasado, «+N vs. anterior», «−N vs. anterior» o «Igual que la vez anterior». Pruebas: app 387 OK. Verificado en el teléfono: examen pasado UNPRG entregado, «+0», «Practicar mis 24 errores» creó «Mis errores» de 24 preguntas y 36 min.
+  - Nota: los PR 5–9 de la app quedaron en ramas intermedias al fusionar los PR apilados; se llevaron a `desarrollo` con el PR #82 (mismos commits aprobados).
 - **Simulador base · PR 9** (app `codex/simulador-historial`, apilado sobre PR 8, 2026-10-15): **historial y Estadísticas desde el servidor**.
   - `SimulatorResultSummary` + `SimulatorCatalogRepository.watchResults` (lee `{perfil}/simulatorResults`, más recientes primero, hasta 200) y `simulatorResultsProvider`.
   - «Tu progreso e historial» (`SimulatorHistoryScreen`, ruta `/simulator_history`): cada intento entregado con tipo, título, «X de N · fecha» y puntaje (`640 / 1000` o `70 %`), botón a Estadísticas. El resumen de la cabecera del Simulador también usa estos resultados.

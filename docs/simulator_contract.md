@@ -88,6 +88,13 @@ Se reutiliza el servicio de intentos (`createExamAttempt` → `startExamAttempt`
   penalidad salvo `practicePenalty` (−0,25 por incorrecta). Sin reloj
   (`timed: false`) el intento igual cierra a las 4 h.
 
+- `practice` con `mode: 'mistakes'`: `{requestId, purpose: 'practice', mode:
+  'mistakes', fromAttemptId, timed}` («Practicar mis errores»). Toma las
+  preguntas incorrectas o en blanco de un intento propio entregado del
+  Simulador (hasta 100), con las mismas revisiones, mezcladas; 90 s por
+  pregunta con reloj. Rechaza `mistakes_unavailable` (intento ajeno, no
+  entregado o que no es del Simulador) o `no_mistakes`.
+
 Cada intento guarda el **contexto** en `simulator` (`purpose`, `timed`,
 `universityId` y `professionId` del perfil al crearlo, `examId` y
 `examUniversityId` o `mode`/`courseIds`/`topicIds`/`size`/`source`/
@@ -107,7 +114,7 @@ entrega solo cuentan hasta 2 min después del vencimiento. El resultado
 `correct`, `incorrect`, `blank`, `rawScore`, `score` (oficial sobre
 `maxScore`, o 0–100 en práctica), `maxScore`, `percentage`,
 `timeUsedSeconds`, `byCourse`, `byTopic` (`{id,total,correct,incorrect,blank}`),
-`examId?`, `cutoffScore?`, `reachedCutoff?`. `passed` = `reachedCutoff`
+`examId?`, `cutoffScore?`, `reachedCutoff?`, `previousScore?` (examen pasado: puntaje del intento anterior en ese examen, para «+N vs. anterior»). `passed` = `reachedCutoff`
 (falso si no hay mínimo). La revisión trae, por pregunta, la marcada, la
 correcta, la explicación (vacía si `showExplanations: false`) y `courseId`,
 `topicId`, `subtopicId`, `partIds` (para «Ir a la guía»).
