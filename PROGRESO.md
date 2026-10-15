@@ -8,6 +8,12 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **Limpieza: exámenes dinámicos y estadísticas locales** (app `codex/limpieza-hive`, 2026-10-15):
+  - Se retiraron los exámenes dinámicos demo (`iya-exams-dynamic-*`: entidad, DTO, fuentes Hive/Firestore, `CachedExamRepository`, `WatchDynamicExams`, controlador, `env.dbCollectExamsDynamic`) y el modelo Hive de intentos locales del simulador.
+  - Se retiraron las estadísticas locales en Hive (modelos, fuente, mapper, `HiveStatisticsRepository`, `StatisticsRepository`, proveedores) y su sincronización (`userStats/global` del perfil, `UserStatsSyncData`, `statsDirty`, `markStatsDirty`/`acceptRemoteStats`, campos del `SyncReport`). Estadísticas ya se calcula desde `simulatorResults` del servidor. El campo `statsDirty` sigue en el modelo Hive de metadatos (se escribe `false`) para leer los datos guardados.
+  - Al arrancar, `HiveBootstrap` borra una vez las cajas retiradas (`exams_dynamic_box`, `sim_attempts_box`, `user_stats_box`).
+  - Las reglas de Firestore siguen listando `iya-exams-dynamic-*` y `userStats` (sin uso); se pueden quitar en un cambio de reglas aparte.
+  - Pruebas: app 382 OK (se quitaron las de las piezas retiradas). Verificado en el teléfono: arranque, Simulador y Estadísticas.
 - **Simulador · Practicar mis errores y «+N vs. anterior»** (admin y app `codex/simulador-errores`, 2026-10-15):
   - Functions: `practice` con `mode: 'mistakes'` y `fromAttemptId` crea una práctica con las preguntas incorrectas o en blanco de un intento propio entregado del Simulador (hasta 100, mismas revisiones, mezcladas, 90 s por pregunta con reloj); rechaza `mistakes_unavailable` / `no_mistakes`. El resultado de un examen pasado trae `previousScore` (el intento anterior en ese examen). Contrato §3 actualizado; desplegado en TEST. Pruebas: unitarias 44 OK, emulador 30 OK.
   - App: en el resultado, botón «Practicar mis N errores» (o «Volver al Simulador» si no hubo errores; cerrar con la X) que abre la práctica `SimulatorAttemptRequest.mistakes`; en el examen pasado, «+N vs. anterior», «−N vs. anterior» o «Igual que la vez anterior». Pruebas: app 387 OK. Verificado en el teléfono: examen pasado UNPRG entregado, «+0», «Practicar mis 24 errores» creó «Mis errores» de 24 preguntas y 36 min.
