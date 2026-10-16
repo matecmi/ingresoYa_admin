@@ -1,0 +1,647 @@
+<title>Guía de IngresoYa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+
+<div class="layout">
+<nav class="toc" aria-label="Índice">
+  <div class="brand">Guía de IngresoYa</div>
+  <div class="meta">Documento vivo · actualizado el 15-oct-2026</div>
+  <ol>
+    <li><a href="#como-leer">Cómo leer esta guía</a></li>
+    <li><a href="#inicio">Inicio</a>
+      <ol><li><a href="#inicio-cabecera">Cabecera y «Continúa…»</a></li><li><a href="#inicio-resto">Novedades y accesos</a></li></ol></li>
+    <li><a href="#estudio">Guía de estudio</a>
+      <ol>
+        <li><a href="#est-cursos">Cursos</a></li>
+        <li><a href="#est-curso">Un curso</a></li>
+        <li><a href="#est-subtema">El subtema</a></li>
+        <li><a href="#est-ruta">Tu ruta</a></li>
+        <li><a href="#est-secciones">Las secciones</a></li>
+        <li><a href="#est-examen">Examen de la parte</a></li>
+        <li><a href="#est-celebraciones">Celebraciones</a></li>
+        <li><a href="#est-dominio">Examen de dominio</a></li>
+        <li><a href="#est-temario">Temario y Favoritos</a></li>
+        <li><a href="#est-logros">Mis logros</a></li>
+      </ol></li>
+    <li><a href="#sim">Simulador</a>
+      <ol>
+        <li><a href="#sim-inicio">Inicio del Simulador</a></li>
+        <li><a href="#sim-banner">Tarjeta bajo el búho</a></li>
+        <li><a href="#sim-plan">Tarjeta del plan</a></li>
+        <li><a href="#sim-semana">Semana y racha</a></li>
+        <li><a href="#sim-meta">Tu meta</a></li>
+        <li><a href="#sim-diagnostico">Diagnóstico inicial</a></li>
+        <li><a href="#sim-practica">Arma tu práctica</a></li>
+        <li><a href="#sim-pasados">Exámenes pasados</a></li>
+        <li><a href="#sim-examen">Durante el examen</a></li>
+        <li><a href="#sim-resultado">Resultado</a></li>
+        <li><a href="#sim-despues">Revisión, errores, historial</a></li>
+        <li><a href="#sim-errores">Mensajes de error</a></li>
+      </ol></li>
+    <li><a href="#admin">Lo que se cambia en el admin</a></li>
+    <li><a href="#observaciones">Observaciones abiertas</a></li>
+    <li><a href="#cambios">Historial de cambios</a></li>
+  </ol>
+</nav>
+
+<main>
+<p class="eyebrow">IngresoYa · app del alumno</p>
+<h1>Guía de IngresoYa</h1>
+<p class="lede">Cómo funciona cada pantalla de la app, qué mensajes puede mostrar y en qué caso aparece cada uno. Se basa en el código de la rama <code>desarrollo</code> y en capturas reales de TEST. Se actualiza en cada cambio funcional o de diseño.</p>
+
+<h2 id="como-leer">Cómo leer esta guía</h2>
+<p>Cada pantalla tiene su captura y una tabla con tres columnas:</p>
+<ul>
+  <li><b>Mensaje</b>: el texto exacto que ve el alumno. Lo que va entre llaves cambia según sus datos, por ejemplo <code>{percent}</code>.</li>
+  <li><b>Cuándo aparece</b>: la condición real del código.</li>
+  <li><b>Al tocar</b>: a dónde lleva.</li>
+</ul>
+<p>Las etiquetas indican el flujo: <span class="chip study">GUÍA DE ESTUDIO</span> <span class="chip sim">SIMULADOR</span>. Los valores que se pueden cambiar desde el admin aparecen como <span class="chip info">ADMIN</span>, con su valor de fábrica.</p>
+<div class="note"><p><b>Ningún texto lo inventa una IA.</b> Todos salen de los textos de la app y se arman con tus datos reales: progreso, resultados y aciertos por tema guardados en el servidor. Por ejemplo, «Fallaste 7 de 8 en Series y relaciones léxicas» sale de tus respuestas, y el servidor usa ese mismo dato para elegir las preguntas de la sesión.</p></div>
+
+<!-- ============================================================ INICIO -->
+<h2 id="inicio">Inicio</h2>
+<p>Es la primera pestaña. Saluda al alumno, resume su avance en la guía y lo lleva a lo último que estudió.</p>
+
+<div class="screen two" id="inicio-cabecera">
+  <figure><img src="img/est-inicio.jpg" alt="Inicio de un alumno nuevo"><figcaption>Alumno nuevo: 0 %.</figcaption></figure>
+  <figure><img src="img/est-inicio-despues.jpg" alt="Inicio con avance"><figcaption>Con avance y «Continúa donde lo dejaste».</figcaption></figure>
+  <div class="body">
+    <h3>Cabecera</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">«UNPRG · Ingeniería Civil»</td><td>Chip con universidad y carrera del perfil.</td><td>Nada.</td></tr>
+      <tr><td class="msg">«Hola, {nombre}»</td><td>Siempre. Usa el nombre del perfil o de la cuenta de Google; si no hay, «estudiante».</td><td>Nada.</td></tr>
+      <tr><td class="msg">«Llevas {percent}% de tu guía de estudio.»</td><td>Cuando ya cargaron los cursos y hay subtemas. El % cuenta <b>partes aprobadas</b> (examen de la parte aprobado) sobre todas las partes activas de todos tus cursos.</td><td>Nada.</td></tr>
+      <tr><td class="msg">«Tu panel de estudio y progreso»</td><td>Mientras cargan los cursos, o si no hay cursos ni subtemas.</td><td>Nada.</td></tr>
+      <tr><td class="msg">Búho (avatar)</td><td>Siempre.</td><td>Nada.</td></tr>
+    </table></div>
+    <h4>La tarjeta «Continúa donde lo dejaste»</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">«Continúa donde lo dejaste» · «{curso} · {subtema} · Parte {n}»</td><td>Si ya abriste algún subtema con esta cuenta en este teléfono. Se guarda cada vez que se muestra una parte. Si el dato está dañado o no hay sesión, la tarjeta no sale.</td><td>Abre ese subtema. Ahí se restaura la última parte que tocaste, según tu progreso sincronizado.</td></tr>
+    </table></div>
+    <p>Lo último estudiado se guarda <b>por cuenta y en ese teléfono</b>; no viaja a otros teléfonos. Si después el subtema se borra, al tocar sale «Este subtema ya no está disponible.» con el botón «Volver al curso».</p>
+  </div>
+</div>
+
+<h3 id="inicio-resto">Novedades y accesos rápidos</h3>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Novedades» y carrusel de tarjetas con «Leer →»</td><td>Si el perfil tiene universidad. Hoy son <b>5 noticias fijas en el código</b>, no vienen del admin. El carrusel avanza solo cada 4 s.</td><td>Nada (el «Leer» todavía no abre nada).</td></tr>
+  <tr><td class="msg">«No hay noticias por ahora. Vuelve más tarde.»</td><td>Sin noticias (por ejemplo, perfil sin universidad).</td><td>—</td></tr>
+  <tr><td class="msg">«Guía de estudio · Temas y subtemas» con dona {percent}%</td><td>Siempre. Es el mismo % de la cabecera. Muestra «…» mientras carga. Rojo bajo 35 %, amarillo bajo 55 %, verde desde 55 %.</td><td>Abre la Guía de estudio.</td></tr>
+  <tr><td class="msg">«Mi progreso · Avance general»</td><td>Siempre.</td><td>Abre Stats.</td></tr>
+  <tr><td class="msg">«Favoritos · Marca lo importante»</td><td>Siempre.</td><td>Abre las <b>preguntas guardadas</b>, no las partes favoritas de la guía.</td></tr>
+  <tr><td class="msg">«Tu progreso esta semana» 42 %</td><td>Siempre. <b>Es un valor fijo</b> de ejemplo, no se calcula.</td><td>Nada.</td></tr>
+</table></div>
+
+<!-- ============================================================ GUÍA DE ESTUDIO -->
+<h2 id="estudio"><span class="chip study">GUÍA DE ESTUDIO</span><br>Guía de estudio</h2>
+<p>El contenido tiene cuatro niveles: <b>curso → tema → subtema → parte</b>. Cada parte tiene una ruta de secciones (Video, Lección, Ejemplos, Repasar, Recursos) que se marcan «Revisado». Al terminar la ruta se abre el <b>examen de la parte</b>; aprobarlo completa la parte. Con todas las partes aprobadas, el subtema da la medalla de <b>plata</b>, y el <b>examen de dominio</b> da la de <b>oro</b>.</p>
+<pre class="mermaid">
+flowchart LR
+  A[Curso] --> B[Tema] --> C[Subtema] --> D[Parte]
+  D --> E[Ruta: Video · Lección · Ejemplos · Repasar · Recursos]
+  E -->|todo revisado| F[Examen de la parte]
+  F -->|aprobado| G[Parte completada]
+  G -->|todas las partes| H[Plata: subtema completado]
+  H --> I[Examen de dominio]
+  I -->|aprobado| J[Oro: subtema dominado]
+</pre>
+
+<div class="screen two" id="est-cursos">
+  <figure><img src="img/est-cursos.jpg" alt="Guía de estudio sin avance"><figcaption>Sin avance.</figcaption></figure>
+  <figure><img src="img/est-cursos-despues.jpg" alt="Guía de estudio con avance"><figcaption>Con 1 subtema completado y dominado.</figcaption></figure>
+  <div class="body">
+    <h3>Cursos</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">«{n} completados» · «{n} dominado(s)»</td><td>Cuando el servidor devolvió tu resumen de logros. Si está cargando o falla, no aparecen.</td><td>Nada.</td></tr>
+      <tr><td class="msg">Tarjeta del curso: nombre, descripción</td><td>Por cada curso de tu universidad y carrera.</td><td>Abre el curso.</td></tr>
+      <tr><td class="msg">«{c} de {t} subtemas completados»</td><td><code>c</code> viene del servidor; <code>t</code> son los subtemas del curso.</td><td>—</td></tr>
+      <tr><td class="msg">Medalla dorada + número</td><td>Si hay subtemas dominados en el curso.</td><td>—</td></tr>
+      <tr><td class="msg">«{n}%» y barra</td><td>100 % si todos los subtemas están completos; si no, avance por <b>partes</b> aprobadas.</td><td>—</td></tr>
+      <tr><td class="msg">«Aún no hay cursos disponibles»</td><td>Lista vacía.</td><td>—</td></tr>
+      <tr><td class="msg">Búho + mensaje de error + «Reintentar»</td><td>Error y ningún curso guardado en el teléfono.</td><td>Reintenta.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen" id="est-curso">
+  <figure><img src="img/est-curso.jpg" alt="Pantalla de un curso"><figcaption>Razonamiento Matemático con el tema desplegado.</figcaption></figure>
+  <div class="body">
+    <h3>Un curso</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">«Cargando curso · Preparando tus temas y tu avance»</td><td>Mientras baja el contenido. Se guarda en el teléfono y se considera al día por 30 min; sin red se usa lo guardado.</td><td>—</td></tr>
+      <tr><td class="msg">«{pct}% avance» · «{c}/{t} completados» · «{m} dominado»</td><td>Aquí el % cuenta <b>subtemas</b> completados, no partes (ver observaciones).</td><td>—</td></tr>
+      <tr><td class="msg">«TEMA {n}», nombre, «{c}/{t} completados · {m} dominados»</td><td>Por cada tema. Empiezan cerrados. Dorado si todos sus subtemas están dominados; verde si todos están completos.</td><td>Abre o cierra el tema.</td></tr>
+      <tr><td class="msg">«Examen de dominio disponible · {subtema} · consigue el oro» + «Rendir»</td><td>Tema abierto y algún subtema completo, con examen de dominio y sin dominar.</td><td>Abre el subtema.</td></tr>
+    </table></div>
+    <h4>Estados de un subtema</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Texto</th><th>Cuándo</th></tr>
+      <tr><td class="msg">«Sin empezar · {n} partes»</td><td>Ninguna parte aprobada y ninguna sección revisada. Solo abrirlo no cuenta.</td></tr>
+      <tr><td class="msg">«{v} de {t} partes verificadas»</td><td>Hay al menos una parte aprobada o una sección revisada (puede decir «0 de 2»).</td></tr>
+      <tr><td class="msg">«Completado» (check verde)</td><td>El servidor confirmó el subtema.</td></tr>
+      <tr><td class="msg">«Dominado» (medalla dorada)</td><td>El servidor confirmó el examen de dominio. Nunca se deduce en el teléfono.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen two" id="est-subtema">
+  <figure><img src="img/est-subtema.jpg" alt="Subtema"><figcaption>Parte 1 de 2 con su video.</figcaption></figure>
+  <figure><img src="img/est-favorito.jpg" alt="Parte agregada a favoritos"><figcaption>Corazón: parte en Favoritos.</figcaption></figure>
+  <div class="body">
+    <h3>El subtema</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">← «Volver al curso»</td><td>Siempre.</td><td>Vuelve al curso.</td></tr>
+      <tr><td class="msg">«{curso} › {tema}» y el subtema</td><td>Siempre.</td><td>—</td></tr>
+      <tr><td class="msg">Libro «Temario»</td><td>Siempre.</td><td>Abre el panel Temario / Favoritos.</td></tr>
+      <tr><td class="msg">Corazón «Agregar a favoritos» / «Quitar de favoritos»</td><td>Marca la <b>parte abierta</b>. Desactivado si el subtema no tiene partes.</td><td>«Parte agregada a Favoritos. La verás en el Temario.» / «Quitada de Favoritos.» / «Inicia sesión para guardar tus favoritos.» / «No pudimos guardar el favorito.»</td></tr>
+      <tr><td class="msg">Barra de partes y «{done}/{total}» o «¡Completado! {done}/{total}»</td><td>Verde = parte aprobada; blanco = la abierta.</td><td>—</td></tr>
+      <tr><td class="msg">«PARTE {n} DE {t} · {min} MIN · INTERMEDIO»</td><td>Los minutos y la dificultad solo si la parte los tiene.</td><td>—</td></tr>
+      <tr><td class="msg">Video «CLASE EN VIDEO» · «Reproducir · {parte}»</td><td>Si la parte tiene un enlace válido de YouTube. ✔ si ya está revisado.</td><td>Abre el reproductor.</td></tr>
+      <tr><td class="msg">«SIGUIENTE RECOMENDADA · Parte {n} de {t} · {nombre}»</td><td>La parte abierta ya está aprobada y queda otra sin aprobar.</td><td>Va a esa parte.</td></tr>
+      <tr><td class="msg">«Este subtema todavía no tiene partes publicadas.»</td><td>Sin partes activas.</td><td>—</td></tr>
+      <tr><td class="msg">‹ · «Parte {n} de {t}» · ›</td><td>Barra inferior.</td><td>Cambia de parte. El botón central abre «Ir a una parte».</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen two" id="est-ruta">
+  <figure><img src="img/est-ruta.jpg" alt="Tu ruta al inicio"><figcaption>Al empezar: examen con candado.</figcaption></figure>
+  <figure><img src="img/est-ruta-lista.jpg" alt="Tu ruta completa"><figcaption>Todo revisado: «¡Repasaste todo!».</figcaption></figure>
+  <div class="body">
+    <h3>Tu ruta</h3>
+    <p>Lista los pasos de la parte. Solo aparecen las secciones que tienen contenido: Video (si hay video), Lección, Ejemplos, Repasar (si hay tarjetas), Repaso relámpago (opcional, si hay preguntas rápidas), Recursos y el Examen.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«Tu ruta · {done} de {total}» y «{n} %»</td><td><code>total</code> = secciones obligatorias + el examen (máximo 6). El Repaso relámpago no cuenta.</td></tr>
+    </table></div>
+    <h4>Lo que dice el búho (en este orden de prioridad)</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«¡Completaste esta parte! Sigue con la siguiente.»</td><td>Todo revisado y examen aprobado.</td></tr>
+      <tr><td class="msg">«¡Repasaste todo! Ya puedes rendir el examen de esta parte.»</td><td>Todo revisado y examen sin aprobar.</td></tr>
+      <tr><td class="msg">«Te toca {sección}: {detalle}.»</td><td>Primera sección sin revisar. Ej.: «Te toca Video: Clase en video.», «Te toca Lección: 2 min de lectura.».</td></tr>
+    </table></div>
+    <h4>Estado de cada paso</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Estado</th><th>Cómo se ve</th></tr>
+      <tr><td class="msg">Revisado</td><td>«Revisado» en verde y ✔.</td></tr>
+      <tr><td class="msg">Siguiente</td><td>Pastilla «Siguiente» y borde azul en la primera sección pendiente.</td></tr>
+      <tr><td class="msg">Pendiente</td><td>Detalle (p. ej. «2 resueltos · 2 de práctica») y ›.</td></tr>
+      <tr><td class="msg">Repaso relámpago</td><td>«{n} preguntas» + «Opcional»; ya hecho: «Acertaste {c} de {t}».</td></tr>
+      <tr><td class="msg">Examen bloqueado</td><td>«Se abre al terminar la ruta» con candado.</td></tr>
+      <tr><td class="msg">Examen listo</td><td>«Al entregarlo, conocerás tu resultado.» + «Rendir».</td></tr>
+      <tr><td class="msg">Examen reprobado</td><td>«Aún no alcanzaste la meta. Puedes intentarlo de nuevo.» + «Rendir».</td></tr>
+      <tr><td class="msg">Examen aprobado</td><td>«¡Aprobaste! Ya puedes continuar.» Ya no se puede volver a rendir.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<h3 id="est-secciones">Las secciones</h3>
+<p>Cada sección se abre en una hoja. Queda <b>«Revisado» al cerrarla</b> si estuvo abierta al menos el tiempo mínimo <span class="chip info">ADMIN</span> (5 s). El video, en cambio, exige ver de verdad un porcentaje <span class="chip info">ADMIN</span> (60 %); adelantar no cuenta. Al pie, «Siguiente: {sección}» cierra la hoja y abre la que sigue.</p>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">«Dedica al menos {s} segundos a «{sección}» para marcarla como revisada.»</td><td>Cerraste antes del mínimo. Hoy sale también si ya estaba revisada.</td></tr>
+  <tr><td class="msg">«Tu revisión quedó guardada. Confirmaremos tu avance cuando vuelvas a abrir el examen.»</td><td>Se guardó en el teléfono, pero el servidor no respondió.</td></tr>
+  <tr><td class="msg">«Video registrado como estudiado.»</td><td>Llegaste al porcentaje mínimo del video.</td></tr>
+  <tr><td class="msg">«El enlace de video no es válido.»</td><td>El enlace no es de YouTube.</td></tr>
+</table></div>
+
+<div class="screen two">
+  <figure><img src="img/est-video.jpg" alt="Videos del subtema"><figcaption>Video.</figcaption></figure>
+  <figure><img src="img/est-leccion-puntos.jpg" alt="Lección"><figcaption>Lección: pestañas con ✔.</figcaption></figure>
+  <div class="body">
+    <h4>Video</h4>
+    <p>Hoja «Videos del subtema» con «Parte N de M · {nombre}», el reproductor y la lista de todos los videos del subtema. «Anterior» / «Siguiente» cambian de video; ver el de otra parte marca esa parte.</p>
+    <h4>Lección</h4>
+    <p>Pestañas «Resumen», «Objetivos», «Puntos clave» y «Fórmulas» (solo las que tienen contenido) y una barra de lectura. El Resumen trae el globo del búho «EN CORTO»; Objetivos se titula «Qué aprenderás»; Fórmulas, «Fórmulas importantes», con LaTeX. El detalle «{n} min de lectura» se calcula a 180 palabras por minuto.</p>
+  </div>
+</div>
+<div class="screen two">
+  <figure><img src="img/est-ejemplos-paso.jpg" alt="Ejemplos resueltos"><figcaption>Ejemplo con pasos ocultos.</figcaption></figure>
+  <figure><img src="img/est-practica.jpg" alt="Practica"><figcaption>«Intenta primero».</figcaption></figure>
+  <div class="body">
+    <h4>Ejemplos</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«Resueltos · {n}» | «Practica · {n}»</td><td>Si hay ambos tipos.</td></tr>
+      <tr><td class="msg">«EJEMPLO {n} DE {t}», «🔒 Intenta este paso antes de verlo», «Ver paso {n}», «Ver respuesta», «RESPUESTA»</td><td>Ejemplo resuelto: los pasos se revelan de a uno.</td></tr>
+      <tr><td class="msg">«BÁSICA / INTERMEDIA / AVANZADA», «INTENTA PRIMERO», «Tu respuesta», «Comprobar»</td><td>Ejercicio con respuesta corta (una línea, valor final de 20 caracteres o menos).</td></tr>
+      <tr><td class="msg">«¡Correcto! Compara tu procedimiento con la solución.»</td><td>Acertaste; la solución se abre sola. Acepta formas equivalentes: «x = 4» y «4», 0,5 y 1/2, mayúsculas y tildes.</td></tr>
+      <tr><td class="msg">«Aún no. Revisa tu procedimiento, pide una pista o mira la solución.»</td><td>Respuesta distinta.</td></tr>
+      <tr><td class="msg">«Pista» / «Ver solución»</td><td>Si el ejercicio tiene pista / siempre.</td></tr>
+    </table></div>
+  </div>
+</div>
+<div class="screen two">
+  <figure><img src="img/est-repasar-rev.jpg" alt="Repasar"><figcaption>Repasar: tarjeta volteada.</figcaption></figure>
+  <figure><img src="img/est-relampago-resp.jpg" alt="Repaso relámpago"><figcaption>Repaso relámpago.</figcaption></figure>
+  <div class="body">
+    <h4>Repasar (tarjetas)</h4>
+    <p>«Te quedan {n} tarjetas». La tarjeta muestra «PREGUNTA · Toca para revelar» y, al voltear, «RESPUESTA». Luego «¿Te la sabías?» con «Otra vez» (vuelve al final del mazo) o «¡La sabía!». Al final: «¡Terminaste! Sabías {k} de {t} a la primera.» y «Repasar de nuevo».</p>
+    <h4>Repaso relámpago (opcional)</h4>
+    <p>«Pregunta {n} de {t}» con alternativas. Al elegir: «¡Correcto!» o «Casi. La correcta es la {letra}.» y la explicación. Al final: «Acertaste {c} de {t}» y «¡Perfecto! Estás listo para el examen de la parte.» o «Repasa las que fallaste y vuelve a intentarlo.». No cuenta para el avance y el puntaje no se guarda.</p>
+  </div>
+</div>
+<div class="screen">
+  <figure><img src="img/est-recursos.jpg" alt="Recursos"><figcaption>Recursos: guía en PDF.</figcaption></figure>
+  <div class="body">
+    <h4>Recursos</h4>
+    <p>«MATERIAL PRINCIPAL · Guía de estudio en PDF» con «Ver PDF» y compartir. El visor muestra «PDF {n} de {t}», «Descargar PDF» y «Llegaste al final del PDF.». Si falla: «No pudimos descargar el PDF. Revisa tu conexión e inténtalo nuevamente.». También puede haber «Imágenes · {n}» y «Enlaces · {n}» («No pudimos abrir este recurso.»).</p>
+  </div>
+</div>
+
+<div class="screen two" id="est-examen">
+  <figure><img src="img/est-examen1.jpg" alt="Antes de comenzar"><figcaption>Antes de comenzar.</figcaption></figure>
+  <figure><img src="img/est-examen-result.jpg" alt="Resultado del examen"><figcaption>Resultado: «¡Aprobaste!».</figcaption></figure>
+  <div class="body">
+    <h3>Examen de la parte</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«Preparando tus preguntas · Elegimos las preguntas de tu examen. Solo tomará unos segundos.»</td><td>Al tocar «Rendir», mientras el servidor arma el examen. Antes se confirman las secciones revisadas; si eso falla, no entra.</td></tr>
+      <tr><td class="msg">«Esta parte todavía no tiene un examen disponible.»</td><td>La parte no tiene plantilla de examen asignada en el admin.</td></tr>
+      <tr><td class="msg">«TU EXAMEN DE ESTA PARTE» · «Demuestra lo que aprendiste»</td><td>Intro. Si la plantilla tiene un título propio, se usa ese.</td></tr>
+      <tr><td class="msg">«Preguntas {n}» · «Meta para aprobar {k} aciertos» · «Tiempo restante»</td><td>La meta es <code>floor(n × % / 100) + 1</code> <span class="chip info">ADMIN</span> (plantilla).</td></tr>
+      <tr><td class="msg">«Comenzar examen»</td><td>El reloj empieza en el servidor al tocarlo.</td></tr>
+      <tr><td class="msg">«Pregunta {n} de {t}», «{a}/{t} respondidas», «Pregunta tomada de {examen}»</td><td>Durante el examen.</td></tr>
+      <tr><td class="msg">«¿Entregar examen?» · «Tienes {n} preguntas pendientes…» · «Revisar» / «Entregar»</td><td>Al entregar.</td></tr>
+      <tr><td class="msg">«¿Pausar tu examen?» · «Seguir respondiendo» / «Pausar y salir»</td><td>Al salir. El reloj sigue corriendo.</td></tr>
+      <tr><td class="msg">«El tiempo del examen terminó.» / «Se terminó el tiempo. Ya no puedes cambiar tus respuestas.»</td><td>Se acabó el tiempo. <b>En la guía no se entrega solo</b>: el siguiente «Rendir» crea un examen nuevo.</td></tr>
+      <tr><td class="msg">«¡Aprobaste!» / «Aún no aprobaste»</td><td>Resultado. Se aprueba con más aciertos que el % de la plantilla (estricto).</td></tr>
+      <tr><td class="msg">«¡Buen trabajo! Revisa las secciones pendientes de esta parte para completar tu avance.»</td><td>Aprobaste pero falta alguna sección por confirmar.</td></tr>
+      <tr><td class="msg">«Revisión por pregunta»: «Correcta / Incorrecta / Sin responder», «Tu respuesta», «Respuesta correcta», «Explicación»</td><td>Siempre después de entregar.</td></tr>
+      <tr><td class="msg">«Volver a la parte» · «Continuar a la siguiente parte»</td><td>El segundo, si aprobaste y no es la última parte.</td></tr>
+      <tr><td class="msg">«Tu resultado está listo, pero aún no pudimos actualizar tu avance. Inténtalo de nuevo más tarde.»</td><td>El servidor no devolvió el progreso de la parte.</td></tr>
+    </table></div>
+    <p>Si repruebas, puedes volver a rendir sin límite, con preguntas nuevas. Un examen pausado se retoma con las mismas preguntas.</p>
+  </div>
+</div>
+
+<div class="screen two" id="est-celebraciones">
+  <figure><img src="img/est-parte-completada.jpg" alt="Parte completada"><figcaption>Parte completada.</figcaption></figure>
+  <figure><img src="img/est-logro-subtema.jpg" alt="Logro conseguido"><figcaption>Subtema completado: plata.</figcaption></figure>
+  <div class="body">
+    <h3>Celebraciones</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«¡Parte completada!» · «Tu estudio y evaluación quedaron registrados.» · «Siguiente parte» / «Continuar»</td><td>Al completar una parte que no cierra el subtema.</td></tr>
+      <tr><td class="msg">«SUBTEMA COMPLETADO · ¡Logro conseguido!» (plata)</td><td>El servidor confirma que completaste todas las partes.</td></tr>
+      <tr><td class="msg">«…Ahora rinde el examen de dominio para conseguir la medalla de oro.» + «Rendir examen de dominio»</td><td>Además, el subtema tiene examen de dominio y no está dominado.</td></tr>
+      <tr><td class="msg">«…Puedes verlo en Mis logros.»</td><td>Completado, sin examen de dominio.</td></tr>
+      <tr><td class="msg">«Todas las partes están verificadas. Tu logro aparecerá cuando podamos confirmar la actualización.»</td><td>El servidor aún no confirma (sin red o retraso).</td></tr>
+      <tr><td class="msg">«TEMA COMPLETADO · ¡Completaste {tema}!» con medallas y «Siguiente tema»</td><td>En lugar de la anterior, cuando el subtema cierra todo el tema.</td></tr>
+    </table></div>
+    <h4>Panel de logro arriba del subtema</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«Tu camino en este subtema · {v} de {t} partes verificadas»</td><td>Todas las partes aprobadas en el teléfono, pero el servidor aún no confirma.</td></tr>
+      <tr><td class="msg">«Logro de subtema conseguido»</td><td>Plata confirmada.</td></tr>
+      <tr><td class="msg">«Examen de dominio disponible · Consigue el Dominio del subtema · Rendir»</td><td>Plata, con examen de dominio, sin oro.</td></tr>
+      <tr><td class="msg">«Subtema dominado · Dominado el dd/mm/aaaa»</td><td>Oro.</td></tr>
+      <tr><td class="msg">«No pudimos confirmar tus logros · Reintentar»</td><td>Falló el resumen y no hay copia guardada.</td></tr>
+    </table></div>
+    <p>Al entrar a un subtema completo sin oro, puede aparecer la invitación «¡Completaste todas las partes!» con «Rendir ahora» / «Más tarde». «Más tarde» la pospone 24 h.</p>
+  </div>
+</div>
+
+<div class="screen two" id="est-dominio">
+  <figure><img src="img/est-dominio-intro.jpg" alt="Examen de dominio"><figcaption>Intro del examen de dominio.</figcaption></figure>
+  <figure><img src="img/est-dom-celebra2.jpg" alt="Dominaste"><figcaption>Oro: «¡Dominaste Sucesiones!».</figcaption></figure>
+  <div class="body">
+    <h3>Examen de dominio</h3>
+    <p>Usa la misma pantalla que el examen de la parte, con estas diferencias:</p>
+    <ul>
+      <li>Arriba dice «EXAMEN DE DOMINIO»; el título es «Examen de dominio: {subtema}».</li>
+      <li>El resultado dice «¡Dominio conseguido!» si apruebas; el botón es «Volver al subtema».</li>
+      <li>Se puede reintentar sin límite hasta dominarlo; después ya no se ofrece.</li>
+    </ul>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«DOMINIO DEL SUBTEMA · ¡Dominaste {subtema}!» · «{c} de {t} correctas · {p} %»</td><td>Al aprobarlo por primera vez. Botones «Siguiente subtema», «Ver mis logros», «Cerrar».</td></tr>
+      <tr><td class="msg">«Aún falta confirmar que completaste este subtema…»</td><td>El servidor todavía no registra la plata.</td></tr>
+      <tr><td class="msg">«El examen de dominio de este subtema no está disponible por ahora.»</td><td>Plantilla inexistente o no publicada.</td></tr>
+    </table></div>
+    <p>El dorado de la app está reservado para el dominio.</p>
+  </div>
+</div>
+
+<div class="screen two" id="est-temario">
+  <figure><img src="img/est-temario.jpg" alt="Temario"><figcaption>Temario.</figcaption></figure>
+  <figure><img src="img/est-favoritos.jpg" alt="Favoritos"><figcaption>Favoritos.</figcaption></figure>
+  <div class="body">
+    <h3>Temario y Favoritos</h3>
+    <p>Se abre con el libro de la cabecera. Arriba: nombre del curso y «{c} de {t} subtemas completados».</p>
+    <ul>
+      <li><b>Temario</b>: temas y subtemas con «Dominado», «Completado», «{v} de {t} partes» o «{n} partes», y cada parte como «Completada», «Estás aquí» o «Pendiente». Tocar una parte la abre.</li>
+      <li><b>Favoritos ({n})</b>: las partes marcadas con el corazón, agrupadas por subtema. Vacío: «Aún no tienes favoritos · Toca el corazón arriba a la derecha de una parte para guardarla aquí y volver a ella rápido.».</li>
+      <li>Los favoritos se guardan en tu cuenta y se ven en cualquier teléfono; funcionan sin conexión y se suben después.</li>
+      <li>El botón «Parte {n} de {t}» abre otra lista más simple, «Ir a una parte», con «Estás aquí».</li>
+    </ul>
+  </div>
+</div>
+
+<div class="screen" id="est-logros">
+  <figure><img src="img/est-logros.jpg" alt="Mis logros"><figcaption>Mis logros (Perfil).</figcaption></figure>
+  <div class="body">
+    <h3>Mis logros</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«{n} Subtema(s) completado(s)» · «{n} Subtema(s) dominado(s)»</td><td>Siempre, con datos del servidor.</td></tr>
+      <tr><td class="msg">«TU PRÓXIMO OBJETIVO · Rinde el examen de dominio de {subtema}» + «Rendir examen»</td><td>Prioridad 1: hay un subtema completo sin oro.</td></tr>
+      <tr><td class="msg">«Completa {subtema}» + «Continuar»</td><td>Prioridad 2: primer subtema sin medalla de un curso donde ya tienes alguna.</td></tr>
+      <tr><td class="msg">«Empieza con {subtema}» + «Empezar»</td><td>Prioridad 3: aún no tienes medallas.</td></tr>
+      <tr><td class="msg">«Tu colección» · medallas gris / plata / oro</td><td>Por curso y tema. «Plata al completar un subtema; oro al aprobar su examen de dominio.».</td></tr>
+      <tr><td class="msg">«Conseguidos recientemente»</td><td>Hasta 5 de cada tipo, con fecha.</td></tr>
+      <tr><td class="msg">«No pudimos cargar tus logros · Tu avance sigue a salvo…»</td><td>Error sin copia guardada (si hay copia, se muestra esa tras 8 s).</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ============================================================ SIMULADOR -->
+<h2 id="sim"><span class="chip sim">SIMULADOR</span><br>Simulador</h2>
+<p>Dos caminos conviven: el <b>plan guiado</b> (la app propone qué practicar cada día) y el <b>modo libre</b> (el alumno elige). Todos los exámenes usan la misma pantalla, los califica el servidor y alimentan el historial, las estadísticas, la semana y la racha.</p>
+<pre class="mermaid">
+flowchart LR
+  I[Inicio del Simulador] --> P{¿Tiene meta?}
+  P -->|no| M[Tu meta]
+  P -->|sí, sin exámenes| D[Diagnóstico inicial]
+  P -->|sí, día de simulacro| S[Simulacro semanal: examen pasado]
+  P -->|sí| H[Hoy te toca: 10 preguntas]
+  I --> L[Elige tu examen: Por curso · Mezcla · Aleatorio · Examen pasado]
+  D & S & H & L --> E[Pantalla del examen] --> R[Resultado] --> X[Revisar · Mis errores · Historial · Stats]
+</pre>
+
+<div class="screen two" id="sim-inicio">
+  <figure><img src="img/sim-inicio-nuevo.jpg" alt="Simulador de un alumno nuevo"><figcaption>Sin simulacros y sin plan.</figcaption></figure>
+  <figure><img src="img/sim-inicio-diagnostico.jpg" alt="Simulador con plan"><figcaption>Con meta: semana y diagnóstico.</figcaption></figure>
+  <div class="body">
+    <h3>Inicio del Simulador</h3>
+    <p>Pestaña «Simulador». De arriba abajo: cabecera con la tarjeta bajo el búho, tarjeta del plan, «Elige tu examen» y «Tu progreso e historial».</p>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">Chip «{universidad} · {carrera}»</td><td>Si el perfil los tiene.</td><td>Nada.</td></tr>
+      <tr><td class="msg">«Simulador» · «Practica con exámenes como el real.»</td><td>Siempre.</td><td>—</td></tr>
+      <tr><td class="msg">«Elige tu examen»: «Por curso · Un curso y sus temas», «Mezcla de cursos · Tú eliges cuáles», «Aleatorio · De todos tus cursos», «Examen pasado · Completo, como fue»</td><td>Siempre, con o sin plan.</td><td>Los tres primeros abren Arma tu práctica en esa pestaña; el cuarto, Exámenes pasados.</td></tr>
+      <tr><td class="msg">«Tu progreso e historial»</td><td>Siempre.</td><td>Abre el historial.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<h3 id="sim-banner">La tarjeta bajo el búho</h3>
+<p>Es la tarjeta dentro de la cabecera morada, debajo del título y del búho. Tiene <b>dos variantes</b> y depende solo de cuántos exámenes del Simulador entregaste: cuenta todos los tipos (examen pasado, prácticas, «Hoy te toca», diagnóstico y «Mis errores»), hasta 200.</p>
+<div class="screen two">
+  <figure><img src="img/sim-inicio-nuevo.jpg" alt="Variante sin simulacros"><figcaption>Variante A: sin simulacros.</figcaption></figure>
+  <figure><img src="img/sim-inicio-sinplan.jpg" alt="Variante con simulacros"><figcaption>Variante B: con simulacros.</figcaption></figure>
+  <div class="body">
+    <div class="table-wrap"><table>
+      <tr><th>Variante</th><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">A</td><td>▶ «Aún no rindes simulacros» · «Empieza con un examen de admisión»</td><td>No has entregado ningún examen del Simulador. También se ve <b>mientras cargan</b> tus resultados o si fallan al cargar.</td><td>Abre Exámenes pasados.</td></tr>
+      <tr><td class="msg">B</td><td>«{p}%» · «Tus simulacros» · «{n} simulacros · {m} preguntas»</td><td>Desde tu primer examen entregado. <code>{p}</code> = correctas ÷ (correctas + incorrectas): <b>las preguntas en blanco no cuentan</b>. <code>{m}</code> suma todas las preguntas, incluidas las en blanco.</td><td>Abre Tu progreso e historial.</td></tr>
+    </table></div>
+    <p>Ejemplo de la captura B: 3 simulacros con 68 preguntas y 20 % de acierto sobre las respondidas.</p>
+  </div>
+</div>
+
+<div class="screen two" id="sim-plan">
+  <figure><img src="img/sim-inicio-sinplan.jpg" alt="Arma tu plan"><figcaption>Sin meta: «Arma tu plan».</figcaption></figure>
+  <figure><img src="img/sim-inicio-plan.jpg" alt="Hoy te toca"><figcaption>Con meta: «Hoy te toca».</figcaption></figure>
+  <div class="body">
+    <h3>Tarjeta del plan</h3>
+    <p>No aparece hasta que cargan tu meta y tus resultados. Muestra <b>una</b> de estas tarjetas, evaluadas en este orden:</p>
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="num">1</td><td class="msg">«Arma tu plan» · «Te diré qué practicar cada día según tus errores. Siempre podrás elegir otro examen.» · «Crear mi plan»</td><td>No tienes meta.</td><td>Abre Tu meta.</td></tr>
+      <tr><td class="num">2</td><td class="msg">«TU PRIMERA SESIÓN · Diagnóstico inicial» · «Un examen corto para saber en qué temas vas bien y en cuáles no.» · «Ver diagnóstico»</td><td>Tienes meta y ningún examen del Simulador entregado.</td><td>Abre el Diagnóstico.</td></tr>
+      <tr><td class="num">3</td><td class="msg">«HOY TE TOCA · SIMULACRO» · «Simulacro semanal» · «Rinde un examen pasado completo, con su tiempo y su puntaje.» · «Elegir examen pasado»</td><td>Hoy es tu día de simulacro y no entregaste un examen pasado desde el lunes.</td><td>Abre Exámenes pasados.</td></tr>
+      <tr><td class="num">4</td><td class="msg">«HOY TE TOCA · PLAN» · «Sesión del día» · «{10} preguntas · {15} min» · «Empezar sesión»</td><td>En cualquier otro caso, si hoy no hiciste una sesión.</td><td>Crea «Hoy te toca», <b>siempre con reloj</b>.</td></tr>
+      <tr><td class="num">4b</td><td class="msg">«SESIÓN DE HOY CUMPLIDA» (borde verde) · «Otra sesión»</td><td>Igual, pero hoy ya hiciste una sesión.</td><td>Crea otra sesión.</td></tr>
+    </table></div>
+    <h4>El recuadro «¿Por qué?»</h4>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«¿Por qué? Fallaste {x} de {y} en {tema}. Más preguntas serán de ese tema.»</td><td>Tienes un tema débil: al menos 5 respuestas <span class="chip info">ADMIN</span> y menos del 50 % de acierto <span class="chip info">ADMIN</span>. Se nombra el más débil (menor %; si empatan, el de más respuestas). Si los cursos no cargaron, se ve el id del tema.</td></tr>
+      <tr><td class="msg">«¿Por qué? Aún no hay un tema débil: practicas un poco de todos tus cursos.»</td><td>Ningún tema cumple la regla.</td></tr>
+      <tr><td class="msg">(sin recuadro)</td><td>El admin apagó «Mostrar ¿Por qué?».</td></tr>
+    </table></div>
+    <div class="note">
+      <p><b>Sí se cumple.</b> Al tocar «Empezar sesión», el servidor arma 10 preguntas <span class="chip info">ADMIN</span>:</p>
+      <ul>
+        <li>el 60 % <span class="chip info">ADMIN</span> (6 preguntas) sale de tus temas débiles, hasta 3, repartidas entre ellos;</li>
+        <li>el resto sale de hasta 3 cursos al azar.</li>
+      </ul>
+      <p>Sin temas débiles, las 10 se reparten entre los cursos. Dentro de cada tema van primero las preguntas que no viste en 14 días <span class="chip info">ADMIN</span>.</p>
+      <p>Un tema deja de ser débil cuando pasa del 50 % con 5 o más respuestas. Cuentan los aciertos de <b>todos</b> los exámenes del Simulador.</p>
+    </div>
+  </div>
+</div>
+
+<h3 id="sim-semana">Semana y racha (con meta)</h3>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">«faltan {n} días» / «falta 1 día» / «tu examen es este mes»</td><td>Si elegiste mes de examen. Cuenta hasta el <b>día 1</b> de ese mes; desde el día 2 del mes el chip desaparece. Con «Aún no sé» no aparece.</td></tr>
+  <tr><td class="msg">«{n} días seguidos»</td><td>Racha: días seguidos con sesión, tolerando 1 día vacío <span class="chip info">ADMIN</span>. Hoy sin sesión todavía no la corta.</td></tr>
+  <tr><td class="msg">«{h} de {meta} sesiones esta semana»</td><td><code>h</code> = días distintos con sesión desde el lunes (dos exámenes el mismo día cuentan 1).</td></tr>
+  <tr><td class="msg">Franja L M M J V S D</td><td>✓ día con sesión; «Hoy» si hoy aún no; ★ día de simulacro futuro; gris el resto.</td></tr>
+</table></div>
+<p><b>Qué cuenta como sesión:</b> cualquier examen del Simulador entregado con 10 o más preguntas <span class="chip info">ADMIN</span>, sea del plan o libre. El admin puede limitarlo a sesiones del plan.</p>
+
+<div class="screen" id="sim-meta">
+  <figure><img src="img/sim-meta.jpg" alt="Tu meta"><figcaption>Tu meta.</figcaption></figure>
+  <div class="body">
+    <h3>Tu meta</h3>
+    <p>Se abre con «Crear mi plan» o, si ya existe, con la bandera «Editar meta» del historial (es el único acceso para editarla).</p>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Valor inicial / regla</th></tr>
+      <tr><td class="msg">Búho: «Armemos tu plan. Te diré qué practicar cada día, y siempre podrás elegir otro examen.»</td><td>—</td></tr>
+      <tr><td class="msg">«Postulas a {carrera} · de tu perfil»</td><td>Solo lectura; sale del perfil.</td></tr>
+      <tr><td class="msg">«¿CUÁNDO DAS TU EXAMEN?» (12 meses + «Aún no sé»)</td><td>Ninguno marcado al crear; guardar sin elegir = «Aún no sé».</td></tr>
+      <tr><td class="msg">«SESIONES POR SEMANA» 3 · 5 · 7 y «recomendado»</td><td>5 <span class="chip info">ADMIN</span>. «Cada sesión: unos 15 minutos.»</td></tr>
+      <tr><td class="msg">«DÍA DEL SIMULACRO COMPLETO» L…D</td><td>Sábado <span class="chip info">ADMIN</span>.</td></tr>
+      <tr><td class="msg">«Recordatorio diario» · «19:00 · Guardamos tu hora; los avisos llegan en una próxima versión.»</td><td>Apagado. La hora no se edita y todavía no hay notificaciones.</td></tr>
+      <tr><td class="msg">«Crear mi plan» / «Guardar meta» · «Ahora no, solo quiero practicar»</td><td>Se guarda en tu perfil. Si falla: «No pudimos cargar esta información. Intenta de nuevo.»</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen" id="sim-diagnostico">
+  <figure><img src="img/sim-diagnostico.jpg" alt="Diagnóstico inicial"><figcaption>Diagnóstico inicial.</figcaption></figure>
+  <div class="body">
+    <h3>Diagnóstico inicial</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Qué pasa realmente</th></tr>
+      <tr><td class="msg">«Aún no sé en qué temas vas bien y en cuáles no. Con este examen corto armo tu plan desde mañana.»</td><td>—</td></tr>
+      <tr><td class="msg">«4× preguntas» · «30' aprox.» · «0 penalidad»</td><td>4 preguntas de cada curso con preguntas cargadas <span class="chip info">ADMIN</span>. Los 30 min son solo un texto: el diagnóstico <b>no tiene reloj</b> (cierra a las 4 h).</td></tr>
+      <tr><td class="msg">Consejos 1-3 («déjala en blanco…», «verás tu resultado por curso y tema», «cuenta como tu primera sesión»)</td><td>Cuenta como sesión solo si junta 10 o más preguntas (3 cursos o más).</td></tr>
+      <tr><td class="msg">«Empezar diagnóstico» · «Hacerlo después»</td><td>Al terminar se vuelve al inicio del Simulador.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen" id="sim-practica">
+  <figure><img src="img/sim-practica.jpg" alt="Arma tu práctica"><figcaption>Arma tu práctica.</figcaption></figure>
+  <div class="body">
+    <h3>Arma tu práctica</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">Pestañas «Por curso» · «Mezcla» · «Aleatorio»</td><td>Cambiar de pestaña borra los temas elegidos.</td></tr>
+      <tr><td class="msg">«CURSO · elige uno» / «CURSOS · elige 2 o más»</td><td>Por curso / Mezcla (máximo 10).</td></tr>
+      <tr><td class="msg">«Te damos preguntas de hasta 3 de tus cursos, elegidos al azar.»</td><td>Aleatorio.</td></tr>
+      <tr><td class="msg">«Toca los temas que quieras practicar; sin elegir ninguno entran todos.» · «todos los temas» / «{n} temas»</td><td>Por curso, con curso elegido.</td></tr>
+      <tr><td class="msg">«¿CUÁNTO TIEMPO TIENES?» Corto 10 · 15 min · <b>Normal 20 · 30 min</b> · Largo 40 · 60 min</td><td>Tamaños <span class="chip info">ADMIN</span>. No se escribe la cantidad.</td></tr>
+      <tr><td class="msg">«Con reloj» / «Sin reloj respondes a tu ritmo.»</td><td>Activado por defecto <span class="chip info">ADMIN</span>.</td></tr>
+      <tr><td class="msg">«Elige un curso» / «Elige al menos 2 cursos» (botón gris)</td><td>Falta elegir.</td></tr>
+      <tr><td class="msg">«Empezar · 20 preguntas · 30 min»</td><td>Listo. Primero salen preguntas no vistas en 14 días <span class="chip info">ADMIN</span>; si faltan, se repiten.</td></tr>
+      <tr><td class="msg">«Aún no hay cursos disponibles.»</td><td>Sin cursos.</td></tr>
+    </table></div>
+    <p>El examen se titula «Práctica · {tamaño}» y el resultado se muestra en % de aciertos.</p>
+  </div>
+</div>
+
+<div class="screen" id="sim-pasados">
+  <figure><img src="img/sim-pasados.jpg" alt="Exámenes pasados"><figcaption>UNPRG: 4 exámenes ordinarios.</figcaption></figure>
+  <div class="body">
+    <h3>Exámenes pasados</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+      <tr><td class="msg">«DE TU UNIVERSIDAD · UNPRG»</td><td>Exámenes activos con reglas del Simulador, del más nuevo al más viejo.</td><td>—</td></tr>
+      <tr><td class="msg">«Ordinario 2026-II» + «Más reciente»</td><td>Título = modalidad + año + periodo; la insignia va en el primero.</td><td>Lo selecciona.</td></tr>
+      <tr><td class="msg">«Aún no lo rindes» / «Tu mejor: {n}»</td><td>Según tu mejor puntaje guardado en el servidor.</td><td>—</td></tr>
+      <tr><td class="msg">«· ingreso a {carrera}: {n}»</td><td>Si el admin cargó el mínimo de tu carrera para ese examen.</td><td>—</td></tr>
+      <tr><td class="msg">🔒 «Pronto · cargamos {x} de {y} preguntas»</td><td>Solo si el admin desactiva «ocultar incompletos» (por defecto se ocultan).</td><td>No se puede tocar.</td></tr>
+      <tr><td class="msg">«Reglas de {examen}»: preguntas · minutos «sin pausa» · puntaje · «Resta» / «No resta» incorrecta</td><td>Examen seleccionado.</td><td>—</td></tr>
+      <tr><td class="msg">«Solo se rinden exámenes con todas sus preguntas, para que el puntaje sea comparable con el real.»</td><td>Siempre con reglas.</td><td>—</td></tr>
+      <tr><td class="msg">«OTRAS UNIVERSIDADES · para practicar más»</td><td>Si el admin lo permite y hay otras universidades visibles (aparecen aunque no tengan exámenes).</td><td>Abre sus exámenes, sin nota de ingreso.</td></tr>
+      <tr><td class="msg">«Aún no hay exámenes pasados completos de esta universidad.»</td><td>Sin exámenes, o el perfil no tiene universidad.</td><td>—</td></tr>
+      <tr><td class="msg">«Comenzar examen · 2:00:00»</td><td>Con examen elegido.</td><td>Crea el examen.</td></tr>
+    </table></div>
+    <p>Con orden «original», las preguntas salen como en el examen real (1, 2, 3…); si no, se mezclan preguntas y alternativas.</p>
+  </div>
+</div>
+
+<div class="screen two" id="sim-examen">
+  <figure><img src="img/sim-pregunta.jpg" alt="Pregunta"><figcaption>Pregunta 1 de 60 con fórmula.</figcaption></figure>
+  <figure><img src="img/sim-mapa.jpg" alt="Mapa de preguntas"><figcaption>Resumen de preguntas.</figcaption></figure>
+  <div class="body">
+    <h3>Durante el examen</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«Preparando tus preguntas»</td><td>Mientras el servidor arma el examen (espera hasta 20 s).</td></tr>
+      <tr><td class="msg">«EXAMEN PASADO» / «PRÁCTICA» · título · «Antes de comenzar»</td><td>Intro. El reloj empieza al tocar «Comenzar examen».</td></tr>
+      <tr><td class="msg">«Duración · Sin reloj» / «Duración 02:00:00» / «Tiempo restante»</td><td>Sin reloj, con reloj sin empezar, o examen retomado.</td></tr>
+      <tr><td class="msg">«Puedes marcar preguntas para volver a ellas, usar la pizarra… Si se acaba el tiempo, se entrega solo.»</td><td>Siempre en el Simulador.</td></tr>
+      <tr><td class="msg">«Pregunta {n} de {t}» · reloj · «{a}/{t} respondidas»</td><td>Durante el examen.</td></tr>
+      <tr><td class="msg">«Pregunta tomada de {examen}»</td><td>Todo menos examen pasado.</td></tr>
+      <tr><td class="msg">«Marcar para revisar» / «Quitar marca»</td><td>Las marcas se pierden si pausas.</td></tr>
+      <tr><td class="msg">Lápiz «Pizarra» · cuadrícula «Resumen de preguntas»</td><td>La pizarra es por pregunta y se pierde al salir. El resumen colorea: actual (azul), marcada (ámbar), respondida, pendiente.</td></tr>
+      <tr><td class="msg">«Tus respuestas siguen seleccionadas · No pudimos respaldarlas por ahora… · Reintentar»</td><td>Falló el guardado automático.</td></tr>
+      <tr><td class="msg">«¿Entregar examen?» / «¿Pausar tu examen?»</td><td>Igual que en la guía.</td></tr>
+      <tr><td class="msg">«Se acabó el tiempo. Entregamos tu examen con lo que marcaste.»</td><td>Fin del reloj: se entrega solo. Si esa entrega falla (sin red), no hay forma de reintentar.</td></tr>
+      <tr><td class="msg">«Estamos revisando tus respuestas. En un momento verás tu resultado.»</td><td>Mientras se califica.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen two" id="sim-resultado">
+  <figure><img src="img/sim-res-oficial.jpg" alt="Resultado de examen pasado"><figcaption>Examen pasado: 33 de 1000.</figcaption></figure>
+  <figure><img src="img/sim-res-practica.jpg" alt="Resultado de práctica"><figcaption>Práctica: % de aciertos.</figcaption></figure>
+  <div class="body">
+    <h3>Resultado</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«{examen} · examen pasado» · «{puntaje} de {1000}»</td><td>Examen pasado. Puntaje = <code>redondeo(máx(0, bruto) × 1000 ÷ (N × puntos por correcta))</code>; todo bien = 1000.</td></tr>
+      <tr><td class="msg">«+{n} vs. anterior» / «−{n} vs. anterior» / «Igual que la vez anterior»</td><td>Si ya habías rendido ese examen.</td></tr>
+      <tr><td class="msg">Anillo «{p}%» · «{c} de {t}» · «{min} min»</td><td>Práctica, plan, diagnóstico y errores.</td></tr>
+      <tr><td class="msg">«¿Te alcanzaba para {carrera}?» · barra «Ingreso {x}» / «Tú {y}»</td><td>Examen pasado de tu universidad con mínimo cargado para tu carrera. Sin mínimo, la tarjeta no aparece.</td></tr>
+      <tr><td class="msg">«¡Te alcanzaba! · Superaste el mínimo por {n} puntos.»</td><td>Puntaje ≥ mínimo.</td></tr>
+      <tr><td class="msg">«Te faltaron {n} puntos · Son unas {k} respuestas correctas más.»</td><td>Puntaje &lt; mínimo. <code>k = techo(n × preguntas ÷ 1000)</code>.</td></tr>
+      <tr><td class="msg">«{c} correctas · {i} incorrectas · {b} en blanco»</td><td>Siempre.</td></tr>
+      <tr><td class="msg">«Por curso y tema»</td><td>Una barra por curso: verde ≥ 70 %, ámbar ≥ 50 %, rojo debajo.</td></tr>
+      <tr><td class="msg">«Lo que más te restó: {tema} ({c} de {t})» · «Ir a la guía»</td><td>El tema con más fallos o blancos. «Ir a la guía» abre el subtema y la parte de esa pregunta.</td></tr>
+      <tr><td class="msg">«Revisar respuestas» · «Practicar mis {n} errores» / «Volver al Simulador»</td><td>El segundo botón depende de si hubo errores o blancos.</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="screen two" id="sim-despues">
+  <figure><img src="img/sim-revision.jpg" alt="Revisión"><figcaption>Revisión por pregunta.</figcaption></figure>
+  <figure><img src="img/sim-progreso.jpg" alt="Historial"><figcaption>Tu progreso e historial.</figcaption></figure>
+  <div class="body">
+    <h3>Revisión, Mis errores, historial y estadísticas</h3>
+    <ul>
+      <li><b>Revisión por pregunta</b>: «Correcta», «Incorrecta» o «Sin responder», tu respuesta, la correcta y la «Explicación» (se oculta si el admin apaga las explicaciones <span class="chip info">ADMIN</span>).</li>
+      <li><b>Practicar mis errores</b>: examen «Mis errores» con lo que fallaste o dejaste en blanco, hasta 100 preguntas, mezcladas y en la misma versión. Lleva reloj (90 s por pregunta) solo si el original lo tenía.</li>
+      <li><b>Tu progreso e historial</b>:
+        <ul>
+          <li>«Temas · de menos a más aciertos»: hasta 8 temas con % y «Practicar», que abre la práctica con ese curso y tema.</li>
+          <li>Filtros «Todos / Plan / Libre / Oficial» y cada examen con «{c} de {t} · fecha» y su puntaje o %. Las fichas todavía no se pueden tocar.</li>
+          <li>Arriba, la bandera «Editar meta» y «Ver estadísticas».</li>
+          <li>Vacío: «Aún no entregas exámenes en el Simulador.».</li>
+        </ul></li>
+      <li><b>Stats</b>: precisión, preguntas y simulacros por periodo, y cursos fuertes y por mejorar, calculados con tus resultados del servidor. Vacío: «Aún no hay estadísticas · Rinde tu primer simulacro…» con «Ir al Simulador».</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="sim-errores">Mensajes de error del Simulador</h3>
+<p>Al crear un examen salen como aviso abajo; al entregar, en rojo. Al guardar respuestas nunca hay aviso, solo la franja «Reintentar».</p>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">«Este examen aún no tiene suficientes preguntas disponibles. Vuelve más tarde.»</td><td>No hay preguntas suficientes para lo pedido.</td></tr>
+  <tr><td class="msg">«Este examen no está disponible por ahora. Elige otro.»</td><td>Examen pasado oculto, inactivo o incompleto; curso, tema o tamaño no disponible.</td></tr>
+  <tr><td class="msg">«Completa la universidad en tu perfil antes de tomar este examen.»</td><td>Perfil sin universidad.</td></tr>
+  <tr><td class="msg">«No pudimos conectarnos. Revisa tu internet e inténtalo nuevamente.»</td><td>Sin red.</td></tr>
+  <tr><td class="msg">«Está tomando más tiempo de lo esperado. Reintenta para continuar con tu examen.»</td><td>20 s sin respuesta. Reintentar no duplica el examen (salvo en «Hoy te toca»).</td></tr>
+  <tr><td class="msg">«El tiempo de este examen terminó.» / «Este intento ya fue enviado. Puedes consultar su resultado.»</td><td>Examen vencido o ya entregado.</td></tr>
+  <tr><td class="msg">«No pudimos calificar este examen. Avísanos si vuelve a ocurrir.»</td><td>Falta la clave de alguna pregunta.</td></tr>
+  <tr><td class="msg">«No pudimos continuar ahora. Vuelve a intentarlo en unos momentos.»</td><td>Cualquier otro error, incluido «Mis errores» sin preguntas disponibles.</td></tr>
+</table></div>
+
+<!-- ============================================================ ADMIN -->
+<h2 id="admin">Lo que se cambia en el admin</h2>
+<div class="table-wrap"><table>
+  <tr><th>Dónde (admin)</th><th>Qué controla</th><th>Fábrica</th></tr>
+  <tr><td class="msg">Configuración → Revisión de la guía</td><td>Exigir tiempo y % de video; % mínimo de video; segundos mínimos por sección.</td><td>Sí · 60 % · 5 s</td></tr>
+  <tr><td class="msg">Cursos → Partes</td><td>Contenido de cada parte (video, lección, ejemplos, tarjetas, quiz, recursos), su examen y si está activa.</td><td>—</td></tr>
+  <tr><td class="msg">Cursos → Subtemas</td><td>Examen de dominio («Examen integrador») del subtema.</td><td>—</td></tr>
+  <tr><td class="msg">Plantillas de examen</td><td>Preguntas, duración y % para aprobar de cada examen de parte o dominio.</td><td>60 min si no tiene duración</td></tr>
+  <tr><td class="msg">Configuración → Simulador</td><td>Tamaños de práctica, reloj por defecto, penalidad, días sin repetir, origen y dificultad, otras universidades, ocultar incompletos, explicaciones.</td><td>10/20/40 · sí · no · 14 · ambos · mixta · sí · sí · sí</td></tr>
+  <tr><td class="msg">Configuración → Plan de entrenamiento</td><td>Sesiones por semana y recomendada, tamaño de la sesión, % de temas débiles, umbral y respuestas mínimas, diagnóstico, «¿Por qué?», día de simulacro, hora de recordatorio, mínimo para contar sesión, gracia de la racha, si cuentan los exámenes libres.</td><td>3/5/7 · 5 · 10 preg./15 min · 60 % · 50 % y 5 · 4 por curso · sí · sábado · 19:00 · 10 · 1 día · sí</td></tr>
+  <tr><td class="msg">Universidades → Exámenes de origen → Reglas del Simulador</td><td>Preguntas, duración, puntaje máximo, puntos por correcta/incorrecta/blanco, orden, disponible y mínimos de ingreso por carrera. «Visible en el Simulador» por universidad.</td><td>—</td></tr>
+</table></div>
+<p>Están fijos en el código y convendría pasarlos al admin: las noticias, la tarjeta «Tu progreso esta semana» (42 %), la pausa de 24 h de la invitación al dominio, los 30 min de vigencia del contenido guardado y los colores de la dona del Inicio.</p>
+
+<!-- ============================================================ OBSERVACIONES -->
+<h2 id="observaciones">Observaciones abiertas</h2>
+<p>Cosas que hoy funcionan distinto de lo esperado. Se tachan aquí cuando se corrigen.</p>
+<div class="table-wrap"><table>
+  <tr><th>#</th><th>Observación</th><th>Dónde</th></tr>
+  <tr><td class="num">1</td><td>El % no coincide entre pantallas: el Inicio y la tarjeta del curso cuentan partes; el detalle del curso, el Temario y Mis logros cuentan subtemas.</td><td>Guía</td></tr>
+  <tr><td class="num">2</td><td>«Continúa donde lo dejaste» puede abrir otra parte que la anunciada si la abriste desde el Temario sin tocar nada.</td><td>Inicio</td></tr>
+  <tr><td class="num">3</td><td>El puntaje del Repaso relámpago puede pasar a la siguiente parte que también tenga quiz.</td><td>Guía</td></tr>
+  <tr><td class="num">4</td><td>El aviso «Dedica al menos N segundos…» sale aunque la sección ya estuviera revisada.</td><td>Guía</td></tr>
+  <tr><td class="num">5</td><td>Un enlace de video que no es de YouTube cuenta como requisito pero no aparece en la ruta: la parte nunca se completa.</td><td>Guía</td></tr>
+  <tr><td class="num">6</td><td>«Leer» de Novedades no hace nada; el acceso «Favoritos» del Inicio abre preguntas guardadas; «Tu progreso esta semana» es fijo.</td><td>Inicio</td></tr>
+  <tr><td class="num">7</td><td>El diagnóstico anuncia «30' aprox.» y «0 penalidad», pero no tiene reloj y la penalidad depende del admin.</td><td>Simulador</td></tr>
+  <tr><td class="num">8</td><td>Sin mínimo de ingreso cargado, el resultado de un examen pasado no explica nada sobre el ingreso.</td><td>Simulador</td></tr>
+  <tr><td class="num">9</td><td>Las marcas y la pizarra se pierden al pausar; un examen del Simulador no se puede retomar después de cerrar la app.</td><td>Simulador</td></tr>
+  <tr><td class="num">10</td><td>Si falla la entrega automática al acabarse el tiempo, no hay forma de reintentar.</td><td>Simulador</td></tr>
+  <tr><td class="num">11</td><td>«Hoy te toca» crea un examen nuevo en cada toque: tras un timeout puede quedar uno duplicado.</td><td>Simulador</td></tr>
+  <tr><td class="num">12</td><td>Las fichas del historial no se pueden tocar; la meta solo se edita desde el historial.</td><td>Simulador</td></tr>
+  <tr><td class="num">13</td><td>El recordatorio diario solo guarda la hora: aún no hay notificaciones.</td><td>Simulador</td></tr>
+</table></div>
+
+<!-- ============================================================ CAMBIOS -->
+<h2 id="cambios">Historial de cambios</h2>
+<ul class="changelog">
+  <li><b>15-oct-2026</b> · Primera versión. Reúne la guía del Simulador y la de la Guía de estudio que estaban en el lienzo de diseño, y agrega todos los mensajes con su condición. Incluye: % del Inicio que se actualiza en vivo y título «Examen de dominio: {subtema}» (app #87); exámenes pasados UNPRG 2025 I, 2025 II y 2026 II en TEST (admin #70).</li>
+</ul>
+</main>
+</div>

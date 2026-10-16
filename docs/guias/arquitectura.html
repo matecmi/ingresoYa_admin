@@ -1,0 +1,521 @@
+<title>Arquitectura de IngresoYa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+
+<div class="layout">
+<nav class="toc" aria-label="Índice">
+  <div class="brand">Arquitectura de IngresoYa</div>
+  <div class="meta">Documento vivo · actualizado el 15-oct-2026</div>
+  <ol>
+    <li><a href="#vista">Vista general</a></li>
+    <li><a href="#entornos">Entornos</a></li>
+    <li><a href="#functions">Cloud Functions</a>
+      <ol><li><a href="#fn-comun">Cómo responden</a></li><li><a href="#fn-lista">Las 8 funciones</a></li><li><a href="#fn-errores">Códigos de error</a></li></ol></li>
+    <li><a href="#flujos">Flujos paso a paso</a>
+      <ol>
+        <li><a href="#f-login">Ingreso y perfil</a></li>
+        <li><a href="#f-contenido">Contenido de la guía</a></li>
+        <li><a href="#f-seccion">Sección revisada</a></li>
+        <li><a href="#f-parte">Examen de la parte</a></li>
+        <li><a href="#f-dominio">Dominio y medallas</a></li>
+        <li><a href="#f-practica">Práctica del Simulador</a></li>
+        <li><a href="#f-pasado">Examen pasado</a></li>
+        <li><a href="#f-plan">Plan y diagnóstico</a></li>
+        <li><a href="#f-sync">Sincronización</a></li>
+        <li><a href="#f-admin">Publicar una pregunta</a></li>
+      </ol></li>
+    <li><a href="#datos">Modelo de datos</a></li>
+    <li><a href="#app">Arquitectura de la app</a></li>
+    <li><a href="#adminarq">Arquitectura del admin</a></li>
+    <li><a href="#reglas">Reglas y casuística</a></li>
+    <li><a href="#seguridad">Seguridad</a></li>
+    <li><a href="#riesgos">Riesgos y pendientes</a></li>
+    <li><a href="#cambios">Historial de cambios</a></li>
+  </ol>
+</nav>
+
+<main>
+<p class="eyebrow">IngresoYa · técnico</p>
+<h1>Arquitectura de IngresoYa</h1>
+<p class="lede">Cómo se comunican la app del alumno, el panel de administración, las Cloud Functions y Firestore. Para cada función se detalla qué recibe, qué valida, qué lee y escribe y qué errores devuelve. Incluye los flujos completos con diagramas. Se basa en el código de <code>desarrollo</code> de los dos repos.</p>
+
+<h2 id="vista">Vista general</h2>
+<pre class="mermaid">
+flowchart LR
+  subgraph Clientes
+    APP["App del alumno · Flutter · Riverpod · Hive"]
+    ADM["Panel admin · Flutter web · claim admin"]
+  end
+  subgraph Firebase["Firebase · proyecto ingresoya-e5115"]
+    AUTH["Auth · Google"]
+    FS[("Firestore")]
+    FN["Cloud Functions · 8 callables · southamerica-east1"]
+    ST[("Storage · imágenes de preguntas")]
+  end
+  YT["YouTube · videos de las partes"]
+  API["ms-iya-api · Cloud Run · casi sin uso"]
+  APP -- login --> AUTH
+  ADM -- login + claim admin --> AUTH
+  APP -- "lee catálogo y config; · lee y escribe su perfil y progreso" --> FS
+  APP -- "exámenes, secciones, logros" --> FN
+  FN -- Admin SDK --> FS
+  ADM -- "catálogo, banco, plantillas, config" --> FS
+  ADM -- imágenes --> ST
+  APP -- imágenes --> ST
+  APP -- iframe --> YT
+  APP -. REST .-> API
+</pre>
+<div class="grid-cards">
+  <div class="card"><h4>App del alumno (<code>iya-app</code>)</h4><p>Guía de estudio <i>offline-first</i>: el contenido y el progreso viven en Hive y se sincronizan. Los exámenes, las secciones revisadas y los logros pasan siempre por las Functions.</p></div>
+  <div class="card"><h4>Panel admin (<code>ingresoya_admin</code>)</h4><p>Web con login de Google y claim <code>admin</code>. Edita universidades, exámenes de origen, cursos y partes, el banco de preguntas (borrador → publicada, con versiones), plantillas y configuración.</p></div>
+  <div class="card"><h4>Cloud Functions</h4><p>8 funciones <i>callable</i>, sin triggers ni tareas programadas. Eligen y congelan las preguntas, califican, verifican el progreso, otorgan medallas y llevan el Simulador.</p></div>
+  <div class="card"><h4>Firestore</h4><p>Toda la persistencia. Cada colección lleva el sufijo del entorno (<code>-test</code>, <code>-staging</code> o ninguno).</p></div>
+</div>
+<div class="note"><p><b>Regla de oro:</b> el teléfono nunca ve las respuestas correctas antes de entregar, y nunca decide si una parte, un subtema o un dominio quedó completo. Eso lo decide y lo guarda el servidor; la app lo muestra.</p></div>
+
+<h2 id="entornos">Entornos</h2>
+<div class="table-wrap"><table>
+  <tr><th>Componente</th><th>Cómo se elige</th><th>Valores</th></tr>
+  <tr><td class="msg">App</td><td>Flavor + punto de entrada (<code>--flavor X -t lib/main_X.dart</code>); el arranque verifica que coincidan.</td><td><b>development</b> <code>com.ingresoya.app.dev</code> → <code>iya-*-test</code> · <b>staging</b> → <code>-staging</code> · <b>production</b> <code>com.ingresoya.app</code> → sin sufijo. Hive usa un prefijo por flavor.</td></tr>
+  <tr><td class="msg">Functions</td><td>Variable <code>INGRESOYA_ENV</code> (obligatoria fuera del emulador).</td><td>test · staging · production. Región <code>southamerica-east1</code>, máximo 10 instancias, 30 s, 256 MiB. App Check se exige solo en producción.</td></tr>
+  <tr><td class="msg">Admin</td><td>Constantes en <code>lib/src/env/app_env.dart</code>.</td><td>Fijo en TEST (sin flavors).</td></tr>
+</table></div>
+<p>Hoy todo trabaja en TEST. No se pasa a producción hasta publicar en Play Console.</p>
+
+<h2 id="functions">Cloud Functions</h2>
+<h3 id="fn-comun">Cómo responden todas</h3>
+<ol>
+  <li>Exigen sesión: sin ella responden <code>unauthenticated</code> / <code>authentication_required</code>.</li>
+  <li>Validan la entrada: IDs <code>[A-Za-z0-9_-]{1,128}</code>; cualquier campo de más da <code>invalid_request</code>.</li>
+  <li>Ejecutan el servicio, casi siempre en una transacción.</li>
+  <li>Registran métricas sin datos personales (el uid va como hash).</li>
+  <li>Los errores salen como <code>HttpsError(code, mensaje, {reason})</code>. La app traduce el <code>reason</code> al mensaje que ve el alumno (ver la Guía de la app).</li>
+</ol>
+
+<h3 id="fn-lista">Las 8 funciones</h3>
+<div class="table-wrap"><table>
+  <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Devuelve</th><th>Idempotencia</th></tr>
+  <tr><td class="msg"><code>createExamAttempt</code></td><td><code>requestId</code>, <code>purpose</code> y datos según el tipo (tabla siguiente).</td><td>Valida catálogo y plantilla, elige preguntas, las congela y crea el intento. Para el Simulador delega en <code>SimulatorService</code>.</td><td>Intento con preguntas (sin claves), duración, meta y datos del Simulador.</td><td><code>examRequestKeys/{requestId}</code> (30 días): mismo <code>requestId</code> = mismo intento.</td></tr>
+  <tr><td class="msg"><code>getExamAttempt</code></td><td><code>attemptId</code></td><td>Lee el intento propio.</td><td>Estado, preguntas y respuestas guardadas. Si venció, lo reporta como <code>expired</code>.</td><td>Solo lectura.</td></tr>
+  <tr><td class="msg"><code>startExamAttempt</code></td><td><code>attemptId</code></td><td>Arranca el reloj: <code>expiresAt = ahora + duración</code>.</td><td>Estado.</td><td>Si ya empezó, no mueve el reloj.</td></tr>
+  <tr><td class="msg"><code>saveExamAnswers</code></td><td><code>attemptId</code>, <code>answers</code> (≤ 50)</td><td>Fusiona respuestas válidas.</td><td>Revisión de respuestas.</td><td>Sin cambios = no escribe. Máximo 1 escritura por segundo.</td></tr>
+  <tr><td class="msg"><code>submitExamAttempt</code></td><td><code>attemptId</code>, <code>answers</code> (≤ 300)</td><td>Califica con las claves. Guía: registra la aprobación de la parte o la medalla de dominio. Simulador: puntaje, resultados, estadísticas por tema, mejor puntaje.</td><td>Aciertos, aprobado, revisión con correctas y explicaciones, avance actualizado.</td><td>Ya entregado = devuelve el mismo resultado sin volver a sumar nada.</td></tr>
+  <tr><td class="msg"><code>recordPartSectionCompletion</code></td><td><code>partId</code> + <code>section</code> o <code>sections</code> (video, lesson, examples, review, resources) + curso/tema/subtema</td><td>Registra secciones revisadas. Si el examen ya estaba aprobado y era la última, verifica la parte y puede otorgar la plata.</td><td>Estado (<code>not_approved</code>, <code>provisional</code> o <code>verified</code>) y secciones faltantes.</td><td>Lo ya registrado no se reescribe.</td></tr>
+  <tr><td class="msg"><code>getAchievementSummary</code></td><td>nada</td><td>Lee el resumen de medallas; si está dañado, lo reconstruye una vez.</td><td>Completados, dominados, claves y recientes (≤ 5).</td><td>Lectura.</td></tr>
+  <tr><td class="msg"><code>reconcileSubtopicAchievement</code></td><td>curso, tema, subtema</td><td>Otorga la plata si el subtema ya está completo (por ejemplo, porque el admin desactivó la parte que faltaba).</td><td><code>complete</code>, <code>awarded</code>, partes faltantes.</td><td>El ID de la medalla es fijo.</td></tr>
+</table></div>
+
+<h4>Tipos de <code>createExamAttempt</code></h4>
+<div class="table-wrap"><table>
+  <tr><th>purpose / mode</th><th>Datos</th><th>Cómo elige las preguntas</th><th>Tiempo</th></tr>
+  <tr><td class="msg"><code>part_completion</code></td><td>plantilla, parte, curso/tema/subtema</td><td>Por bloques de la plantilla, filtrando por la parte; prefiere las menos vistas recientemente.</td><td>La de la plantilla (60 min por defecto).</td></tr>
+  <tr><td class="msg"><code>subtopic_mastery</code></td><td>plantilla, curso/tema/subtema</td><td>Todo el subtema. Exige tener ya la plata.</td><td>Plantilla.</td></tr>
+  <tr><td class="msg"><code>past_exam</code></td><td>universidad, examen</td><td>Todas las preguntas publicadas del examen; deben ser exactamente <code>questionCount</code>.</td><td><code>durationMinutes</code>.</td></tr>
+  <tr><td class="msg"><code>practice</code> · course / mix / random</td><td>cursos, temas, tamaño, reloj</td><td>Reparto parejo por curso; primero las no vistas en 14 días.</td><td>Tamaño, o 4 h sin reloj.</td></tr>
+  <tr><td class="msg"><code>practice</code> · plan</td><td>reloj</td><td>60 % de hasta 3 temas débiles + el resto de hasta 3 cursos al azar.</td><td>15 min.</td></tr>
+  <tr><td class="msg"><code>practice</code> · diagnostic</td><td>—</td><td>4 por cada curso activo con banco suficiente.</td><td>Sin reloj (4 h).</td></tr>
+  <tr><td class="msg"><code>practice</code> · mistakes</td><td>intento de origen, reloj</td><td>Incorrectas y en blanco del intento entregado (≤ 100), misma versión.</td><td>90 s por pregunta o sin reloj.</td></tr>
+</table></div>
+
+<h3 id="fn-errores">Códigos de error (<code>reason</code>)</h3>
+<div class="table-wrap"><table>
+  <tr><th>Grupo</th><th>Reasons</th><th>Cuándo</th></tr>
+  <tr><td class="msg">Entrada</td><td><code>invalid_request</code>, <code>invalid_filters</code>, <code>authentication_required</code></td><td>Payload inválido o sin sesión.</td></tr>
+  <tr><td class="msg">Idempotencia</td><td><code>request_id_conflict</code>, <code>request_key_invalid</code>, <code>request_key_orphaned</code></td><td>El <code>requestId</code> se usó para otra cosa o su intento ya no existe.</td></tr>
+  <tr><td class="msg">Perfil y catálogo</td><td><code>profile_incomplete</code>, <code>part_not_available</code>, <code>part_not_enabled</code>, <code>part_context_ambiguous</code>, <code>subtopic_not_available</code>, <code>course_not_available</code>, <code>topic_not_available</code></td><td>Falta universidad, o la parte/curso/tema está inactivo o no existe.</td></tr>
+  <tr><td class="msg">Plantillas</td><td><code>template_not_found</code>, <code>template_not_published</code>, <code>template_incompatible</code>, <code>part_template_not_associated</code>, <code>mastery_template_not_associated</code>, <code>template_part_mismatch</code>, <code>template_subtopic_mismatch</code>, <code>template_changed_retry</code></td><td>La plantilla no existe, no está publicada o no corresponde a esa parte o subtema.</td></tr>
+  <tr><td class="msg">Banco</td><td><code>insufficient_questions</code></td><td>No alcanzan las preguntas publicadas.</td></tr>
+  <tr><td class="msg">Simulador</td><td><code>past_exam_unavailable</code>, <code>past_exam_incomplete</code>, <code>practice_size_unavailable</code>, <code>mistakes_unavailable</code>, <code>no_mistakes</code></td><td>Examen oculto, inactivo, no disponible o incompleto; tamaño inexistente; intento de origen inválido o sin errores.</td></tr>
+  <tr><td class="msg">Intento</td><td><code>attempt_not_found</code>, <code>attempt_not_open</code>, <code>answer_save_rate_limit</code>, <code>answer_key_unavailable</code>, <code>attempt_data_invalid</code></td><td>Intento ajeno o inexistente, vencido o entregado, más de 1 guardado por segundo, clave faltante, datos dañados.</td></tr>
+  <tr><td class="msg">Logros</td><td><code>mastery_prerequisite_missing</code>, <code>mastery_award_invalid</code></td><td>Dominio sin plata; medalla inconsistente.</td></tr>
+  <tr><td class="msg">Otros</td><td><code>precondition_failed</code>, <code>resource_limit</code>, <code>unexpected_server_error</code></td><td>Casos sin motivo específico.</td></tr>
+</table></div>
+
+<!-- ======================================================== FLUJOS -->
+<h2 id="flujos">Flujos paso a paso</h2>
+
+<h3 id="f-login">1. Ingreso y perfil</h3>
+<pre class="mermaid">
+sequenceDiagram
+  actor A as Alumno
+  participant App
+  participant Auth as Firebase Auth
+  participant FS as Firestore
+  A->>App: Entrar con Google
+  App->>Auth: signInWithCredential
+  App->>FS: pullAfterLogin: perfil + courseProgress/* + learningProgress/current
+  App->>App: fusiona con Hive y marca las partes verificadas por el servidor
+  alt perfil sin universidad o carrera
+    App->>A: Onboarding (universidades y carreras de Firestore)
+    App->>App: guarda el perfil en Hive (pendiente de subir)
+    App->>FS: sube el perfil (a los 45 s o al salir de la app)
+  end
+  App->>A: Inicio
+</pre>
+<p>El router lleva a <code>/</code> sin sesión, a <code>/onboarding</code> si falta universidad o carrera, y a <code>/home</code> en otro caso. Functions lee la universidad desde la raíz del perfil, así que un alumno sin perfil subido recibe <code>profile_incomplete</code>.</p>
+
+<h3 id="f-contenido">2. Contenido de la guía</h3>
+<ul>
+  <li><b>Lista de cursos:</b> <code>CachedCourseRepository</code> emite primero la copia de Hive y luego escucha la colección de cursos.</li>
+  <li><b>Curso abierto:</b> si la copia tiene menos de 30 min, se usa; si no, se descargan temas y subtemas (con sus partes) y se guardan. Sin red se usa la copia.</li>
+  <li><b>Partes:</b> las inactivas se ocultan y no cuentan.</li>
+  <li><b>Reglas de «Revisado»:</b> se leen de <code>{config}/study</code> una vez por sesión y se guardan en el teléfono.</li>
+</ul>
+
+<div class="flow" id="f-seccion">
+  <figure><img src="img/est-ruta-lista.jpg" alt="Tu ruta"><figcaption>Lo que ve el alumno.</figcaption></figure>
+  <div class="body">
+    <h3>3. Sección revisada</h3>
+<pre class="mermaid">
+sequenceDiagram
+  actor A as Alumno
+  participant App
+  participant H as Hive
+  participant F as Functions
+  participant FS as Firestore
+  A->>App: abre y cierra una sección
+  App->>App: ¿tiempo ≥ mínimo? (video: % real visto)
+  App->>H: partReviewedItems += sección · marca progreso pendiente
+  App->>F: recordPartSectionCompletion(partId, sección, curso/tema/subtema)
+  F->>FS: learningProgress/current.partProgress.{parte}.sections.{s}
+  alt examen aprobado y era la última sección
+    F->>FS: parte completed · learningEvents · plata si cierra el subtema
+  end
+  F-->>App: status + secciones faltantes
+  Note over App,F: Si falla: «Tu revisión quedó guardada…» y se reenvía al abrir el examen
+</pre>
+  </div>
+</div>
+
+<div class="flow" id="f-parte">
+  <figure><img src="img/est-examen1.jpg" alt="Intro del examen"><figcaption>Intro: meta y tiempo.</figcaption></figure>
+  <figure><img src="img/est-examen-result.jpg" alt="Resultado"><figcaption>Resultado y revisión.</figcaption></figure>
+  <div class="body">
+    <h3>4. Examen de la parte</h3>
+<pre class="mermaid">
+sequenceDiagram
+  actor A as Alumno
+  participant App
+  participant F as Functions
+  participant FS as Firestore
+  A->>App: Rendir
+  par confirmar secciones
+    App->>F: recordPartSectionCompletion(secciones del teléfono)
+  and crear o retomar
+    App->>F: getExamAttempt (si hay uno guardado para recuperar)
+    App->>F: createExamAttempt(requestId, part_completion, plantilla, parte)
+  end
+  F->>FS: valida catálogo y plantilla · elige · congela
+  F->>FS: attempts/{id} · examRequestKeys · recentQuestions
+  F-->>App: preguntas sin claves
+  A->>App: Comenzar examen
+  App->>F: startExamAttempt (arranca el reloj)
+  loop cada respuesta (700 ms)
+    App->>F: saveExamAnswers
+  end
+  A->>App: Entregar
+  App->>F: submitExamAttempt
+  F->>FS: califica con answerKeys · aprobación de la parte
+  F-->>App: aciertos, aprobado, revisión, progressUpdate
+  App->>App: marca la parte en Hive · sincroniza · celebra
+</pre>
+    <ul>
+      <li><b>Aprobado:</b> aciertos × 100 &gt; preguntas × % de la plantilla. Meta = <code>floor(n·p/100)+1</code>.</li>
+      <li><b>Parte verificada:</b> examen aprobado + todas las secciones requeridas registradas en el servidor, en cualquier orden.</li>
+      <li><b>Vencido:</b> en la guía no se califica; el siguiente «Rendir» crea un intento nuevo.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flow" id="f-dominio">
+  <figure><img src="img/est-logro-subtema.jpg" alt="Plata"><figcaption>Plata.</figcaption></figure>
+  <figure><img src="img/est-dom-celebra2.jpg" alt="Oro"><figcaption>Oro.</figcaption></figure>
+  <div class="body">
+    <h3>5. Medallas: plata y oro</h3>
+<pre class="mermaid">
+flowchart TD
+  P["Última parte verificada · (submit o recordPartSectionCompletion)"] --> R{"¿Todas las partes activas · de listPart completas?"}
+  R -->|sí| S["achievements/parts-v1-hash · type subtopic_completed (plata) · + achievementSummary + learningEvents"]
+  R -->|no| W[Espera]
+  S --> M["App: examen de dominio · createExamAttempt(subtopic_mastery)"]
+  M --> E{"¿Aprobó?"}
+  E -->|sí| G["achievements/mastery-v1-hash · type subtopic_mastery (oro) · misma transacción que submit"]
+  E -->|no| M
+  X["reconcileSubtopicAchievement · (si el admin quitó una parte)"] --> R
+</pre>
+    <p>La app pide <code>getAchievementSummary</code> para pintar plata y oro. Lo guarda en el teléfono y, si tarda más de 8 s, usa la copia. La celebración de plata solo sale si el servidor la confirma.</p>
+  </div>
+</div>
+
+<div class="flow" id="f-practica">
+  <figure><img src="img/sim-practica.jpg" alt="Arma tu práctica"><figcaption>Arma tu práctica.</figcaption></figure>
+  <div class="body">
+    <h3>6. Práctica del Simulador</h3>
+<pre class="mermaid">
+sequenceDiagram
+  actor A as Alumno
+  participant App
+  participant F as Functions · SimulatorService
+  participant FS as Firestore
+  A->>App: Empezar · 20 preguntas · 30 min
+  App->>F: createExamAttempt(practice, mode, cursos, temas, size, timed)
+  F->>FS: perfil · config/simulator · recentQuestions (14 días)
+  F->>FS: questions publicadas por curso/tema (randomKey)
+  F->>F: reparto parejo · primero no vistas · relleno
+  F->>FS: attempts (simulator, questionMeta) · requestKey · recentQuestions
+  F-->>App: preguntas
+  A->>App: responde y entrega
+  App->>F: submitExamAttempt
+  F->>FS: simulatorResults · simulatorTopicStats · learningEvents
+  F-->>App: % · por curso y tema · revisión
+</pre>
+    <p>El puntaje es sobre 100: +1 por correcta, −0,25 por incorrecta solo si el admin activa la penalidad, 0 en blanco. Se muestra en % de aciertos.</p>
+  </div>
+</div>
+
+<div class="flow" id="f-pasado">
+  <figure><img src="img/sim-pasados.jpg" alt="Exámenes pasados"><figcaption>Lista y reglas.</figcaption></figure>
+  <figure><img src="img/sim-res-oficial.jpg" alt="Resultado oficial"><figcaption>Puntaje y «¿te alcanzaba?».</figcaption></figure>
+  <div class="body">
+    <h3>7. Examen pasado</h3>
+<pre class="mermaid">
+sequenceDiagram
+  participant App
+  participant FS as Firestore
+  participant F as Functions
+  App->>FS: universities (activas y visibles) · admissionExams (reglas simulator) · pastExamBest
+  App->>F: createExamAttempt(past_exam, universidad, examen)
+  F->>FS: universidad · examen · questions where examId
+  F->>F: ¿disponible? ¿publicadas = questionCount? ¿números únicos si es orden original?
+  F->>F: ordena (original o mezclado) · cutoff = cutoffs[carrera]
+  F-->>App: 60 preguntas · 120 min
+  App->>F: submitExamAttempt (también al vencer el reloj)
+  F->>F: puntaje oficial · reachedCutoff
+  F->>FS: simulatorResults · pastExamBest (último, mejor, intentos) · topicStats
+  F-->>App: puntaje, +N vs. anterior, ¿te alcanzaba?
+</pre>
+    <ul>
+      <li><b>Puntaje:</b> <code>bruto = c·correcta + i·incorrecta + b·blanco</code> y <code>puntaje = redondeo(máx(0, bruto) × máximo ÷ (N × correcta))</code>.</li>
+      <li><b>Al vencer:</b> lo guardado cuenta siempre; las respuestas enviadas con la entrega se aceptan hasta 2 min después de vencer.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flow" id="f-plan">
+  <figure><img src="img/sim-inicio-plan.jpg" alt="Hoy te toca"><figcaption>«Hoy te toca» con «¿Por qué?».</figcaption></figure>
+  <div class="body">
+    <h3>8. Plan «Hoy te toca» y diagnóstico</h3>
+<pre class="mermaid">
+flowchart TD
+  G["simulatorPlan/current · (meta, la escribe la app)"] --> B
+  R["simulatorResults · (últimos 200)"] --> B
+  T["simulatorTopicStats · (aciertos por tema)"] --> B
+  C["config/simulator.plan"] --> B
+  B["buildPlanWeek en la app"] --> Q{"Tarjeta"}
+  Q -->|sin meta| N[Arma tu plan]
+  Q -->|sin resultados| D["Diagnóstico → createExamAttempt(diagnostic)"]
+  Q -->|día de simulacro sin examen pasado| S[Simulacro semanal]
+  Q -->|otro| H["Hoy te toca → createExamAttempt(plan)"]
+  H --> F["Functions: weakTopics (máx. 3) · 6 de 10 de esos temas + 4 de cursos al azar"]
+  F --> U["submit suma answered y correct por tema"]
+  U --> T
+</pre>
+    <p><b>Tema débil</b>, con la misma regla en la app y en Functions: <code>answered ≥ 5</code> y <code>correct/answered &lt; 50 %</code>. Se ordena de menor a mayor acierto; si empatan, gana el de más respuestas. La semana, la racha y los días al examen se calculan en la app con <code>simulatorResults</code>.</p>
+  </div>
+</div>
+
+<h3 id="f-sync">9. Sincronización del perfil y del progreso</h3>
+<pre class="mermaid">
+sequenceDiagram
+  participant H as Hive (teléfono)
+  participant C as AutoSyncCoordinator
+  participant FS as Firestore
+  H->>C: cambio local (perfil o curso) · revision+1
+  C->>C: espera 45 s (tope 180 s) o app a segundo plano
+  C->>FS: transacción: ¿el remoto es más nuevo?
+  alt no
+    C->>FS: perfil (merge) + courseProgress/{curso} fusionado
+  else sí (conflicto)
+    C->>FS: pull · fusiona · reintenta
+  end
+  Note over C,FS: al volver a la app tras 12 h: refreshProgress + partes verificadas del servidor
+</pre>
+<ul>
+  <li><b>Fusión del progreso:</b> «o» lógico en completado y aprobado, unión de partes y secciones, máximo de segundos de video, y <code>lastPartId</code> del más nuevo.</li>
+  <li><b>Reintentos:</b> 3 inmediatos y luego backoff de 2 s a 5 min.</li>
+  <li><b>Al cerrar sesión:</b> se sube lo pendiente y, solo si salió bien, se borra el progreso local.</li>
+  <li><b>Favoritos:</b> van aparte, en <code>favorites/parts</code>.</li>
+  <li><b>Lo que no sincroniza:</b> «Continúa donde lo dejaste» y las preguntas guardadas.</li>
+</ul>
+
+<h3 id="f-admin">10. El admin publica una pregunta</h3>
+<pre class="mermaid">
+flowchart LR
+  P["Publicada v2"] -->|Editar| D["forkPublishedForEdit · raíz → v3 draft · copia clave a qid_3"]
+  D --> S["saveDraft · raíz v2-contrato + clave qid_3"]
+  S --> V["validateDraft · enunciado, alternativas, · clave, explicación, LaTeX, · catálogo activo"]
+  V --> PB["publishDraft · versions/3 inmutable · raíz status published"]
+  PB --> C["Candidata en createExamAttempt"]
+  P -. intentos viejos siguen · con versions/2 y qid_2 .-> P
+</pre>
+<p>Retirar una pregunta (<code>status: retired</code>) la saca de los exámenes nuevos sin tocar los intentos anteriores.</p>
+
+<!-- ======================================================== DATOS -->
+<h2 id="datos">Modelo de datos</h2>
+<pre class="mermaid">
+erDiagram
+  UNIVERSITY ||--o{ ADMISSION_EXAM : admissionExams
+  UNIVERSITY ||--o{ MODE : modes
+  COURSE ||--o{ TOPIC : topics
+  TOPIC ||--o{ SUBTOPIC : subtopics
+  SUBTOPIC ||--|{ PART : "listPart (embebido)"
+  QUESTION ||--o{ QUESTION_VERSION : versions
+  QUESTION ||--o{ ANSWER_KEY : "qid_v"
+  TEMPLATE ||--o{ TEMPLATE_VERSION : versions
+  PART }o--|| TEMPLATE : examTemplateId
+  SUBTOPIC }o--o| TEMPLATE : masteryTemplateId
+  QUESTION }o--o| ADMISSION_EXAM : examId
+  PROFILE ||--o{ COURSE_PROGRESS : courseProgress
+  PROFILE ||--|| LEARNING_PROGRESS : "learningProgress/current"
+  LEARNING_PROGRESS ||--o{ ACHIEVEMENT : achievements
+  PROFILE ||--o{ SIM_RESULT : simulatorResults
+  PROFILE ||--o{ TOPIC_STAT : simulatorTopicStats
+  PROFILE ||--o{ PAST_EXAM_BEST : pastExamBest
+  PROFILE ||--o| SIM_PLAN : "simulatorPlan/current"
+  PROFILE ||--o{ ATTEMPT : userId
+</pre>
+
+<h3>Catálogo y configuración</h3>
+<div class="table-wrap"><table>
+  <tr><th>Ruta</th><th>Contenido</th><th>Escribe</th><th>Lee</th></tr>
+  <tr><td class="msg"><code>{universities}/{id}</code> (+ <code>modes</code>)</td><td>Datos, carreras (<code>professions[]</code>), <code>simulatorVisible</code>.</td><td>Admin</td><td>App, Functions</td></tr>
+  <tr><td class="msg"><code>…/admissionExams/{id}</code></td><td>Nombre, modalidad, año, periodo, <code>active</code>, <code>simulator{…}</code> con reglas, mínimos y estado «completo».</td><td>Admin</td><td>App, Functions</td></tr>
+  <tr><td class="msg"><code>…/admissionExamKeys/{base64}</code></td><td>Reserva única de universidad + tipo + modalidad + año + periodo.</td><td>Admin</td><td>Admin</td></tr>
+  <tr><td class="msg"><code>{courses}/{id}/topics/{id}/subtopics/{id}</code></td><td>Curso, tema y subtema; el subtema lleva <code>listPart[]</code> con todo el contenido de las partes, <code>examTemplateId</code> y <code>masteryTemplateId</code>.</td><td>Admin</td><td>App, Functions</td></tr>
+  <tr><td class="msg"><code>{config}/sync · study · simulator</code></td><td>Sincronización, reglas de «Revisado», Simulador y plan.</td><td>Admin</td><td>App (y Functions el Simulador)</td></tr>
+</table></div>
+
+<h3>Banco, plantillas e intentos (solo admin y Functions)</h3>
+<div class="table-wrap"><table>
+  <tr><th>Ruta</th><th>Contenido</th><th>Escribe</th><th>Lee</th></tr>
+  <tr><td class="msg"><code>{questions}/{qid}</code> + <code>versions/{v}</code></td><td>Pregunta v2: contenido, alternativas, clasificación, origen, <code>randomKey</code>, <code>originalNumber</code>. Las versiones son inmutables.</td><td>Admin</td><td>Functions</td></tr>
+  <tr><td class="msg"><code>{answerKeys}/{qid}_{v}</code></td><td>Alternativa correcta y explicación.</td><td>Admin</td><td>Functions al entregar</td></tr>
+  <tr><td class="msg"><code>{templates}/{id}</code> + <code>versions</code></td><td>Propósito, cantidad, duración, % para aprobar, bloques con filtros.</td><td>Admin</td><td>Functions</td></tr>
+  <tr><td class="msg"><code>{attempts}/{id}</code></td><td>Intento congelado: preguntas, respuestas, estado, resultado; en el Simulador también <code>simulator</code>, <code>questionMeta</code> y <code>simulatorResult</code>.</td><td>Functions</td><td>Dueño (lectura)</td></tr>
+</table></div>
+
+<h3>Perfil del alumno <code>{profile}/{uid}</code></h3>
+<div class="table-wrap"><table>
+  <tr><th>Subruta</th><th>Contenido</th><th>Escribe</th><th>Lee</th></tr>
+  <tr><td class="msg">raíz</td><td><code>profile{…}</code> + <code>universityIdDoc</code>, <code>universityId</code>.</td><td>App</td><td>App, Functions</td></tr>
+  <tr><td class="msg"><code>courseProgress/{curso}</code></td><td>Por subtema: última parte, segundos de video, secciones revisadas, partes y exámenes aprobados.</td><td>App</td><td>App</td></tr>
+  <tr><td class="msg"><code>favorites/parts</code></td><td>Partes favoritas.</td><td>App</td><td>App</td></tr>
+  <tr><td class="msg"><code>simulatorPlan/current</code></td><td>Meta: sesiones, día de simulacro, mes del examen, recordatorio.</td><td>App</td><td>App</td></tr>
+  <tr><td class="msg"><code>learningProgress/current</code> (+ <code>achievements</code>, <code>achievementSummary</code>)</td><td>Progreso verificado por parte, medallas y resumen.</td><td>Functions</td><td>App (solo get), Functions</td></tr>
+  <tr><td class="msg"><code>simulatorResults/{intento}</code></td><td>Resumen de cada examen del Simulador.</td><td>Functions</td><td>App</td></tr>
+  <tr><td class="msg"><code>simulatorTopicStats/{tema}</code></td><td><code>answered</code> (incluye blancos) y <code>correct</code>.</td><td>Functions</td><td>App, Functions</td></tr>
+  <tr><td class="msg"><code>pastExamBest/{examen}</code></td><td>Intentos, último y mejor puntaje.</td><td>Functions</td><td>App</td></tr>
+  <tr><td class="msg"><code>learningEvents/{id}</code></td><td>Eventos (parte aprobada, subtema completado y dominado, exámenes del Simulador). Base del XP futuro.</td><td>Functions</td><td>—</td></tr>
+  <tr><td class="msg"><code>examRequestKeys</code>, <code>recentQuestions</code></td><td>Idempotencia (TTL 30 días) y exposición (TTL 120 días).</td><td>Functions</td><td>Functions</td></tr>
+</table></div>
+
+<!-- ======================================================== APP -->
+<h2 id="app">Arquitectura de la app</h2>
+<pre class="mermaid">
+flowchart TB
+  UI["presentation · pantallas · widgets · controllers Riverpod"] --> DOM["domain · entidades y reglas en Dart puro · puertos"]
+  DATA["data · repositorios Firestore · Hive · callables"] --> DOM
+  UI --> DATA
+  APPL["lib/app · providers que inyectan las implementaciones · router · widgets comunes"] --> UI
+  INF["lib/infrastructure · lib/core · Firebase, Hive, Result, AppFailure, logging"] --> DATA
+</pre>
+<div class="table-wrap"><table>
+  <tr><th>Puerto</th><th>Implementación</th><th>Notas</th></tr>
+  <tr><td class="msg">CourseRepository</td><td>CachedCourseRepository</td><td>Firestore + Hive, vigencia de 30 min.</td></tr>
+  <tr><td class="msg">CourseProgressRepository</td><td>HiveCourseProgressRepository</td><td>Cada escritura deja el curso pendiente de sincronizar.</td></tr>
+  <tr><td class="msg">SessionSyncRepository</td><td>OfflineFirstSessionSyncRepository</td><td>Hive ↔ Firestore.</td></tr>
+  <tr><td class="msg">ExamAttemptRepository</td><td>FirebaseExamAttemptRepository</td><td>Callables con timeout de 20 s.</td></tr>
+  <tr><td class="msg">ExamAttemptRecoveryStore</td><td>SharedPreferences</td><td>Retoma exámenes de la guía tras cerrar la app.</td></tr>
+  <tr><td class="msg">SimulatorCatalogRepository</td><td>Firestore</td><td>Exámenes pasados, resultados, meta y estadísticas por tema.</td></tr>
+  <tr><td class="msg">AchievementRepository</td><td>Callables + caché</td><td>Timeout de 8 s, luego usa la copia.</td></tr>
+  <tr><td class="msg">PartFavoritesStore</td><td>SyncedPartFavoritesStore</td><td>Teléfono + Firestore.</td></tr>
+  <tr><td class="msg">NewsRepository</td><td>InMemoryNewsRepository</td><td>5 noticias fijas.</td></tr>
+</table></div>
+<p><b>Hive</b> (cajas con prefijo por flavor): <code>courses_box</code>, <code>progress_box</code>, <code>user_profile_box</code>, <code>sync_meta_box</code>, <code>save_question_box</code>, <code>saved_question_favorites_box</code>, <code>settings_box</code>.</p>
+<p><b>SharedPreferences:</b> ajustes de sync, reglas de estudio, favoritos, última parte estudiada, caché de logros, pausa de la invitación al dominio y recuperación de exámenes.</p>
+<p><b>Sin red:</b> el catálogo y el progreso funcionan desde Hive, y los logros desde la caché. Los exámenes necesitan red; las respuestas quedan pendientes con «Reintentar».</p>
+
+<!-- ======================================================== ADMIN -->
+<h2 id="adminarq">Arquitectura del admin</h2>
+<div class="table-wrap"><table>
+  <tr><th>Pantalla</th><th>Qué escribe</th></tr>
+  <tr><td class="msg">Universidades</td><td>Universidad, modalidades, carreras, «Visible en el Simulador».</td></tr>
+  <tr><td class="msg">Exámenes de origen</td><td>Convocatorias con reserva única y <code>revision</code>; propaga los datos de origen a sus preguntas en páginas de 100.</td></tr>
+  <tr><td class="msg">Reglas del Simulador</td><td>Campo <code>simulator</code>: cuenta publicadas y numeradas, calcula <code>complete</code> y no deja marcar «disponible» si no lo está.</td></tr>
+  <tr><td class="msg">Cursos</td><td>Datos, temas, subtemas (examen de dominio) y partes (contenido y examen). Valida que la plantilla esté publicada y sea compatible.</td></tr>
+  <tr><td class="msg">Preguntas</td><td>Banco con borrador → validar → publicar, versiones inmutables, retirar.</td></tr>
+  <tr><td class="msg">Plantillas</td><td>Cada guardado crea una versión nueva.</td></tr>
+  <tr><td class="msg">Configuración</td><td>Sincronización, Revisión de la guía, Simulador y Plan de entrenamiento.</td></tr>
+</table></div>
+<p>Herramientas fuera de la web: <code>functions/tools/seed_test.js</code> y <code>seed_qa.js</code> (datos de TEST) y <code>functions/scripts/manage_admin_claim.ts</code> (claim <code>admin</code>).</p>
+
+<!-- ======================================================== REGLAS -->
+<h2 id="reglas">Reglas y casuística</h2>
+<div class="table-wrap"><table>
+  <tr><th>Caso</th><th>Qué pasa</th></tr>
+  <tr><td class="msg">Doble toque en «Entregar»</td><td>La app lo bloquea. En el servidor, un intento ya entregado devuelve el mismo resultado sin volver a sumar nada.</td></tr>
+  <tr><td class="msg">Se corta la red al crear</td><td>Se reintenta con el mismo <code>requestId</code> y vuelve el mismo intento. Excepción: «Hoy te toca» genera uno nuevo en cada toque.</td></tr>
+  <tr><td class="msg">Falla el guardado de respuestas</td><td>Quedan pendientes con «Reintentar»; la entrega siempre envía todas.</td></tr>
+  <tr><td class="msg">Se acaba el tiempo en la guía</td><td>No se califica; el siguiente «Rendir» crea un intento nuevo.</td></tr>
+  <tr><td class="msg">Se acaba el tiempo en el Simulador</td><td>La app entrega sola. Cuenta lo guardado, más lo enviado hasta 2 min después de vencer.</td></tr>
+  <tr><td class="msg">Práctica sin reloj</td><td>El intento cierra a las 4 h.</td></tr>
+  <tr><td class="msg">El admin edita una pregunta usada</td><td>Se crea otra versión; los intentos viejos siguen con la suya.</td></tr>
+  <tr><td class="msg">El admin desactiva una parte</td><td>Deja de contar. Si era la que faltaba, <code>reconcileSubtopicAchievement</code> otorga la plata.</td></tr>
+  <tr><td class="msg">Examen pasado incompleto</td><td>Functions lo rechaza con <code>past_exam_incomplete</code> aunque el admin lo marque.</td></tr>
+  <tr><td class="msg">Pocas preguntas para una práctica</td><td>Primero las no vistas, luego las vistas, luego otros cursos; si aún faltan, <code>insufficient_questions</code>.</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+  <tr><th>Límite</th><th class="num">Valor</th></tr>
+  <tr><td>Respuestas por guardado / por entrega</td><td class="num">50 / 300</td></tr>
+  <tr><td>Preguntas de un examen pasado</td><td class="num">1-300</td></tr>
+  <tr><td>Cursos en Mezcla / temas en una práctica</td><td class="num">10 / 20</td></tr>
+  <tr><td>Preguntas en «Mis errores»</td><td class="num">100</td></tr>
+  <tr><td>Historial que lee la app</td><td class="num">200</td></tr>
+  <tr><td>Guardados por segundo</td><td class="num">1</td></tr>
+  <tr><td>Timeout de una Function / espera de la app</td><td class="num">30 s / 20 s</td></tr>
+</table></div>
+
+<!-- ======================================================== SEGURIDAD -->
+<h2 id="seguridad">Seguridad</h2>
+<ul>
+  <li><b>Catálogos y configuración:</b> lectura con sesión; escritura solo con claim <code>admin</code>.</li>
+  <li><b>Banco, claves y plantillas:</b> solo admin. Las versiones solo se crean; las claves solo se editan mientras la pregunta está en borrador.</li>
+  <li><b>Intentos:</b> el dueño lee; nadie escribe desde el cliente.</li>
+  <li><b>Perfil:</b> el dueño lee y escribe la raíz, <code>courseProgress</code>, <code>favorites</code> y <code>simulatorPlan</code>. Solo lee resultados, estadísticas, mejor puntaje y eventos. Solo hace <code>get</code> de <code>learningProgress/current</code>. No accede a <code>examRequestKeys</code> ni a <code>recentQuestions</code>.</li>
+  <li><b>Storage:</b> <code>question-public/**</code> se lee con sesión; solo el admin crea (png, jpeg o webp de hasta 5 MiB) y nadie modifica.</li>
+</ul>
+
+<!-- ======================================================== RIESGOS -->
+<h2 id="riesgos">Riesgos y pendientes técnicos</h2>
+<div class="table-wrap"><table>
+  <tr><th>#</th><th>Tema</th><th>Detalle</th></tr>
+  <tr><td class="num">1</td><td class="msg">App Check</td><td>Functions lo exige en producción, pero la app no lo inicializa: todas las funciones fallarían al pasar a producción.</td></tr>
+  <tr><td class="num">2</td><td class="msg">Dos <code>firestore.rules</code></td><td>La del admin es estricta y la de la app permisiva. Confirmar que se despliegue siempre la del admin.</td></tr>
+  <tr><td class="num">3</td><td class="msg">Admin fijo en TEST</td><td>No hay forma de apuntarlo a staging o producción sin editar código.</td></tr>
+  <tr><td class="num">4</td><td class="msg">«Hoy te toca» sin idempotencia</td><td>Un reintento tras timeout puede crear un intento duplicado.</td></tr>
+  <tr><td class="num">5</td><td class="msg">Simulador sin recuperación</td><td>Tras cerrar la app no se puede retomar un examen del Simulador.</td></tr>
+  <tr><td class="num">6</td><td class="msg">Perfil entre teléfonos</td><td>Solo se refresca al iniciar sesión o ante un conflicto.</td></tr>
+  <tr><td class="num">7</td><td class="msg">Config sin efecto</td><td><code>diagnosticMinutes</code> no se usa; <code>onlyCompleteExams</code> y <code>practiceTimerDefault</code> solo los aplica la app.</td></tr>
+  <tr><td class="num">8</td><td class="msg">ms-iya-api</td><td>Los repositorios de grupos y secciones no tienen pantalla y su lectura falla; candidatos a retirar.</td></tr>
+  <tr><td class="num">9</td><td class="msg">Docs desactualizados</td><td><code>exam_attempt_app_flow.md</code>, <code>architecture.md</code> (§18, §20), <code>logros_app.md</code>, <code>environments.md</code> y el límite de 200 en <code>callable_contract.md</code> (el código acepta 300).</td></tr>
+  <tr><td class="num">10</td><td class="msg">Borrados sin guarda en el admin</td><td>Universidades, modalidades y carreras se pueden borrar sin comprobar referencias; borrar una pregunta no borra su clave ni sus versiones.</td></tr>
+</table></div>
+
+<h2 id="cambios">Historial de cambios</h2>
+<ul class="changelog">
+  <li><b>15-oct-2026</b> · Primera versión: componentes, entornos, las 8 Functions con entradas, salidas y errores, 10 flujos con diagramas, modelo de datos, capas de la app y del admin, casuística, seguridad y riesgos.</li>
+</ul>
+</main>
+</div>
