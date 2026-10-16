@@ -13,6 +13,7 @@ import {
 import { asHttpsError, unauthenticated } from "./errors";
 import { safeError, safeLog } from "./logging";
 import { OperationMetrics } from "./operation_metrics";
+import { RankingService, parseUpdateRankingProfile, type RankingProfileResponse } from "./ranking";
 import { XpService, type XpAward } from "./xp";
 import {
   parseCreateExamAttempt,
@@ -37,6 +38,7 @@ export function requireUid(request: CallableRequest<unknown>): string {
 export function createCallableHandlers(config: BackendConfig) {
   const attempts = new ExamAttemptService(db, config);
   const xp = new XpService(db, config);
+  const ranking = new RankingService(db, config);
   /** XP never breaks the operation it rewards: a failure is logged and retried by the next call. */
   async function grantXp(
     uid: string,
@@ -53,6 +55,23 @@ export function createCallableHandlers(config: BackendConfig) {
     }
   }
   return {
+    /** Alias and «Aparecer en rankings» (phase 2). */
+    async updateRankingProfile(request: CallableRequest<unknown>): Promise<RankingProfileResponse> {
+      const metrics = new OperationMetrics();
+      try {
+        const uid = requireUid(request);
+        const input = parseUpdateRankingProfile(request.data);
+        const response = await ranking.update(uid, input, await xp.settings(metrics), metrics);
+        safeLog("ranking_profile_updated", uid, { ...metrics.logFields(), visible: response.visible });
+        return response;
+      } catch (error) {
+        safeError("ranking_profile_update_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
+        throw asHttpsError(error);
+      }
+    },
     async reconcileSubtopicAchievement(
       request: CallableRequest<unknown>
     ): Promise<{ complete: boolean; awarded: boolean; missingPartIds: string[]; xp?: XpAward }> {

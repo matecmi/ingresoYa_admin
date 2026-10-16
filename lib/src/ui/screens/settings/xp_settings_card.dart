@@ -57,6 +57,10 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
   final _amounts = <String, TextEditingController>{};
   final _limits = <String, TextEditingController>{};
   late bool _stars;
+  late bool _topEnabled;
+  final _topSize = TextEditingController();
+  final _topUniversityMin = TextEditingController();
+  final _bannedWords = TextEditingController();
   bool _saving = false;
 
   static const _limitKeys = [
@@ -102,6 +106,11 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
       (_limits[key] ??= TextEditingController()).text = '${map[key]}';
     }
     _stars = settings.starsEnabled;
+    final board = settings.leaderboard;
+    _topEnabled = board.enabled;
+    _topSize.text = '${board.size}';
+    _topUniversityMin.text = '${board.universityFilterMin}';
+    _bannedWords.text = board.bannedWords.join(', ');
   }
 
   @override
@@ -111,6 +120,9 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
       ..._minXp,
       ..._amounts.values,
       ..._limits.values,
+      _topSize,
+      _topUniversityMin,
+      _bannedWords,
     ]) {
       c.dispose();
     }
@@ -139,6 +151,9 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
       if (value == null) return null;
       limits[key] = value;
     }
+    final topSize = n(_topSize);
+    final topUniversityMin = n(_topUniversityMin);
+    if (topSize == null || topUniversityMin == null) return null;
     return XpSettings(
       ranks: ranks,
       starsEnabled: _stars,
@@ -149,6 +164,15 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
       repeatWindowDays: limits['repeatWindowDays']!,
       minSecondsPerQuestion: limits['minSecondsPerQuestion']!,
       pastExamEveryDays: limits['pastExamEveryDays']!,
+      leaderboard: LeaderboardSettings(
+        enabled: _topEnabled,
+        size: topSize,
+        universityFilterMin: topUniversityMin,
+        bannedWords: [
+          for (final word in _bannedWords.text.split(RegExp(r'[,\n]')))
+            if (word.trim().length >= 2) word.trim().toLowerCase(),
+        ],
+      ),
     );
   }
 
@@ -406,6 +430,59 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
             label: 'Un examen pasado completo da XP cada',
             suffix: 'días',
             helper: 'Por examen.',
+          ),
+          const Divider(height: 28),
+          const Text(
+            'Top 100 «Los más dedicados» y alias',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Solo aparecen los alumnos que activan «Aparecer en rankings» con un alias. '
+            'Los demás ven el alias, el XP, el rango y la universidad y carrera; nunca el nombre ni el correo.',
+            style: TextStyle(color: muted, fontSize: 12.5),
+          ),
+          SwitchListTile(
+            key: const ValueKey('xp-top-enabled'),
+            contentPadding: EdgeInsets.zero,
+            value: _topEnabled,
+            onChanged: _saving ? null : (v) => setState(() => _topEnabled = v),
+            title: const Text('Mostrar el top en la app'),
+            subtitle: Text(
+              'Apagado, la app no lo muestra; los puestos se siguen guardando.',
+              style: TextStyle(color: muted),
+            ),
+          ),
+          SettingsNumberField(
+            controller: _topSize,
+            enabled: !_saving,
+            label: 'Alumnos en el top',
+            suffix: 'alumnos',
+            helper: '10 a 500. Fuera del top, cada alumno igual ve su puesto.',
+          ),
+          SettingsNumberField(
+            controller: _topUniversityMin,
+            enabled: !_saving,
+            label: 'Filtro por universidad desde',
+            suffix: 'alumnos',
+            helper:
+                'Una universidad tiene su propia lista cuando tiene esa cantidad de alumnos visibles.',
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const ValueKey('xp-banned-words'),
+            controller: _bannedWords,
+            enabled: !_saving,
+            minLines: 1,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText:
+                  'Palabras prohibidas en el alias (además de las de fábrica)',
+              helperText:
+                  'Separadas por comas. Se comparan sin tildes ni mayúsculas.',
+              helperStyle: TextStyle(color: muted),
+              border: const OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 14),
           Wrap(

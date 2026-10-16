@@ -19,6 +19,12 @@ class AppEnv {
   static const String studyReviewRulesDocument = 'study';
   static const String simulatorSettingsDocument = 'simulator';
   static const String xpSettingsDocument = 'xp';
+
+  /// Public top 100 (written by Functions; the admin moderates).
+  static const String leaderboardCollection = 'iya-leaderboard-test';
+
+  /// Alias reservations (server-only; the admin frees one when moderating).
+  static const String aliasesCollection = 'iya-aliases-test';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =

@@ -60,6 +60,35 @@ class XpLedgerEvent {
   final String? revertReason;
 }
 
+/// One public row of the top 100, as the students see it.
+class LeaderboardRow {
+  const LeaderboardRow({
+    required this.uid,
+    required this.alias,
+    required this.total,
+    required this.career,
+  });
+
+  final String uid;
+  final String alias;
+  final int total;
+  final String career;
+}
+
+/// Lower case without accents, as Functions keys `{aliases}/{key}`.
+String foldAlias(String alias) {
+  const from = 'áàäâéèëêíìïîóòöôúùüûñ';
+  const to = 'aaaaeeeeiiiioooouuuun';
+  final lower = alias.trim().toLowerCase();
+  final out = StringBuffer();
+  for (final rune in lower.runes) {
+    final char = String.fromCharCode(rune);
+    final index = from.indexOf(char);
+    out.write(index < 0 ? char : to[index]);
+  }
+  return out.toString();
+}
+
 /// `{config}/xp` and the admin XP tool (docs/xp_contract.md §5).
 class XpRepo {
   XpRepo(this.db);
@@ -186,9 +215,11 @@ class XpRepo {
     final settings = await readSettings();
     final eventRef = _user(uid).collection('xpEvents').doc(eventId);
     final stateRef = _user(uid).collection('xp').doc('current');
+    final entryRef = db.collection(AppEnv.leaderboardCollection).doc(uid);
     await db.runTransaction((transaction) async {
       final event = await transaction.get(eventRef);
       final state = await transaction.get(stateRef);
+      final entry = await transaction.get(entryRef);
       final data = event.data();
       if (data == null) throw StateError('El evento ya no existe.');
       if (data['reverted'] == true) {
@@ -224,6 +255,71 @@ class XpRepo {
         'today': today,
         'updatedAtMs': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
+      // Keep the public top 100 in step (only if the student appears).
+      if (entry.exists) {
+        final newTotal = total < 0 ? 0 : total;
+        transaction.update(entryRef, {
+          'total': newTotal,
+          'rankStep': settings.rankStepFor(newTotal),
+          'stars': settings.starsFor(newTotal),
+          'updatedAtMs': DateTime.now().millisecondsSinceEpoch,
+        });
+      }
     });
+  }
+
+  /// The public top, as students see it (moderation).
+  Stream<List<LeaderboardRow>> watchTop({int limit = 100}) => db
+      .collection(AppEnv.leaderboardCollection)
+      .orderBy('total', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map(
+        (snapshot) => [
+          for (final doc in snapshot.docs)
+            LeaderboardRow(
+              uid: doc.id,
+              alias: (doc.data()['alias'] ?? '').toString(),
+              total: (doc.data()['total'] as num?)?.toInt() ?? 0,
+              career: [
+                (doc.data()['universityAcronym'] ?? '').toString(),
+                (doc.data()['professionName'] ?? '').toString(),
+              ].where((s) => s.isNotEmpty).join(' · '),
+            ),
+        ],
+      );
+
+  /// Alias and «Aparecer en rankings» of a student; null alias = none.
+  Stream<({String? alias, bool visible})> watchRankingChoice(String uid) =>
+      _user(uid).collection('ranking').doc('current').snapshots().map((s) {
+        final data = s.data();
+        final alias = data?['alias'];
+        return (
+          alias: alias is String && alias.isNotEmpty ? alias : null,
+          visible: data?['visible'] == true,
+        );
+      });
+
+  /// Removes an inappropriate alias: the student leaves the top 100, the
+  /// alias is freed and the app shows [reason] until they pick another.
+  Future<void> removeAlias(
+    String uid,
+    String alias, {
+    required String reason,
+    required String editor,
+  }) async {
+    final why = reason.trim();
+    if (why.length < 3) throw StateError('Escribe el motivo.');
+    final batch = db.batch()
+      ..delete(db.collection(AppEnv.leaderboardCollection).doc(uid))
+      ..delete(db.collection(AppEnv.aliasesCollection).doc(foldAlias(alias)))
+      ..update(_user(uid).collection('ranking').doc('current'), {
+        'alias': null,
+        'visible': false,
+        'moderatedReason': why,
+        'moderatedBy': editor,
+        'moderatedAtMs': DateTime.now().millisecondsSinceEpoch,
+      });
+    await batch.commit();
   }
 }

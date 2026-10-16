@@ -22,6 +22,7 @@
         <li><a href="#c-plan">«Hoy te toca»</a></li>
         <li><a href="#c-telefonos">Sin internet y varios teléfonos</a></li>
         <li><a href="#c-xp">Ganar XP y subir de rango</a></li>
+        <li><a href="#c-top">Aparecer en «Los más dedicados»</a></li>
         <li><a href="#c-admin">El admin cambia contenido</a></li>
       </ol></li>
     <li><a href="#quepasasi">¿Qué pasa si…?</a></li>
@@ -61,7 +62,7 @@ flowchart LR
 <div class="grid-cards">
   <div class="card"><h4>📱 App del alumno</h4><p>La que se instala en el teléfono. Guarda una copia del contenido y del avance para funcionar aunque falle el internet.</p></div>
   <div class="card"><h4>🏫 Panel admin</h4><p>Página web solo para el equipo (cuenta de Google con permiso de administrador). Ahí se cargan universidades, cursos, partes, preguntas, exámenes pasados y configuración.</p></div>
-  <div class="card"><h4>👩‍🏫 Servidor</h4><p>Programas que corren en Google (Firebase Cloud Functions). Son 8 «ventanillas»; la app las llama para crear, empezar y entregar exámenes, y para registrar el avance y las medallas.</p></div>
+  <div class="card"><h4>👩‍🏫 Servidor</h4><p>Programas que corren en Google (Firebase Cloud Functions). Son 9 «ventanillas»; la app las llama para crear, empezar y entregar exámenes, registrar el avance y las medallas, y guardar el alias del ranking.</p></div>
   <div class="card"><h4>🗄️ Base de datos</h4><p>Firestore, de Google. Hoy todo trabaja en el ambiente de <b>pruebas (TEST)</b>; producción se activa al publicar en Play Store.</p></div>
 </div>
 
@@ -75,6 +76,8 @@ flowchart LR
   <tr><td class="msg">Perfil del alumno, avance en la guía, favoritos y meta del plan</td><td>App</td><td>App (y el servidor lee la universidad del perfil)</td></tr>
   <tr><td class="msg">Exámenes rendidos, notas, medallas y aciertos por tema</td><td>Solo el servidor</td><td>App (solo los lee)</td></tr>
   <tr><td class="msg">XP total, rango y libro de XP</td><td>Solo el servidor (el admin puede revertir)</td><td>App (solo los lee)</td></tr>
+  <tr><td class="msg">Alias y «Aparecer en rankings»</td><td>El servidor, cuando el alumno lo pide (el admin puede retirar un alias)</td><td>App del alumno</td></tr>
+  <tr><td class="msg">Top 100 «Los más dedicados»: alias, XP, rango, universidad y carrera</td><td>Solo el servidor, y solo de quien eligió aparecer</td><td>Todos los alumnos con sesión (nunca ven nombre ni correo)</td></tr>
 </table></div>
 
 <h2 id="como">Cómo funciona cada cosa</h2>
@@ -230,6 +233,29 @@ sequenceDiagram
 </pre>
 <p>El admin puede buscar a un alumno, ver su libro de XP y revertir un movimiento indicando el motivo.</p>
 
+<h3 id="c-top">Aparecer en «Los más dedicados»</h3>
+<ol>
+  <li>Al principio nadie aparece. El alumno entra a «Rankings y privacidad», elige un alias (la app le sugiere uno) y activa «Aparecer en rankings».</li>
+  <li>El servidor revisa el alias: largo, caracteres, palabras prohibidas, que no tenga su nombre ni su correo, y que nadie más lo use. Si está bien, lo reserva y crea su fila pública.</li>
+  <li>La fila pública solo tiene el alias, el XP, el rango y la universidad y carrera. Cada vez que el alumno gana XP, el servidor actualiza su fila en el mismo paso.</li>
+  <li>La app lee las 100 filas con más XP y cuenta cuántos tienen más XP que el alumno para mostrarle su puesto, aunque él no aparezca.</li>
+  <li>Si apaga el interruptor, su fila se borra al instante. El admin puede retirar un alias ofensivo: la fila se borra y la app le pide otro.</li>
+</ol>
+<pre class="mermaid">
+sequenceDiagram
+  actor Alumno
+  participant App as 📱 App
+  participant Servidor as 👩‍🏫 Servidor
+  participant Top as 🗄️ Top 100
+  Alumno->>App: alias + «Aparecer en rankings»
+  App->>Servidor: guardar elección
+  Servidor->>Servidor: revisa y reserva el alias
+  Servidor->>Top: crea su fila (alias, XP, rango, universidad)
+  Note over Servidor,Top: cada vez que gana XP, se actualiza su fila
+  App->>Top: lee las 100 primeras y cuenta su puesto
+  App->>Alumno: «Los más dedicados» con «Tú» resaltado
+</pre>
+
 <h3 id="c-admin">El admin cambia contenido</h3>
 <ul>
   <li><b>Editar una pregunta ya publicada</b> crea una versión nueva. Los exámenes que ya la usaron conservan la versión anterior, así nadie ve cambiar su nota.</li>
@@ -292,7 +318,7 @@ sequenceDiagram
 </details>
 
 <details>
-<summary>Las 8 Cloud Functions (callables)</summary>
+<summary>Las 9 Cloud Functions (callables)</summary>
 <p>Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
 <div class="table-wrap"><table>
   <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Idempotencia</th></tr>
@@ -304,6 +330,7 @@ sequenceDiagram
   <tr><td class="msg"><code>recordPartSectionCompletion</code></td><td><code>partId</code>, <code>section(s)</code>, contexto</td><td>Registra secciones; verifica la parte y otorga plata si corresponde.</td><td>No reescribe lo registrado</td></tr>
   <tr><td class="msg"><code>getAchievementSummary</code></td><td>—</td><td>Resumen de medallas (lo reconstruye una vez si está dañado).</td><td>Lectura</td></tr>
   <tr><td class="msg"><code>reconcileSubtopicAchievement</code></td><td>curso, tema, subtema</td><td>Otorga plata si el subtema ya está completo.</td><td>ID de medalla fijo</td></tr>
+  <tr><td class="msg"><code>updateRankingProfile</code></td><td><code>visible</code>, <code>alias?</code></td><td>Valida y reserva el alias (<code>alias_length|characters|banned|personal|taken|required</code>), guarda <code>ranking/current</code> y crea o borra la fila del top.</td><td>Transacción; mismo alias = sin cambios</td></tr>
 </table></div>
 <div class="table-wrap"><table>
   <tr><th>purpose / mode</th><th>Selección</th><th>Tiempo</th></tr>
@@ -356,6 +383,17 @@ sequenceDiagram
   <li><b>Ids fijos:</b> <code>section_{parte}_{sección}</code>, <code>part_passed_{parte}</code>, <code>subtopic_completed_{s}</code>, <code>subtopic_mastered_{s}</code>, <code>session_{intento}</code>, <code>correct_{intento}</code>, <code>diagnostic</code>, <code>past_exam_{examen}_{día}</code>, <code>improve_{intento}</code>, <code>streak_{día}</code>, <code>weekly_goal_{lunes}</code>.</li>
   <li><b>Retroactivo:</b> <code>npm run xp:retro -- [--dry-run]</code> (ya aplicado en TEST). Contrato completo: <code>docs/xp_contract.md</code>.</li>
   <li><b>App:</b> <code>lib/features/xp/</code> (<code>XpRepository</code> en Firestore, <code>rankViewOf</code>, <code>ProfileRankCard</code>, <code>RankLadderScreen</code> en <code>/profile/ranks</code>, <code>XpAwardCard</code>, <code>RankCelebrationGate</code> con lo ya celebrado en SharedPreferences <code>rank_celebrated_v1|uid</code>). Insignias en <code>assets/ranks/</code>.</li>
+</ul>
+</details>
+
+<details>
+<summary>Top 100 y alias (fase 2: functions/src/ranking.ts, leaderboard.ts)</summary>
+<ul>
+  <li><b>Datos:</b> <code>{config}/xp.leaderboard</code> (<code>enabled</code>, <code>size</code> 100, <code>universityFilterMin</code> 50, <code>bannedWords</code>); <code>{perfil}/ranking/current</code> (<code>alias</code>, <code>visible</code>, <code>moderatedReason</code>); <code>iya-leaderboard-{env}/{uid}</code> (<code>alias</code>, <code>total</code>, <code>rankStep</code>, <code>stars</code>, <code>universityId</code>, <code>universityAcronym</code>, <code>professionId</code>, <code>professionName</code>); <code>iya-aliases-{env}/{alias sin tildes}</code> → <code>uid</code>.</li>
+  <li><b>Reglas:</b> el top lo lee cualquier alumno con sesión; nadie lo escribe salvo Functions (el admin actualiza al revertir XP y borra al moderar). <code>ranking</code> y <code>aliases</code> no los escribe el alumno.</li>
+  <li><b>Sincronía:</b> <code>XpService.grant</code> lee <code>ranking/current</code> y el perfil en la misma transacción del XP y reescribe la fila si <code>visible</code>. El retroactivo pasa por el mismo camino.</li>
+  <li><b>Consultas de la app:</b> <code>orderBy(total desc).limit(size)</code>; puesto = <code>count(total &gt; mío) + 1</code>; por universidad con <code>universityId ==</code> (índices compuestos <code>universityId + total</code>). <code>FirestoreRankingRepository</code>, <code>LeaderboardScreen</code> (<code>/profile/top</code>), <code>RankingPrivacyScreen</code> (<code>/profile/ranking</code>).</li>
+  <li><b>Admin:</b> «XP y rangos → Top 100 y alias» (ajustes) y «Top 100 y alias» (<code>XpRepo.watchTop</code>, <code>removeAlias</code>).</li>
 </ul>
 </details>
 
@@ -413,6 +451,7 @@ sequenceDiagram
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>15-oct-2026</b> · XP fase 2: flujo «Aparecer en Los más dedicados», quién guarda el alias y el top, <code>updateRankingProfile</code> y detalle técnico.</li>
   <li><b>15-oct-2026</b> · XP y rango (fase 1): flujo «Ganar XP y subir de rango», datos y detalle técnico.</li>
   <li><b>15-oct-2026</b> · Reescrito en lenguaje sencillo; el detalle técnico pasa a «Para desarrolladores».</li>
   <li><b>15-oct-2026</b> · Primera versión.</li>

@@ -126,4 +126,112 @@ void main() {
     expect((doc.data()!['amounts'] as Map)['partPassed'], 45);
     expect((doc.data()!['ranks'] as List).length, 18);
   });
+
+  test('top 100 settings parse, validate and round-trip', () {
+    final parsed = XpSettings.fromMap({
+      'leaderboard': {
+        'enabled': false,
+        'size': 5,
+        'universityFilterMin': 3,
+        'bannedWords': ['Tonto', 3, 'x'],
+      },
+    });
+    expect(parsed.leaderboard.enabled, isFalse);
+    expect(parsed.leaderboard.size, 100);
+    expect(parsed.leaderboard.universityFilterMin, 3);
+    expect(parsed.leaderboard.bannedWords, ['tonto']);
+    expect(
+      XpSettings.fromMap(parsed.toMap()).leaderboard.universityFilterMin,
+      3,
+    );
+    expect(
+      const LeaderboardSettings(size: 5).validate(),
+      contains('Tamaño del top'),
+    );
+    expect(XpSettings.defaults.starsFor(12000), 0);
+    expect(XpSettings.defaults.starsFor(16000), 2);
+    expect(foldAlias('Búho_Ñandú'), 'buho_nandu');
+  });
+
+  test('reverting keeps the top in step; removing an alias frees it', () async {
+    final db = FakeFirebaseFirestore();
+    final user = db.collection(AppEnv.usersCollection).doc('u1');
+    await user.collection('xp').doc('current').set({
+      'total': 400,
+      'rankStep': 2,
+    });
+    await user.collection('xpEvents').doc('part_passed_p1').set({
+      'type': 'part_passed',
+      'xp': 40,
+      'day': '2026-10-15',
+      'week': '2026-10-12',
+      'atMs': 1,
+    });
+    await user.collection('ranking').doc('current').set({
+      'alias': 'Búho_9',
+      'visible': true,
+    });
+    final top = db.collection(AppEnv.leaderboardCollection);
+    await top.doc('u1').set({'alias': 'Búho_9', 'total': 400, 'rankStep': 2});
+    await db.collection(AppEnv.aliasesCollection).doc('buho_9').set({
+      'uid': 'u1',
+    });
+    final repo = XpRepo(db);
+
+    await repo.revert('u1', 'part_passed_p1', reason: 'Prueba', editor: 'a');
+    expect((await top.doc('u1').get()).data()!['total'], 360);
+    expect((await top.doc('u1').get()).data()!['rankStep'], 2);
+    expect((await repo.watchTop().first).single.alias, 'Búho_9');
+
+    await repo.removeAlias(
+      'u1',
+      'Búho_9',
+      reason: 'parece un nombre',
+      editor: 'a',
+    );
+    expect((await top.doc('u1').get()).exists, isFalse);
+    expect(
+      (await db.collection(AppEnv.aliasesCollection).doc('buho_9').get())
+          .exists,
+      isFalse,
+    );
+    final choice = (await user.collection('ranking').doc('current').get())
+        .data()!;
+    expect(choice['alias'], isNull);
+    expect(choice['visible'], isFalse);
+    expect(choice['moderatedReason'], 'parece un nombre');
+  });
+
+  testWidgets('the card saves the top 100 settings', (tester) async {
+    final db = FakeFirebaseFirestore();
+    tester.view.physicalSize = const Size(1200, 7000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [xpRepoProvider.overrideWithValue(XpRepo(db))],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: XpSettingsSection()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('xp-banned-words')),
+      'Tonto, feo',
+    );
+    await tester.tap(find.byKey(const ValueKey('xp-top-enabled')));
+    await tester.tap(find.byKey(const ValueKey('xp-save')));
+    await tester.pumpAndSettle();
+    final doc = await db
+        .collection(AppEnv.configCollection)
+        .doc(AppEnv.xpSettingsDocument)
+        .get();
+    final board = doc.data()!['leaderboard'] as Map;
+    expect(board['enabled'], isFalse);
+    expect(board['bannedWords'], ['tonto', 'feo']);
+    expect(board['size'], 100);
+  });
 }

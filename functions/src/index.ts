@@ -36,6 +36,7 @@ export const recordPartSectionCompletion = onCall(
   handlers.recordPartSectionCompletion
 );
 export const submitExamAttempt = onCall(hotCallableOptions, handlers.submitExamAttempt);
+export const updateRankingProfile = onCall(callableOptions, handlers.updateRankingProfile);
 export const reconcileSubtopicAchievement = onCall(
   callableOptions,
   handlers.reconcileSubtopicAchievement

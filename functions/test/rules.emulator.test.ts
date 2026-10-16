@@ -193,6 +193,32 @@ test("the student writes only their own training plan goal", async () => {
   await assertFails(other.doc(path).set({ sessionsPerWeek: 7 }));
 });
 
+test("the top 100 is public to students but written only by the server; aliases stay private", async () => {
+  const learner = firestoreFor("student-1");
+  const admin = firestoreFor("admin-1", true);
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("iya-leaderboard-test/student-2").set({ alias: "Búho_2", total: 500 });
+    await db.doc("iya-aliases-test/buho_2").set({ uid: "student-2" });
+    await db.doc("iya-profile-test/student-1/ranking/current").set({ alias: "Búho_1", visible: true });
+  });
+  await assertSucceeds(learner.doc("iya-leaderboard-test/student-2").get());
+  await assertSucceeds(learner.collection("iya-leaderboard-test").orderBy("total", "desc").limit(100).get());
+  await assertFails(firestoreFor().doc("iya-leaderboard-test/student-2").get());
+  await assertFails(learner.doc("iya-leaderboard-test/student-1").set({ alias: "Yo", total: 99999 }));
+  await assertFails(learner.doc("iya-leaderboard-test/student-2").update({ total: 0 }));
+  await assertFails(learner.doc("iya-aliases-test/buho_2").get());
+  await assertFails(learner.doc("iya-aliases-test/nuevo").set({ uid: "student-1" }));
+  // The choice is owner-read; only the server (and the admin) change it.
+  await assertSucceeds(learner.doc("iya-profile-test/student-1/ranking/current").get());
+  await assertFails(learner.doc("iya-profile-test/student-1/ranking/current").set({ alias: "Otro", visible: true }));
+  await assertFails(firestoreFor("student-2").doc("iya-profile-test/student-1/ranking/current").get());
+  await assertSucceeds(admin.doc("iya-leaderboard-test/student-2").update({ total: 450 }));
+  await assertSucceeds(admin.doc("iya-profile-test/student-1/ranking/current").update({ alias: null, visible: false }));
+  await assertSucceeds(admin.doc("iya-aliases-test/buho_2").delete());
+  await assertSucceeds(admin.doc("iya-leaderboard-test/student-2").delete());
+});
+
 test("admin claim can administer the bank while answer keys remain student-private", async () => {
   const admin = firestoreFor("editor-1", true);
   const learner = firestoreFor("student-1");
