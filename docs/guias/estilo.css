@@ -109,3 +109,9 @@ pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-
 .flow .body { flex: 1 1 100%; min-width: 0; }
 .flow .body > h3 { margin-top: 0; }
 .flow figure { order: 1; }
+
+/* Bloques plegables (detalle técnico). */
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; margin: 10px 0; }
+details > summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 17px; padding: 10px 0; }
+details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+details[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
