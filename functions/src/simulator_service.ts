@@ -1,5 +1,5 @@
 import type { DocumentReference, Firestore, Transaction } from "firebase-admin/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import {
   gradeFrozenAttempt,
@@ -18,6 +18,7 @@ import { type CandidateQuestion, parseCandidateQuestion } from "./exam_contracts
 import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
+import { parseXpSettings } from "./xp";
 import type {
   MistakesAttemptInput,
   PlanAttemptInput,
@@ -404,6 +405,7 @@ export class SimulatorService {
       ...(plan.cutoffScore === undefined ? {} : { cutoffScore: plan.cutoffScore })
     };
     const publicContext = publicSimulatorContext(simulator, plan.picked.map(({ question }) => question.courseId));
+    const freshQuestionIds = await this.freshForXp(uid, questions.map(({ questionId }) => questionId), now, metrics);
     const created = await this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const existing = await transaction.get(requestRef);
@@ -442,6 +444,9 @@ export class SimulatorService {
           alternativeOrder
         })),
         questionSnapshots: questions,
+        // Questions not seen in the XP repeat window: only these give the
+        // correct-answer XP (docs/xp_contract.md).
+        xpFreshQuestionIds: freshQuestionIds,
         answers: {},
         // Simulator attempts are scored, not passed/failed (contract §3).
         requiredCorrectAnswers: 1
@@ -562,6 +567,9 @@ export class SimulatorService {
       // «+N vs. anterior»: the score of the previous try at the same exam.
       const previousScore = best?.data()?.lastScore;
       if (typeof previousScore === "number") result.previousScore = previousScore;
+      const previousBestScore = best?.data()?.bestScore;
+      const fresh = new Set(stringList(data.xpFreshQuestionIds));
+      const freshCorrect = grading.review.filter((item) => item.isCorrect && fresh.has(item.questionId)).length;
 
       transaction.update(attemptRef, {
         answers,
@@ -576,7 +584,11 @@ export class SimulatorService {
           passPercentExclusive: 0,
           gradedAtMs: now
         },
-        simulatorResult: result
+        simulatorResult: result,
+        xpBasis: {
+          freshCorrect,
+          ...(typeof previousBestScore === "number" ? { previousBestScore } : {})
+        }
       });
       const summary = {
         attemptId: input.attemptId,
@@ -1084,6 +1096,22 @@ export class SimulatorService {
       throw failedPrecondition("A selected topic is unavailable.", { reason: "topic_not_available" });
     }
     return [...topicIds];
+  }
+
+  /** Picked questions the student did not see in the XP repeat window. */
+  private async freshForXp(uid: string, questionIds: readonly string[], now: number, metrics: OperationMetrics): Promise<string[]> {
+    if (questionIds.length === 0) return [];
+    const [xpConfig, ...seen] = await this.db.getAll(
+      this.db.collection(this.config.collections.config).doc("xp"),
+      ...questionIds.map((id) => this.userRef(uid).collection("recentQuestions").doc(id))
+    );
+    metrics.readDocument(1 + seen.length);
+    const windowMs = parseXpSettings(xpConfig?.data()).repeatWindowDays * dayMs;
+    return questionIds.filter((_, index) => {
+      const last = seen[index]?.data()?.lastSeenAt;
+      const lastMs = last instanceof Timestamp ? last.toMillis() : undefined;
+      return lastMs === undefined || now - lastMs >= windowMs;
+    });
   }
 
   private async seenSince(uid: string, days: number, metrics: OperationMetrics): Promise<Set<string>> {

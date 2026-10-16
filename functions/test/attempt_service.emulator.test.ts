@@ -10,6 +10,7 @@ import {
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { OperationMetrics } from "../src/operation_metrics";
+import { XpService } from "../src/xp";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
 const service = new ExamAttemptService(db, config);
@@ -351,6 +352,22 @@ test("passing after all sections are reviewed grants the award during submit", a
     .collection("learningProgress").doc("current").collection("achievements").get();
   assert.equal(awards.size, 1);
   assert.equal(awards.docs[0]?.data().examAttemptId, attempt.attemptId);
+
+  // XP: five sections, the part and the subtopic, once.
+  const xp = new XpService(db, config);
+  const user = db.collection(config.collections.users).doc(uid);
+  for (const name of ["xp", "xpEvents"]) {
+    const docs = await user.collection(name).get();
+    await Promise.all(docs.docs.map((doc) => doc.ref.delete()));
+  }
+  const award = await xp.afterAttempt(uid, attempt.attemptId);
+  assert.deepEqual(award?.items.map((item) => item.type), [
+    "section_reviewed", "section_reviewed", "section_reviewed", "section_reviewed", "section_reviewed",
+    "part_passed", "subtopic_completed"
+  ]);
+  assert.equal(award?.gained, 5 * 2 + 40 + 80);
+  assert.equal(award?.rankStep, 0);
+  assert.equal(await xp.afterGuide(uid, { partId }), undefined);
 });
 
 test("create distinguishes a missing template from an orphaned request key", async () => {

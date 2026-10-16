@@ -197,7 +197,9 @@ service cloud.firestore {
           && subcollection != 'simulatorResults'
           && subcollection != 'pastExamBest'
           && subcollection != 'learningEvents'
-          && subcollection != 'simulatorTopicStats';
+          && subcollection != 'simulatorTopicStats'
+          && subcollection != 'xp'
+          && subcollection != 'xpEvents';
     }
 
     // Simulator results, best score per past exam and learning events are
@@ -205,7 +207,20 @@ service cloud.firestore {
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isOwner(userId)
         && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents',
-          'simulatorTopicStats'];
+          'simulatorTopicStats', 'xp', 'xpEvents'];
+    }
+
+    // Admin XP tool (docs/xp_contract.md): find a student, read the XP
+    // ledger and revert an event. Students never write their XP.
+    match /{profiles}/{userId} {
+      allow read: if isProfileCollection(profiles) && isAdmin();
+    }
+
+    match /{profiles}/{userId}/{subcollection}/{document} {
+      allow read: if isProfileCollection(profiles) && isAdmin()
+        && subcollection in ['xp', 'xpEvents'];
+      allow update: if isProfileCollection(profiles) && isAdmin()
+        && subcollection in ['xp', 'xpEvents'];
     }
 
     // These records are server-owned: request IDs provide idempotency and
