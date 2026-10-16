@@ -139,7 +139,7 @@ flowchart LR
     <div class="table-wrap"><table>
       <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
       <tr><td class="msg">«Cargando curso · Preparando tus temas y tu avance»</td><td>Mientras baja el contenido. Se guarda en el teléfono y se considera al día por 30 min; sin red se usa lo guardado.</td><td>—</td></tr>
-      <tr><td class="msg">«{pct}% avance» · «{c}/{t} completados» · «{m} dominado»</td><td>Aquí el % cuenta <b>subtemas</b> completados, no partes (ver observaciones).</td><td>—</td></tr>
+      <tr><td class="msg">«{pct}% avance» · «{c}/{t} completados» · «{m} dominado»</td><td>El % es el mismo del Inicio y de la tarjeta del curso: avance por <b>partes</b> aprobadas, 100 % si todos los subtemas están completos. Los números «{c}/{t}» siguen contando subtemas.</td><td>—</td></tr>
       <tr><td class="msg">«TEMA {n}», nombre, «{c}/{t} completados · {m} dominados»</td><td>Por cada tema. Empiezan cerrados. Dorado si todos sus subtemas están dominados; verde si todos están completos.</td><td>Abre o cierra el tema.</td></tr>
       <tr><td class="msg">«Examen de dominio disponible · {subtema} · consigue el oro» + «Rendir»</td><td>Tema abierto y algún subtema completo, con examen de dominio y sin dominar.</td><td>Abre el subtema.</td></tr>
     </table></div>
@@ -391,6 +391,7 @@ flowchart LR
       <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
       <tr><td class="msg">Chip «{universidad} · {carrera}»</td><td>Si el perfil los tiene.</td><td>Nada.</td></tr>
       <tr><td class="msg">«Simulador» · «Practica con exámenes como el real.»</td><td>Siempre.</td><td>—</td></tr>
+      <tr><td class="msg">«Tienes un examen sin terminar» · «{título} · {a} de {t} respondidas» · «Retomar» / «Descartar»</td><td>Arriba de la tarjeta del plan, si en este teléfono quedó un examen del Simulador abierto (la app se cerró o se pausó) y el servidor dice que sigue en curso. Uno ya entregado o vencido se olvida solo.</td><td>«Retomar» abre el mismo examen con sus respuestas y el reloj que le queda («Tiempo restante», botón «Continuar examen»). «Descartar» solo quita la tarjeta.</td></tr>
       <tr><td class="msg">«Elige tu examen»: «Por curso · Un curso y sus temas», «Mezcla de cursos · Tú eliges cuáles», «Aleatorio · De todos tus cursos», «Examen pasado · Completo, como fue»</td><td>Siempre, con o sin plan.</td><td>Los tres primeros abren Arma tu práctica en esa pestaña; el cuarto, Exámenes pasados.</td></tr>
       <tr><td class="msg">«Tu progreso e historial»</td><td>Siempre.</td><td>Abre el historial.</td></tr>
     </table></div>
@@ -398,6 +399,7 @@ flowchart LR
 </div>
 
 <h3 id="sim-banner">La tarjeta bajo el búho</h3>
+<p><b>Un solo %:</b> el Inicio, la tarjeta del curso, el detalle del curso, la barra del Temario y la barra de cada curso en Mis logros usan el mismo cálculo (partes aprobadas; 100 % con todos los subtemas completos). Los textos «N de M subtemas» siguen contando subtemas.</p>
 <p>Es la tarjeta dentro de la cabecera morada, debajo del título y del búho. Tiene <b>dos variantes</b> y depende solo de cuántos exámenes del Simulador entregaste: cuenta todos los tipos (examen pasado, prácticas, «Hoy te toca», diagnóstico y «Mis errores»), hasta 200.</p>
 <div class="screen two">
   <figure><img src="img/sim-inicio-nuevo.jpg" alt="Variante sin simulacros"><figcaption>Variante A: sin simulacros.</figcaption></figure>
@@ -536,7 +538,7 @@ flowchart LR
     <div class="table-wrap"><table>
       <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
       <tr><td class="msg">«Preparando tus preguntas»</td><td>Mientras el servidor arma el examen (espera hasta 20 s).</td></tr>
-      <tr><td class="msg">«EXAMEN PASADO» / «PRÁCTICA» · título · «Antes de comenzar»</td><td>Intro. El reloj empieza al tocar «Comenzar examen».</td></tr>
+      <tr><td class="msg">«EXAMEN PASADO» / «PRÁCTICA» · título · «Antes de comenzar»</td><td>Intro. El reloj empieza al tocar «Comenzar examen». Si el examen ya había empezado (retomado), el botón dice «Continuar examen».</td></tr>
       <tr><td class="msg">«Duración · Sin reloj» / «Duración 02:00:00» / «Tiempo restante»</td><td>Sin reloj, con reloj sin empezar, o examen retomado.</td></tr>
       <tr><td class="msg">«Puedes marcar preguntas para volver a ellas, usar la pizarra… Si se acaba el tiempo, se entrega solo.»</td><td>Siempre en el Simulador.</td></tr>
       <tr><td class="msg">«Pregunta {n} de {t}» · reloj · «{a}/{t} respondidas»</td><td>Durante el examen.</td></tr>
@@ -600,7 +602,7 @@ flowchart LR
   <tr><td class="msg">«Este examen no está disponible por ahora. Elige otro.»</td><td>Examen pasado oculto, inactivo o incompleto; curso, tema o tamaño no disponible.</td></tr>
   <tr><td class="msg">«Completa la universidad en tu perfil antes de tomar este examen.»</td><td>Perfil sin universidad.</td></tr>
   <tr><td class="msg">«No pudimos conectarnos. Revisa tu internet e inténtalo nuevamente.»</td><td>Sin red.</td></tr>
-  <tr><td class="msg">«Está tomando más tiempo de lo esperado. Reintenta para continuar con tu examen.»</td><td>20 s sin respuesta. Reintentar no duplica el examen (salvo en «Hoy te toca»).</td></tr>
+  <tr><td class="msg">«Está tomando más tiempo de lo esperado. Reintenta para continuar con tu examen.»</td><td>20 s sin respuesta. Reintentar no duplica el examen. En «Hoy te toca», mientras la sesión de hoy siga abierta, tocar otra vez abre la misma.</td></tr>
   <tr><td class="msg">«El tiempo de este examen terminó.» / «Este intento ya fue enviado. Puedes consultar su resultado.»</td><td>Examen vencido o ya entregado.</td></tr>
   <tr><td class="msg">«No pudimos calificar este examen. Avísanos si vuelve a ocurrir.»</td><td>Falta la clave de alguna pregunta.</td></tr>
   <tr><td class="msg">«No pudimos continuar ahora. Vuelve a intentarlo en unos momentos.»</td><td>Cualquier otro error, incluido «Mis errores» sin preguntas disponibles.</td></tr>
@@ -768,7 +770,7 @@ flowchart LR
 <p>Cosas que hoy funcionan distinto de lo esperado. Se tachan aquí cuando se corrigen.</p>
 <div class="table-wrap"><table>
   <tr><th>#</th><th>Observación</th><th>Dónde</th></tr>
-  <tr><td class="num">1</td><td>El % no coincide entre pantallas: el Inicio y la tarjeta del curso cuentan partes; el detalle del curso, el Temario y Mis logros cuentan subtemas.</td><td>Guía</td></tr>
+  <tr><td class="num">1</td><td><s>El % no coincide entre pantallas: el Inicio y la tarjeta del curso cuentan partes; el detalle del curso, el Temario y Mis logros cuentan subtemas.</s> Corregido: un solo %.</td><td>Guía</td></tr>
   <tr><td class="num">2</td><td>«Continúa donde lo dejaste» puede abrir otra parte que la anunciada si la abriste desde el Temario sin tocar nada.</td><td>Inicio</td></tr>
   <tr><td class="num">3</td><td>El puntaje del Repaso relámpago puede pasar a la siguiente parte que también tenga quiz.</td><td>Guía</td></tr>
   <tr><td class="num">4</td><td>El aviso «Dedica al menos N segundos…» sale aunque la sección ya estuviera revisada.</td><td>Guía</td></tr>
@@ -776,9 +778,9 @@ flowchart LR
   <tr><td class="num">6</td><td>«Leer» de Novedades no hace nada; el acceso «Favoritos» del Inicio abre preguntas guardadas; «Tu progreso esta semana» es fijo.</td><td>Inicio</td></tr>
   <tr><td class="num">7</td><td>El diagnóstico anuncia «30' aprox.» y «0 penalidad», pero no tiene reloj y la penalidad depende del admin.</td><td>Simulador</td></tr>
   <tr><td class="num">8</td><td>Sin mínimo de ingreso cargado, el resultado de un examen pasado no explica nada sobre el ingreso.</td><td>Simulador</td></tr>
-  <tr><td class="num">9</td><td>Las marcas y la pizarra se pierden al pausar; un examen del Simulador no se puede retomar después de cerrar la app.</td><td>Simulador</td></tr>
+  <tr><td class="num">9</td><td>Las marcas y la pizarra se pierden al pausar. <s>Un examen del Simulador no se puede retomar después de cerrar la app.</s> Corregido: «Tienes un examen sin terminar · Retomar».</td><td>Simulador</td></tr>
   <tr><td class="num">10</td><td>Si falla la entrega automática al acabarse el tiempo, no hay forma de reintentar.</td><td>Simulador</td></tr>
-  <tr><td class="num">11</td><td>«Hoy te toca» crea un examen nuevo en cada toque: tras un timeout puede quedar uno duplicado.</td><td>Simulador</td></tr>
+  <tr><td class="num">11</td><td><s>«Hoy te toca» crea un examen nuevo en cada toque: tras un timeout puede quedar uno duplicado.</s> Corregido: mientras la sesión de hoy siga abierta, se devuelve la misma.</td><td>Simulador</td></tr>
   <tr><td class="num">12</td><td>Las fichas del historial no se pueden tocar; la meta solo se edita desde el historial.</td><td>Simulador</td></tr>
   <tr><td class="num">13</td><td>El recordatorio diario solo guarda la hora: aún no hay notificaciones.</td><td>Simulador</td></tr>
 </table></div>
@@ -786,6 +788,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>15-oct-2026</b> · Pendientes antes de Play Console: un solo % del curso, «Tienes un examen sin terminar · Retomar» en el Simulador, «Hoy te toca» sin duplicados y botón «Continuar examen». Observaciones 1, 9 (en parte) y 11 corregidas.</li>
   <li><b>15-oct-2026</b> · XP fase 2: «Los más dedicados» (top 100), «Rankings y privacidad» con alias, accesos en el Perfil; admin «Top 100 y alias». Capturas del teléfono.</li>
   <li><b>15-oct-2026</b> · Rango de perfil y XP (fase 1): cómo se gana XP, Perfil, «Tu camino de rangos», «+N XP» al terminar y celebración; admin «XP y rangos» y «XP de un alumno» (app y admin «XP fase 1»). Capturas tomadas en el teléfono.</li>
   <li><b>15-oct-2026</b> · Primera versión. Reúne la guía del Simulador y la de la Guía de estudio que estaban en el lienzo de diseño, y agrega todos los mensajes con su condición. Incluye: % del Inicio que se actualiza en vivo y título «Examen de dominio: {subtema}» (app #87); exámenes pasados UNPRG 2025 I, 2025 II y 2026 II en TEST (admin #70).</li>

@@ -281,11 +281,11 @@ sequenceDiagram
 <h2 id="riesgos">Riesgos antes de publicar</h2>
 <div class="table-wrap"><table>
   <tr><th>#</th><th>Riesgo</th><th>Por qué importa</th></tr>
-  <tr><td class="num">1</td><td class="msg">Falta App Check en la app</td><td>En producción el servidor exige una «credencial de app legítima» que la app aún no envía: todos los exámenes fallarían.</td></tr>
+  <tr><td class="num">1</td><td class="msg">App Check: falta activarlo en Firebase</td><td>La app ya envía la «credencial de app legítima» (Play Integrity en la app publicada, depuración en las de prueba). Falta en Firebase: activar la API, registrar las apps y los tokens de prueba, y recién entonces exigirlo. Pasos en <code>iya-app/docs/app_check.md</code>.</td></tr>
   <tr><td class="num">2</td><td class="msg">Hay dos archivos de reglas de seguridad</td><td>Uno es estricto (admin) y otro permisivo (app). Hay que asegurar que siempre se suba el estricto.</td></tr>
   <tr><td class="num">3</td><td class="msg">El admin solo apunta a TEST</td><td>Para usarlo en producción hay que cambiar el código.</td></tr>
-  <tr><td class="num">4</td><td class="msg">Exámenes del Simulador sin recuperación</td><td>Si se cierra la app a mitad, el examen no se retoma.</td></tr>
-  <tr><td class="num">5</td><td class="msg">«Hoy te toca» puede duplicarse</td><td>Tras un fallo de internet, reintentar puede crear dos exámenes.</td></tr>
+  <tr><td class="num">4</td><td class="msg"><s>Exámenes del Simulador sin recuperación</s></td><td>Corregido: el teléfono recuerda el examen abierto y el Simulador ofrece «Retomar» (si se reinstala la app, se pierde ese recuerdo).</td></tr>
+  <tr><td class="num">5</td><td class="msg"><s>«Hoy te toca» puede duplicarse</s></td><td>Corregido: el servidor guarda la sesión abierta del día y la devuelve en lugar de crear otra.</td></tr>
   <tr><td class="num">6</td><td class="msg">Borrados sin protección en el admin</td><td>Se puede borrar una universidad o una carrera que todavía se usa.</td></tr>
 </table></div>
 
@@ -322,7 +322,7 @@ sequenceDiagram
 <p>Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
 <div class="table-wrap"><table>
   <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Idempotencia</th></tr>
-  <tr><td class="msg"><code>createExamAttempt</code></td><td><code>requestId</code>, <code>purpose</code> y datos según el tipo</td><td>Valida catálogo y plantilla, elige y congela preguntas, crea <code>attempts/{id}</code>. Simulador vía <code>SimulatorService</code>.</td><td><code>examRequestKeys/{requestId}</code> (TTL 30 d)</td></tr>
+  <tr><td class="msg"><code>createExamAttempt</code></td><td><code>requestId</code>, <code>purpose</code> y datos según el tipo</td><td>Valida catálogo y plantilla, elige y congela preguntas, crea <code>attempts/{id}</code>. Simulador vía <code>SimulatorService</code>.</td><td><code>examRequestKeys/{requestId}</code> (TTL 30 d); «Hoy te toca» además <code>open_plan_{día}</code>: mientras la sesión del día siga abierta, se devuelve esa</td></tr>
   <tr><td class="msg"><code>getExamAttempt</code></td><td><code>attemptId</code></td><td>Lee el intento propio (vencido → <code>expired</code>).</td><td>Lectura</td></tr>
   <tr><td class="msg"><code>startExamAttempt</code></td><td><code>attemptId</code></td><td><code>expiresAt = ahora + duración</code>.</td><td>No mueve el reloj dos veces</td></tr>
   <tr><td class="msg"><code>saveExamAnswers</code></td><td><code>answers</code> ≤ 50</td><td>Fusiona respuestas.</td><td>1 escritura/s</td></tr>
@@ -451,6 +451,7 @@ sequenceDiagram
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>15-oct-2026</b> · App Check activado en la app (falta exigirlo en Firebase); «Hoy te toca» sin duplicados (<code>examRequestKeys/open_plan_{día}</code>); retomar exámenes del Simulador; un solo % del curso.</li>
   <li><b>15-oct-2026</b> · XP fase 2: flujo «Aparecer en Los más dedicados», quién guarda el alias y el top, <code>updateRankingProfile</code> y detalle técnico.</li>
   <li><b>15-oct-2026</b> · XP y rango (fase 1): flujo «Ganar XP y subir de rango», datos y detalle técnico.</li>
   <li><b>15-oct-2026</b> · Reescrito en lenguaje sencillo; el detalle técnico pasa a «Para desarrolladores».</li>

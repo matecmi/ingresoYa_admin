@@ -216,6 +216,25 @@ test("submitting builds topic stats; the plan focuses on the weak topic", async 
   assert.ok((count(daily.simulator?.questionCourseIds ?? []).get("sim-course-a") ?? 0) >= 6);
 });
 
+test("«Hoy te toca» twice returns the open session; after submitting, a new one", async () => {
+  await seed();
+  const first = await service.create(uid, { requestId: "plan-tap-1", purpose: "practice", mode: "plan", timed: true });
+  // A second tap or a retry after a timeout comes with another request ID.
+  const second = await service.create(uid, { requestId: "plan-tap-2", purpose: "practice", mode: "plan", timed: true });
+  assert.equal(second.attemptId, first.attemptId);
+  assert.deepEqual(second.questions.map((q) => q.questionId), first.questions.map((q) => q.questionId));
+  const open = await db.collection(config.collections.attempts).where("userId", "==", uid)
+    .where("requestId", "in", ["plan-tap-1", "plan-tap-2"]).get();
+  assert.equal(open.size, 1);
+  // Other modes are not affected.
+  const practice = await service.create(uid, { requestId: "plan-tap-3", purpose: "practice", mode: "random", courseIds: [], topicIds: [], size: "short", timed: false });
+  assert.notEqual(practice.attemptId, first.attemptId);
+  // «Otra sesión» after submitting creates a new one.
+  await service.submit(uid, { attemptId: first.attemptId, answers: {} });
+  const next = await service.create(uid, { requestId: "plan-tap-4", purpose: "practice", mode: "plan", timed: true });
+  assert.notEqual(next.attemptId, first.attemptId);
+});
+
 test("XP: a practice gives session, fresh answers and streak once; repeats and rushing give none", async () => {
   await seed();
   const xp = new XpService(db, config);
