@@ -41,7 +41,7 @@
         <li><a href="#sim-errores">Mensajes de error</a></li>
       </ol></li>
     <li><a href="#xp">Rango de perfil y XP</a>
-      <ol><li><a href="#xp-ganar">Cómo se gana XP</a></li><li><a href="#xp-perfil">En el Perfil</a></li><li><a href="#xp-camino">Tu camino de rangos</a></li><li><a href="#xp-terminar">Al terminar un examen</a></li><li><a href="#xp-celebracion">¡Subiste de rango!</a></li><li><a href="#xp-top">Los más dedicados</a></li><li><a href="#xp-privacidad">Rankings y privacidad</a></li></ol></li>
+      <ol><li><a href="#xp-ganar">Cómo se gana XP</a></li><li><a href="#xp-perfil">En el Perfil</a></li><li><a href="#xp-camino">Tu camino de rangos</a></li><li><a href="#xp-terminar">Al terminar un examen</a></li><li><a href="#xp-celebracion">¡Subiste de rango!</a></li><li><a href="#xp-usuario">Nombre de usuario</a></li><li><a href="#xp-rankings">Rankings: Mi liga</a></li><li><a href="#xp-reto">Reto del día</a></li></ol></li>
     <li><a href="#admin">Lo que se cambia en el admin</a></li>
     <li><a href="#observaciones">Observaciones abiertas</a></li>
     <li><a href="#cambios">Historial de cambios</a></li>
@@ -644,9 +644,9 @@ flowchart LR
   <tr><td class="msg">«Maestro III ★2» + «1.500 XP para la estrella 3»</td><td>Después del último rango, una estrella cada 2.000 XP <span class="chip info">ADMIN</span>.</td><td>Igual.</td></tr>
   <tr><td class="msg">«Esta semana ganaste +310 XP», con Guía de estudio, Simulador y Constancia</td><td>Suma los XP de la semana de Perú, agrupados. Si no hay: «Aún no ganas XP esta semana. Estudia una parte o rinde un examen en el Simulador.».</td><td>—</td></tr>
   <tr><td class="msg">«Todos los rangos · Mira el camino a Maestro»</td><td>Debajo de la tarjeta del rango.</td><td>Abre «Tu camino de rangos».</td></tr>
-  <tr><td class="msg">«Top 100 · Los más dedicados»</td><td>Al lado, si el admin tiene el top activado <span class="chip info">ADMIN</span>.</td><td>Abre «Los más dedicados».</td></tr>
+  <tr><td class="msg">«Rankings · Postulante · 8° esta semana» (o «aún sin puntos esta semana»)</td><td>Al lado, solo si el admin encendió los rankings <span class="chip info">ADMIN</span>.</td><td>Abre «Rankings».</td></tr>
   <tr><td class="msg">«Cómo ganar más XP»</td><td>Con los valores del admin.</td><td>—</td></tr>
-  <tr><td class="msg">Preferencias → «Rankings y privacidad · Tu alias y si apareces en el top 100»</td><td>Siempre.</td><td>Abre «Rankings y privacidad».</td></tr>
+  <tr><td class="msg">Preferencias → «Nombre de usuario y privacidad» con el nombre de usuario («Puma_Civil_42», o «… · oculto en los rankings»)</td><td>Siempre.</td><td>Abre «Tu nombre de usuario».</td></tr>
 </table></div>
   </div>
 </div>
@@ -698,54 +698,55 @@ flowchart LR
   </div>
 </div>
 
-<div class="screen" id="xp-top">
-  <figure><img src="img/xp-top.jpg" alt="Los más dedicados"><figcaption>Tres alumnos de TEST; «Tú» resaltado.</figcaption></figure>
-  <div class="body">
-<h3>«Los más dedicados» (top 100)</h3>
-<p>Los alumnos con más XP total, de mayor a menor. Mide constancia, no quién ingresaría (eso será el ranking de admisión). Solo aparecen los que activaron «Aparecer en rankings».</p>
+<h3 id="xp-usuario">Nombre de usuario</h3>
+<p>Todos los alumnos tienen un nombre de usuario: es lo único que los demás ven en los rankings, junto a la insignia del rango. Nunca se muestra el nombre real, el correo ni las respuestas.</p>
 <div class="table-wrap"><table>
-  <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
-  <tr><td class="msg">«Top 100 por XP total · mide constancia, no ingreso»</td><td>Arriba. El 100 es el tamaño del top <span class="chip info">ADMIN</span>.</td></tr>
-  <tr><td class="msg">Fila: puesto · insignia del rango (con estrellas) · alias · «UNPRG · Ingeniería Civil» · «750 XP»</td><td>Por cada alumno visible. Del 1 al 3 el puesto va en azul.</td></tr>
-  <tr><td class="msg">«Tú · Oso_Civil_26» (fila resaltada)</td><td>Si el alumno aparece y está en el top.</td></tr>
-  <tr><td class="msg">«···» y la fila propia con su puesto (p. ej. 58)</td><td>Si está fuera del top: su puesto se calcula igual (alumnos visibles con más XP + 1).</td></tr>
-  <tr><td class="msg">«Tú · solo tú lo ves»</td><td>Si no activó «Aparecer en rankings»: ve su puesto, pero nadie más lo ve.</td></tr>
-  <tr><td class="msg">«No apareces para los demás» · «Tu puesto se calcula igual, pero nadie ve tu alias ni tu XP.» · «Aparecer en rankings»</td><td>Arriba, si no aparece. El botón abre «Rankings y privacidad».</td></tr>
-  <tr><td class="msg">Selector «UNPRG | Todas»</td><td>Solo si su universidad tiene al menos 50 alumnos visibles <span class="chip info">ADMIN</span>; empieza en su universidad. Si no, se ve solo «Todas».</td></tr>
-  <tr><td class="msg">«Todavía nadie aparece aquí. ¡Puedes ser el primero!»</td><td>Top vacío.</td></tr>
-  <tr><td class="msg">«El top no está disponible por ahora.»</td><td>Si el admin lo apagó.</td></tr>
-  <tr><td class="msg">«No se pudo cargar el top. Revisa tu conexión.» · «Reintentar»</td><td>Error al leer.</td></tr>
-  <tr><td class="msg">«Solo alumnos con «Aparecer en rankings». Fuera del top 100 igual ves tu puesto.»</td><td>Al pie.</td></tr>
+  <tr><th>Dónde</th><th>Mensaje</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">Onboarding, paso 3 de 4</td><td>«Elige tu nombre de usuario» · «Así te verán en los rankings. Nunca mostramos tu nombre real.» · campo con uno sugerido («Animal_Carrera_NN») · «Otro al azar» · «Lo elijo después»</td><td>Siempre. «Lo elijo después» se queda con el sugerido. La confirmación (paso 4) lo muestra. El servidor lo revisa al terminar; si lo rechaza, vuelve a este paso con el motivo.</td></tr>
+  <tr><td class="msg">Inicio (una vez)</td><td>«Tu nombre de usuario» · «Te asignamos {nombre}. Así te verán en los rankings; puedes cambiarlo cuando quieras en tu Perfil.» · «Cambiarlo» / «Entendido»</td><td>Alumnos que ya tenían cuenta (se les generó uno al azar) o que no lo eligieron por falta de conexión.</td></tr>
+  <tr><td class="msg">Inicio (una vez)</td><td>«El equipo de IngresoYa retiró tu nombre de usuario anterior ({motivo}). Te asignamos uno nuevo; puedes cambiarlo aquí.» + el nuevo</td><td>Si el admin retiró su nombre de usuario.</td></tr>
+  <tr><td class="msg">Perfil → «Tu nombre de usuario»</td><td>Campo · «Otro al azar» · «Ocultarme de los rankings» (apagado: «Apareces con tu nombre de usuario y tu insignia.»; encendido: «Juegas igual y ves tu puesto, pero los demás te ven como «Postulante oculto».») · «Los demás ven / Nunca ven» · «Compites en UNPRG · Ingeniería Civil, según tu perfil.» · «Guardar» → «Listo, guardado.»</td><td>Siempre.</td></tr>
+  <tr><td class="msg">Errores del nombre</td><td>«El alias debe tener de 3 a 20 caracteres.» · «Usa solo letras, números y _ (sin espacios), con al menos una letra.» · «Ese alias no está permitido. Prueba con otro.» · «No uses tu nombre ni tu correo en el alias.» · «Ese alias ya lo usa otro alumno.»</td><td>Los dos primeros los revisa la app; el resto, el servidor (palabras prohibidas de fábrica + las del admin <span class="chip info">ADMIN</span>).</td></tr>
 </table></div>
-<p>El escudo de la cabecera abre «Rankings y privacidad». Se actualiza al deslizar hacia abajo.</p>
-  </div>
-</div>
 
-<div class="screen two" id="xp-privacidad">
-  <figure><img src="img/xp-privacidad.jpg" alt="Rankings y privacidad"><figcaption>Desactivado por defecto, alias sugerido.</figcaption></figure>
-  <figure><img src="img/xp-alias-error.jpg" alt="Alias rechazado"><figcaption>El servidor rechaza un alias con el nombre.</figcaption></figure>
-  <div class="body">
-<h3>«Rankings y privacidad»</h3>
+<h3 id="xp-rankings">Rankings: «Mi liga»</h3>
+<p>Se abre desde el Perfil. Solo existe cuando el admin enciende los rankings <span class="chip info">ADMIN</span> (de fábrica están apagados). La <b>liga semanal</b> mide el XP que ganas de lunes a domingo (hora de Lima) frente a un grupo de unos 30 alumnos <span class="chip info">ADMIN</span> de tu misma <b>etapa</b>: Aspirante → Postulante → Finalista → Ingresante <span class="chip info">ADMIN</span>. La etapa no es el rango del perfil: el rango solo sube; la etapa sube o baja cada semana.</p>
+<ul>
+  <li><b>Entrar a un grupo:</b> al ganar tu primer XP de la semana entras al primer grupo de tu etapa con cupo; si está lleno, se abre otro (por orden de llegada). Sin XP, no ocupas lugar.</li>
+  <li><b>Cierre:</b> domingo a medianoche. Suben ~15 % <span class="chip info">ADMIN</span> (al menos 1) y bajan ~15 % <span class="chip info">ADMIN</span>; en grupos de menos de 5 <span class="chip info">ADMIN</span> nadie baja. Nadie baja de Aspirante ni sube de Ingresante. Empates: más XP primero; si empatan, quien entró antes.</li>
+  <li><b>Al encenderlos,</b> la liga empieza el lunes siguiente y todos arrancan en Aspirante.</li>
+</ul>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
-  <tr><td class="msg">«Tú decides si apareces. Aunque no aparezcas, igual verás tu puesto.»</td><td>Arriba.</td></tr>
-  <tr><td class="msg">«Aparecer en rankings» · «Desactivado: nadie ve tu alias ni tu XP.» / «Activado: apareces con tu alias en el top.»</td><td>Interruptor; empieza apagado.</td></tr>
-  <tr><td class="msg">«Tu alias» (p. ej. «Gallito_Civil_69») · «Otro al azar»</td><td>Si aún no tiene alias, la app sugiere uno: animal + palabra de su carrera + número. Nunca su nombre.</td></tr>
-  <tr><td class="msg">«Sin nombres reales, correos ni palabras ofensivas. De 3 a 20 letras, números o _.»</td><td>Bajo el alias.</td></tr>
-  <tr><td class="msg">«Los demás ven: Tu alias · Tu puesto, XP y rango · Tu universidad y carrera» / «Nunca ven: Tu nombre · Tu correo · Tus respuestas»</td><td>Siempre.</td></tr>
-  <tr><td class="msg">«Compites en UNPRG · Ingeniería Civil, según tu perfil.»</td><td>Si tiene universidad y carrera.</td></tr>
-  <tr><td class="msg">«Guardar» → «Listo, guardado.»</td><td>Al guardar. El servidor revisa el alias.</td></tr>
-  <tr><td class="msg">«El alias debe tener de 3 a 20 caracteres.» · «Usa solo letras, números y _ (sin espacios), con al menos una letra.»</td><td>Lo revisa la app antes de enviar.</td></tr>
-  <tr><td class="msg">«Ese alias no está permitido. Prueba con otro.»</td><td>Contiene una palabra prohibida (lista de fábrica + las del admin <span class="chip info">ADMIN</span>).</td></tr>
-  <tr><td class="msg">«No uses tu nombre ni tu correo en el alias.»</td><td>Contiene una palabra de su nombre o de su correo.</td></tr>
-  <tr><td class="msg">«Ese alias ya lo usa otro alumno.»</td><td>Ocupado (sin importar tildes ni mayúsculas).</td></tr>
-  <tr><td class="msg">«Elige un alias para aparecer.»</td><td>Activó el interruptor sin alias.</td></tr>
-  <tr><td class="msg">«El equipo de IngresoYa retiró tu alias ({motivo}). Elige otro para volver a aparecer.»</td><td>Si el admin retiró su alias.</td></tr>
-  <tr><td class="msg">«No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.»</td><td>Error de red.</td></tr>
+  <tr><td class="msg">«Postulante» · «Termina el domingo · quedan 3 días»</td><td>Siempre (etapa actual).</td></tr>
+  <tr><td class="msg">«Gana tu primer XP de la semana para entrar a tu liga» · «Estudia una parte o haz una sesión del Simulador: te pondremos en un grupo de {etapa}.»</td><td>Si esta semana aún no tiene XP.</td></tr>
+  <tr><td class="msg">«3° de 7 en tu grupo» + «Con 171 XP más entras a los que suben a Finalista.» / «Vas en zona de subida a {etapa}. ¡Mantente!» / «Estás en zona de bajada: con {N} XP más sales de ella.» / «Estás en la etapa más alta. ¡Defiende tu lugar!»</td><td>Con grupo.</td></tr>
+  <tr><td class="msg">Filas: puesto · insignia · nombre de usuario · «240 XP»; «Tú · …» resaltado; «Postulante oculto» sin insignia</td><td>Todo el grupo, con separadores «SUBEN A FINALISTA» y «BAJAN A ASPIRANTE».</td></tr>
+  <tr><td class="msg">«Esta semana: 4° en UNPRG · 2° en Ingeniería Civil» → tabla con pestañas UNPRG / «Mi carrera»</td><td>Si el admin lo deja activo <span class="chip info">ADMIN</span>. La carrera se muestra desde 5 alumnos con XP <span class="chip info">ADMIN</span>; si no: «Aún hay pocos de tu carrera aquí.»</td></tr>
+  <tr><td class="msg">«Cómo ganas puntos» · «Tus puntos son el XP que ganas esta semana… y el reto del día (+20).»</td><td>Siempre.</td></tr>
+  <tr><td class="msg">El lunes, una vez: «¡Subiste a Finalista!» / «Te mantienes en Postulante» / «Bajaste a Aspirante» · «La semana pasada quedaste {p}° de {n} en tu grupo. ¡Esta semana empiezas de cero!» · «¡Vamos!»</td><td>Al abrir Rankings después del cierre.</td></tr>
+  <tr><td class="msg">«Los rankings todavía no están disponibles.»</td><td>Si el admin los apagó.</td></tr>
 </table></div>
-<p>Al apagar el interruptor, el alumno sale del top al instante; su alias se conserva. Mientras aparece, su fila se actualiza sola cada vez que gana XP.</p>
-  </div>
-</div>
+
+<h3 id="xp-reto">Reto del día</h3>
+<p>Un mini examen diario de 10 preguntas <span class="chip info">ADMIN</span> <b>iguales para toda tu universidad</b>, con 15 min <span class="chip info">ADMIN</span> y <b>un solo intento</b>. Aparece en Rankings y en el Inicio del Simulador (solo con los rankings encendidos).</p>
+<ul>
+  <li><b>Preguntas:</b> el servidor arma el reto la primera vez que alguien de la universidad lo abre ese día. Siempre trae preguntas de <b>exámenes pasados de esa universidad</b> (hasta 6 <span class="chip info">ADMIN</span>; al menos 1 si existen); el resto, de exámenes de otras universidades o propias de IngresoYa, repartidas entre los cursos. No repite preguntas de sus retos de los últimos 30 días <span class="chip info">ADMIN</span>.</li>
+  <li><b>Horario:</b> hay que empezarlo antes de medianoche (Lima); al empezar a las 23:55 igual tienes tus 15 min.</li>
+  <li><b>Puntaje:</b> gana quien acierta más; si empatan, quien tardó menos.</li>
+  <li><b>XP:</b> como una sesión del Simulador (sesión, aciertos nuevos, racha) <b>+20 de bono</b> <span class="chip info">ADMIN</span>; todo suma a la liga.</li>
+  <li><b>Respuestas:</b> se ven <b>al día siguiente</b>, para que nadie se las pase a quien aún no juega.</li>
+</ul>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">«Reto del día» · «10 preguntas iguales para todos · cierra a medianoche» · «Jugar»</td><td>Si hoy no lo jugó.</td></tr>
+  <tr><td class="msg">«Hecho · 8/10 · 6:42» · «Ver tabla»</td><td>Ya lo jugó hoy.</td></tr>
+  <tr><td class="msg">«Reto de ayer: 7/10» · «Ver respuestas» · «Ver tabla»</td><td>Si jugó ayer: las respuestas con su explicación y la tabla final.</td></tr>
+  <tr><td class="msg">Intro «Reto del día» · «Un solo intento: al empezar, ya cuenta…»</td><td>Antes de empezar (pantalla del examen del Simulador, con reloj).</td></tr>
+  <tr><td class="msg">Resultado: puntaje, «Ganaste XP» (con «Reto del día +20») · «Mañana verás las respuestas y la tabla final.» · «Ver la tabla de hoy»</td><td>Al entregar. «Revisar» no muestra respuestas ese día.</td></tr>
+  <tr><td class="msg">Tabla «Reto del día · 15/10» con pestañas UNPRG / «Mi carrera» · «Tu puesto: 12° de 47» · filas «8/10 · 6:42»</td><td>La carrera es la del perfil al jugar; su pestaña se llena desde 5 jugadores <span class="chip info">ADMIN</span>.</td></tr>
+  <tr><td class="msg">«Ya jugaste el reto de hoy. Vuelve mañana.» · «Hoy no hay reto para tu universidad.» · «Elige tu universidad en el Perfil para jugar el reto.»</td><td>Segundo intento · sin preguntas suficientes · perfil sin universidad.</td></tr>
+</table></div>
 
 <!-- ============================================================ ADMIN -->
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -758,8 +759,8 @@ flowchart LR
   <tr><td class="msg">Configuración → Simulador</td><td>Tamaños de práctica, reloj por defecto, penalidad, días sin repetir, origen y dificultad, otras universidades, ocultar incompletos, explicaciones.</td><td>10/20/40 · sí · no · 14 · ambos · mixta · sí · sí · sí</td></tr>
   <tr><td class="msg">Configuración → Plan de entrenamiento</td><td>Sesiones por semana y recomendada, tamaño de la sesión, % de temas débiles, umbral y respuestas mínimas, diagnóstico, «¿Por qué?», día de simulacro, hora de recordatorio, mínimo para contar sesión, gracia de la racha, si cuentan los exámenes libres.</td><td>3/5/7 · 5 · 10 preg./15 min · 60 % · 50 % y 5 · 4 por curso · sí · sábado · 19:00 · 10 · 1 día · sí</td></tr>
   <tr><td class="msg">Configuración → XP y rangos</td><td>Escalera de rangos (nombre, XP desde, imagen), estrellas y XP por estrella, XP por evento (0 lo desactiva), tope diario, mínimo de preguntas por sesión, días para no repetir, segundos mínimos por pregunta, cada cuántos días un examen pasado da XP.</td><td>18 escalones · sí · 2.000 · ver tabla · 300 · 10 · 14 · 5 · 7</td></tr>
-  <tr><td class="msg">Configuración → XP y rangos → Top 100 y alias</td><td>Mostrar el top en la app, alumnos en el top, desde cuántos alumnos visibles una universidad tiene su propia lista, palabras prohibidas en el alias.</td><td>Sí · 100 · 50 · ninguna (más la lista de fábrica)</td></tr>
-  <tr><td class="msg">Configuración → Top 100 y alias</td><td>Ver el top como lo ven los alumnos y retirar un alias con motivo (el alumno sale del top y la app le pide otro).</td><td>—</td></tr>
+  <tr><td class="msg">Configuración → Rankings</td><td>Interruptor general (con «Alumnos que ganaron XP esta semana» para decidir); etapas, alumnos por grupo, % que sube y baja, mínimo para bajar, grupos por universidad, «Esta semana» y su mínimo por carrera; reto: activo, preguntas, minutos, bono, preguntas de exámenes pasados propios, días sin repetir, mínimo de la pestaña de carrera; palabras prohibidas.</td><td>Apagado · Aspirante…Ingresante · 30 · 15 % / 15 % · 5 · no · sí · 5 · sí · 10 · 15 · 20 · 6 · 30 · 5</td></tr>
+  <tr><td class="msg">Configuración → Nombres de usuario y reto de hoy</td><td>Buscar un nombre de usuario o uid y retirarlo con motivo (la app le asigna otro al azar y le explica por qué); ver quiénes se ocultaron; ver el reto de hoy de cada universidad y cambiar una pregunta si nadie lo entregó aún.</td><td>—</td></tr>
   <tr><td class="msg">Configuración → XP de un alumno</td><td>Buscar por correo o uid, ver su XP, rango, semana y libro de movimientos, y revertir un evento con motivo (no se vuelve a otorgar).</td><td>—</td></tr>
   <tr><td class="msg">Universidades → Exámenes de origen → Reglas del Simulador</td><td>Preguntas, duración, puntaje máximo, puntos por correcta/incorrecta/blanco, orden, disponible y mínimos de ingreso por carrera. «Visible en el Simulador» por universidad.</td><td>—</td></tr>
 </table></div>
@@ -788,6 +789,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Capturas pendientes.</li>
   <li><b>15-oct-2026</b> · Pendientes antes de Play Console: un solo % del curso, «Tienes un examen sin terminar · Retomar» en el Simulador, «Hoy te toca» sin duplicados y botón «Continuar examen». Observaciones 1, 9 (en parte) y 11 corregidas.</li>
   <li><b>15-oct-2026</b> · XP fase 2: «Los más dedicados» (top 100), «Rankings y privacidad» con alias, accesos en el Perfil; admin «Top 100 y alias». Capturas del teléfono.</li>
   <li><b>15-oct-2026</b> · Rango de perfil y XP (fase 1): cómo se gana XP, Perfil, «Tu camino de rangos», «+N XP» al terminar y celebración; admin «XP y rangos» y «XP de un alumno» (app y admin «XP fase 1»). Capturas tomadas en el teléfono.</li>

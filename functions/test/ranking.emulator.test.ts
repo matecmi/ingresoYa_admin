@@ -4,16 +4,20 @@ import test from "node:test";
 import { db } from "../src/admin";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
+import { parseRankingsSettings } from "../src/leaderboard";
+import { closeLeagueWeek } from "../src/league";
 import { RankingService } from "../src/ranking";
-import { defaultXpSettings, XpService } from "../src/xp";
+import { defaultXpSettings, peruWeek, XpService } from "../src/xp";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
-const ranking = new RankingService(db, config);
 const xp = new XpService(db, config);
-const settings = defaultXpSettings;
 const users = db.collection(config.collections.users);
 const leaderboard = db.collection(config.collections.leaderboard);
 const aliases = db.collection(config.collections.aliases);
+const members = db.collection(config.collections.leagueMembers);
+const rankingsDoc = db.collection(config.collections.config).doc("rankings");
+const off = parseRankingsSettings({});
+const on = parseRankingsSettings({ enabled: true, startWeek: "2000-01-03", league: { groupSize: 5 } });
 
 async function student(uid: string, name: string, email: string): Promise<void> {
   await users.doc(uid).set({
@@ -26,46 +30,69 @@ function hasReason(code: ExamBackendError["code"], reason: string) {
     error instanceof ExamBackendError && error.code === code && error.details?.reason === reason;
 }
 
-test("a student picks an alias, appears in the top 100 with their XP and can leave it", async () => {
-  const uid = "rank-student-1";
+test("every student gets a username: random when none, own when valid; hiding keeps playing", async () => {
+  const ranking = new RankingService(db, config, () => 0.42);
+  const uid = "rank-u1";
   await student(uid, "Ana Torres", "ana.torres@example.com");
-  await xp.grant(uid, () => [{ id: "part_passed_p1", type: "part_passed", xp: 40, atMs: Date.now(), source: {} }]);
+  // No username yet: the server generates one with the career.
+  const generated = await ranking.update(uid, {}, defaultXpSettings, off);
+  assert.match(generated.alias, /_Civil_\d{2}$/);
+  assert.equal(generated.hidden, false);
+  assert.equal((await aliases.doc(generated.alias.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()).get()).data()?.uid, uid);
+  // Its own choice replaces it; the name and offensive words are refused.
+  await assert.rejects(ranking.update(uid, { alias: "Ana_Torres" }, defaultXpSettings, off), hasReason("failed-precondition", "alias_personal"));
+  await assert.rejects(ranking.update(uid, { alias: "Tonto_1" }, defaultXpSettings, parseRankingsSettings({ bannedWords: ["tonto"] })),
+    hasReason("failed-precondition", "alias_banned"));
+  assert.deepEqual(await ranking.update(uid, { alias: "Cóndor_9" }, defaultXpSettings, off), { alias: "Cóndor_9", hidden: false });
+  const card = (await leaderboard.doc(uid).get()).data();
+  assert.equal(card?.alias, "Cóndor_9");
+  assert.equal(card?.universityId, "uni-1");
+  assert.equal(JSON.stringify(card).includes("Ana"), false);
+  // «Ocultarme de los rankings»: the card keeps playing without username or badge.
+  assert.deepEqual(await ranking.update(uid, { hidden: true }, defaultXpSettings, off), { alias: "Cóndor_9", hidden: true });
+  const hiddenCard = (await leaderboard.doc(uid).get()).data();
+  assert.equal(hiddenCard?.alias, null);
+  assert.equal(hiddenCard?.rankStep, null);
+  // Another student cannot take it.
+  await student("rank-u2", "Luis", "luis@example.com");
+  await assert.rejects(ranking.update("rank-u2", { alias: "condor_9" }, defaultXpSettings, off), hasReason("already-exists", "alias_taken"));
+});
 
-  // Hidden by default: XP never creates the public entry on its own.
-  assert.equal((await leaderboard.doc(uid).get()).exists, false);
-  await assert.rejects(ranking.update(uid, { visible: true }, settings), hasReason("failed-precondition", "alias_required"));
-  await assert.rejects(ranking.update(uid, { visible: true, alias: "Ana_Torres" }, settings), hasReason("failed-precondition", "alias_personal"));
-  await assert.rejects(ranking.update(uid, { visible: true, alias: "Puto_1" }, settings), hasReason("failed-precondition", "alias_banned"));
+test("the league seats students by arrival in groups of their stage and closes the week", async () => {
+  await rankingsDoc.set({ enabled: true, startWeek: "2000-01-03", league: { groupSize: 5 } });
+  const ranking = new RankingService(db, config, Math.random);
+  const week = peruWeek(Date.now());
+  const ids = Array.from({ length: 7 }, (_, i) => `league-u${i}`);
+  for (const [index, uid] of ids.entries()) {
+    await student(uid, `Alumno ${index}`, `alumno${index}@example.com`);
+    await members.doc(`${week}_${uid}`).delete();
+    await ranking.update(uid, {}, defaultXpSettings, on);
+  }
+  // No XP, no seat.
+  assert.equal((await members.doc(`${week}_${ids[0]}`).get()).exists, false);
+  for (const [index, uid] of ids.entries()) {
+    await xp.grant(uid, () => [{ id: `part_passed_league_${index}`, type: "part_passed", xp: 10 * (index + 1), atMs: Date.now(), source: {} }]);
+  }
+  const seats = await Promise.all(ids.map(async (uid) => (await members.doc(`${week}_${uid}`).get()).data()));
+  // Five fill the first group; the next two open a second one.
+  assert.equal(seats.filter((seat) => seat?.groupId === `${week}_0_1`).length, 5);
+  assert.equal(seats.filter((seat) => seat?.groupId === `${week}_0_2`).length, 2);
+  assert.equal(seats[6]?.weekXp, 70);
+  // More XP in the same week keeps the seat and updates the points.
+  await xp.grant(ids[0]!, () => [{ id: "part_passed_league_extra", type: "part_passed", xp: 100, atMs: Date.now(), source: {} }]);
+  const first = (await members.doc(`${week}_${ids[0]}`).get()).data();
+  assert.equal(first?.groupId, `${week}_0_1`);
+  assert.equal(first?.weekXp, 110);
+  assert.equal((await leaderboard.doc(ids[0]!).get()).data()?.weekXp, 110);
 
-  assert.deepEqual(await ranking.update(uid, { visible: true, alias: "Búho_Civil_27" }, settings), { alias: "Búho_Civil_27", visible: true });
-  const entry = (await leaderboard.doc(uid).get()).data();
-  assert.equal(entry?.alias, "Búho_Civil_27");
-  assert.equal(entry?.total, 40);
-  assert.equal(entry?.universityId, "uni-1");
-  assert.equal(entry?.professionName, "INGENIERIA CIVIL");
-  assert.equal(JSON.stringify(entry).includes("Ana"), false);
-  assert.equal((await aliases.doc("buho_civil_27").get()).data()?.uid, uid);
-
-  // New XP keeps the entry in step, in the same transaction.
-  await xp.grant(uid, () => [{ id: "subtopic_completed_s1", type: "subtopic_completed", xp: 80, atMs: Date.now(), source: {} }]);
-  assert.equal((await leaderboard.doc(uid).get()).data()?.total, 120);
-
-  // Another student cannot take the alias, not even with other accents or case.
-  const other = "rank-student-2";
-  await student(other, "Luis", "luis@example.com");
-  await assert.rejects(ranking.update(other, { visible: true, alias: "buho_civil_27" }, settings), hasReason("already-exists", "alias_taken"));
-
-  // Renaming frees the old alias; hiding removes the entry but keeps the alias.
-  await ranking.update(uid, { visible: true, alias: "Cóndor_9" }, settings);
-  assert.equal((await aliases.doc("buho_civil_27").get()).exists, false);
-  assert.equal((await leaderboard.doc(uid).get()).data()?.alias, "Cóndor_9");
-  assert.deepEqual(await ranking.update(uid, { visible: false }, settings), { alias: "Cóndor_9", visible: false });
-  assert.equal((await leaderboard.doc(uid).get()).exists, false);
-  await xp.grant(uid, () => [{ id: "part_passed_p2", type: "part_passed", xp: 40, atMs: Date.now(), source: {} }]);
-  assert.equal((await leaderboard.doc(uid).get()).exists, false);
-  assert.equal((await users.doc(uid).collection("ranking").doc("current").get()).data()?.alias, "Cóndor_9");
-
-  // The freed alias can now be used by someone else.
-  await ranking.update(other, { visible: true, alias: "Búho_Civil_27" }, settings);
-  assert.equal((await leaderboard.doc(other).get()).data()?.total, 0);
+  // Close: group 1 (5 students, first stage) → the leader moves up, nobody down.
+  const closed = await closeLeagueWeek(db, config, week, on);
+  assert.equal(closed, 7);
+  const choice = async (uid: string) => (await users.doc(uid).collection("ranking").doc("current").get()).data();
+  assert.equal((await choice(ids[0]!))?.stage, 1);
+  assert.equal((await choice(ids[0]!))?.lastResult?.position, 1);
+  assert.equal((await choice(ids[1]!))?.stage, 0);
+  // Closing twice does nothing.
+  assert.equal(await closeLeagueWeek(db, config, week, on), 0);
+  await rankingsDoc.delete();
 });

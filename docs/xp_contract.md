@@ -24,6 +24,7 @@ Compartido por el admin, Functions y la app (`iya-app/docs/xp_contract.md` es un
 | `past_exam_improvement` | `improve_{attemptId}` | 1 por cada 10 puntos sobre el mejor anterior, máx. 50 | no |
 | `streak_day` | `streak_{día}` | 5 por día con sesión que cuenta | sí |
 | `weekly_goal` | `weekly_goal_{lunes}` | 50 al llegar a las sesiones por semana de la meta (`simulatorPlan/current.sessionsPerWeek`) | no |
+| `daily_challenge` | `daily_challenge_{día}` | Bono del reto del día (`{config}/rankings.challenge.bonusXp`, 20), además de la sesión | no |
 
 **Respuesta correcta nueva:** al crear el intento, el servidor anota en `xpFreshQuestionIds` las preguntas que el alumno no vio en `repeatWindowDays`. Al entregar, guarda en `xpBasis.freshCorrect` cuántas de esas acertó.
 
@@ -93,7 +94,9 @@ El evento revertido no se vuelve a otorgar, porque su id sigue existiendo.
 
 No cubre aciertos nuevos, mejoras de puntaje ni metas semanales, porque esos datos no se pueden saber después.
 
-## 7. Fase 2: alias y top 100 «Los más dedicados»
+## 7. Fase 2: alias y top 100 «Los más dedicados» (reemplazada)
+
+> **Reemplazada por la fase 3** (`docs/rankings_contract.md`): ya no hay top 100 ni «Aparecer en rankings»; todos tienen nombre de usuario y pueden ocultarse. Las reglas del alias de abajo siguen vigentes.
 
 **Configuración** `{config}/xp.leaderboard`: `enabled` (true), `size` (100, de 10 a 500), `universityFilterMin` (50), `bannedWords` (lista del admin; además hay una de fábrica en `functions/src/ranking.ts`).
 
@@ -115,4 +118,5 @@ No cubre aciertos nuevos, mejoras de puntaje ni metas semanales, porque esos dat
 
 ## 8. Fases siguientes
 
-- Fase 3: liga semanal (`week.xp`), reto del día y XP del ranking de admisión.
+- Fase 3 (hecha): nombre de usuario, liga semanal y reto del día → `docs/rankings_contract.md`.
+- Pendiente: XP del ranking de admisión (cuando exista el ranking de simulacros).

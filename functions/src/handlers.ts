@@ -13,6 +13,7 @@ import {
 import { asHttpsError, unauthenticated } from "./errors";
 import { safeError, safeLog } from "./logging";
 import { OperationMetrics } from "./operation_metrics";
+import { ChallengeService } from "./challenge";
 import { RankingService, parseUpdateRankingProfile, type RankingProfileResponse } from "./ranking";
 import { XpService, type XpAward } from "./xp";
 import {
@@ -39,6 +40,7 @@ export function createCallableHandlers(config: BackendConfig) {
   const attempts = new ExamAttemptService(db, config);
   const xp = new XpService(db, config);
   const ranking = new RankingService(db, config);
+  const challenges = new ChallengeService(db, config);
   /** XP never breaks the operation it rewards: a failure is logged and retried by the next call. */
   async function grantXp(
     uid: string,
@@ -55,14 +57,19 @@ export function createCallableHandlers(config: BackendConfig) {
     }
   }
   return {
-    /** Alias and «Aparecer en rankings» (phase 2). */
+    /** Username and «Ocultarme de los rankings» (docs/rankings_contract.md §3). */
     async updateRankingProfile(request: CallableRequest<unknown>): Promise<RankingProfileResponse> {
       const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
         const input = parseUpdateRankingProfile(request.data);
-        const response = await ranking.update(uid, input, await xp.settings(metrics), metrics);
-        safeLog("ranking_profile_updated", uid, { ...metrics.logFields(), visible: response.visible });
+        const [xpSettings, rankings] = await Promise.all([xp.settings(metrics), xp.rankingsSettings(metrics)]);
+        const token = request.auth?.token;
+        const response = await ranking.update(uid, input, xpSettings, rankings, metrics, {
+          ...(typeof token?.name === "string" ? { name: token.name } : {}),
+          ...(typeof token?.email === "string" ? { email: token.email } : {})
+        });
+        safeLog("ranking_profile_updated", uid, { ...metrics.logFields(), hidden: response.hidden });
         return response;
       } catch (error) {
         safeError("ranking_profile_update_rejected", error, metrics.logFields(), {
@@ -208,7 +215,16 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_submit_requested", uid);
         const response = await attempts.submit(uid, input, metrics);
         safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
-        return { ...response, ...await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics), metrics) };
+        const awarded = await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics), metrics);
+        // Reto del día: the public entry, after the XP so it carries the new rank.
+        if (response.simulator !== undefined) {
+          try {
+            await challenges.recordEntry(uid, input.attemptId, await xp.settings(metrics), metrics);
+          } catch (error) {
+            safeError("challenge_entry_failed", error, metrics.logFields(), { environment: config.environment, uid });
+          }
+        }
+        return { ...response, ...awarded };
       } catch (error) {
         safeError("exam_attempt_submit_rejected", error, metrics.logFields(), {
           environment: config.environment,

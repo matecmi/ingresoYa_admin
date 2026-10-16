@@ -74,6 +74,22 @@ service cloud.firestore {
       ];
     }
 
+    // Rankings (docs/rankings_contract.md): league seats and challenge
+    // results are public to students; groups and challenges are server-only.
+    function isPublicRankingCollection(collectionName) {
+      return collectionName in [
+        'iya-league-members-test', 'iya-league-members-staging', 'iya-league-members',
+        'iya-challenge-entries-test', 'iya-challenge-entries-staging', 'iya-challenge-entries'
+      ];
+    }
+
+    function isServerRankingCollection(collectionName) {
+      return collectionName in [
+        'iya-league-groups-test', 'iya-league-groups-staging', 'iya-league-groups',
+        'iya-daily-challenges-test', 'iya-daily-challenges-staging', 'iya-daily-challenges'
+      ];
+    }
+
     function isProfileCollection(collectionName) {
       return collectionName in [
         'iya-profile-test', 'iya-profile-staging', 'iya-profile'
@@ -236,12 +252,25 @@ service cloud.firestore {
         && subcollection in ['xp', 'xpEvents', 'ranking'];
     }
 
-    // Top 100 «Los más dedicados» (phase 2): public to signed-in students,
-    // written only by Functions. The admin keeps it in step when reverting
-    // XP and removes an entry when moderating an alias.
+    // Public cards (docs/rankings_contract.md §4): readable by signed-in
+    // students, written only by Functions. The admin keeps them in step when
+    // reverting XP and removes one when moderating a username.
     match /{collectionName}/{userId} {
       allow read: if isLeaderboardCollection(collectionName) && signedIn();
       allow update, delete: if isLeaderboardCollection(collectionName) && isAdmin();
+    }
+
+    match /{collectionName}/{entryId} {
+      allow read: if isPublicRankingCollection(collectionName) && signedIn();
+      allow update, delete: if isPublicRankingCollection(collectionName) && isAdmin();
+    }
+
+    // The admin may look at groups and today's challenges and swap a
+    // question of a challenge nobody has played yet.
+    match /{collectionName}/{docId} {
+      allow read: if isServerRankingCollection(collectionName) && isAdmin();
+      allow update: if isServerRankingCollection(collectionName) && isAdmin()
+        && collectionName.matches('iya-daily-challenges.*');
     }
 
     // Alias reservations: server-only; the admin frees one when moderating.

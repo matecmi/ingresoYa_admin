@@ -11,13 +11,15 @@ import { FieldValue, type DocumentReference, type Firestore } from "firebase-adm
 import type { BackendConfig } from "./config";
 import type { OperationMetrics } from "./operation_metrics";
 import {
-  defaultLeaderboardSettings,
   leaderboardEntry,
-  parseLeaderboardSettings,
+  leagueRuns,
   parseRankingChoice,
+  parseRankingsSettings,
   profileFacts,
-  type LeaderboardSettings
+  publicIdentity,
+  type RankingsSettings
 } from "./leaderboard";
+import { readLeagueSeat, writeLeagueSeat } from "./league";
 
 // ---------------------------------------------------------------- settings
 
@@ -65,8 +67,6 @@ export interface XpSettings {
   /** Sessions answered faster than this (average) give no XP. */
   minSecondsPerQuestion: number;
   pastExamEveryDays: number;
-  /** Phase 2: top 100 «Los más dedicados» and aliases. */
-  leaderboard: LeaderboardSettings;
 }
 
 const defaultNames = ["Bronce", "Plata", "Platino", "Zafiro", "Amatista", "Maestro"];
@@ -98,8 +98,7 @@ export const defaultXpSettings: XpSettings = {
   minQuestionsPerSession: 10,
   repeatWindowDays: 14,
   minSecondsPerQuestion: 5,
-  pastExamEveryDays: 7,
-  leaderboard: defaultLeaderboardSettings
+  pastExamEveryDays: 7
 };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -162,8 +161,7 @@ export function parseXpSettings(value: unknown): XpSettings {
     minQuestionsPerSession: bounded(raw.minQuestionsPerSession, d.minQuestionsPerSession, 1, 300),
     repeatWindowDays: bounded(raw.repeatWindowDays, d.repeatWindowDays, 0, 365),
     minSecondsPerQuestion: bounded(raw.minSecondsPerQuestion, d.minSecondsPerQuestion, 0, 600),
-    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365),
-    leaderboard: parseLeaderboardSettings(raw.leaderboard)
+    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365)
   };
 }
 
@@ -219,7 +217,8 @@ export type XpEventType =
   | "past_exam_completed"
   | "past_exam_improvement"
   | "weekly_goal"
-  | "streak_day";
+  | "streak_day"
+  | "daily_challenge";
 
 /** Repeatable events limited by the daily cap. */
 export const cappedTypes: ReadonlySet<XpEventType> = new Set(["simulator_session", "correct_answers", "streak_day"]);
@@ -475,6 +474,13 @@ export class XpService {
     return parseXpSettings(snapshot.data());
   }
 
+  /** `{config}/rankings` (docs/rankings_contract.md §2). */
+  public async rankingsSettings(metrics?: OperationMetrics): Promise<RankingsSettings> {
+    const snapshot = await this.db.collection(this.config.collections.config).doc("rankings").get();
+    metrics?.readDocument();
+    return parseRankingsSettings(snapshot.data());
+  }
+
   private userRef(uid: string): DocumentReference {
     return this.db.collection(this.config.collections.users).doc(uid);
   }
@@ -487,9 +493,11 @@ export class XpService {
     uid: string,
     build: (state: XpState, settings: XpSettings) => XpGrant[],
     metrics?: OperationMetrics,
-    preloaded?: XpSettings
+    preloaded?: XpSettings,
+    preloadedRankings?: RankingsSettings
   ): Promise<XpAward | undefined> {
     const settings = preloaded ?? await this.settings(metrics);
+    const rankings = preloadedRankings ?? await this.rankingsSettings(metrics);
     const stateRef = this.userRef(uid).collection("xp").doc("current");
     const events = this.userRef(uid).collection("xpEvents");
     const choiceRef = this.userRef(uid).collection("ranking").doc("current");
@@ -504,15 +512,32 @@ export class XpService {
       metrics?.readDocument(1 + candidates.length);
       const fresh = candidates.filter((_, index) => existing[index]?.exists !== true);
       if (fresh.length === 0) return undefined;
-      // Phase 2: a student who appears in rankings gets the public entry
-      // updated in the same transaction (reads must precede the writes).
+      // Rankings (docs/rankings_contract.md): the public card and the league
+      // seat move in the same transaction (reads must precede the writes).
       const [choiceDoc, profileDoc] = await transaction.getAll(choiceRef, this.userRef(uid));
       metrics?.readDocument(2);
       const choice = parseRankingChoice(choiceDoc?.data());
+      const profile = profileFacts(profileDoc?.data());
       const { state, applied } = applyXpGrants(before, fresh, settings);
-      if (choice.visible && choice.alias !== null) {
-        transaction.set(entryRef, leaderboardEntry(choice.alias, state, starsFor(state.total, settings), profileFacts(profileDoc?.data())));
+      const week = peruWeek(Date.now());
+      const seat = choice.alias !== null && state.week.key === week && state.week.xp > 0 && leagueRuns(rankings, week)
+        ? await readLeagueSeat(transaction, this.db, this.config, uid, week, choice.stage, rankings, profile.universityId)
+        : undefined;
+      const stars = starsFor(state.total, settings);
+      if (choice.alias !== null) {
+        transaction.set(entryRef, leaderboardEntry(choice, state, stars, profile));
         metrics?.writeDocument();
+      }
+      if (seat !== undefined) {
+        writeLeagueSeat(transaction, this.db, this.config, seat, {
+          week,
+          stage: choice.stage,
+          weekXp: state.week.xp,
+          identity: publicIdentity(choice, state, stars),
+          universityId: profile.universityId ?? null,
+          professionId: profile.professionId ?? null
+        }, rankings);
+        metrics?.writeDocument(seat.member.exists ? 1 : 3);
       }
       for (const event of applied) {
         transaction.set(events.doc(event.id), {
@@ -555,7 +580,16 @@ export class XpService {
       atMs: typeof result.gradedAtMs === "number" ? result.gradedAtMs : Date.now(),
       ...(typeof sessions === "number" ? { goalSessions: sessions } : {})
     };
-    return this.grant(uid, (state, current) => simulatorGrants(input, state, current), metrics, settings);
+    // Reto del día: a bonus on top of the normal session XP (docs/rankings_contract.md §6).
+    const challengeDay = simulator.mode === "daily_challenge" && typeof simulator.day === "string" ? simulator.day : undefined;
+    const rankings = await this.rankingsSettings(metrics);
+    const bonus = challengeDay === undefined ? 0 : rankings.challenge.bonusXp;
+    return this.grant(uid, (state, current) => [
+      ...simulatorGrants(input, state, current),
+      ...(challengeDay !== undefined && bonus > 0
+        ? [{ id: `daily_challenge_${challengeDay}`, type: "daily_challenge" as const, xp: bonus, atMs: input.atMs, source: { attemptId, day: challengeDay } }]
+        : [])
+    ], metrics, settings, rankings);
   }
 
   /**

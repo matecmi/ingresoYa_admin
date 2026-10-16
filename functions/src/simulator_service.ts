@@ -19,6 +19,7 @@ import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
 import { parseXpSettings, peruDay } from "./xp";
+import { parseRankingsSettings, type ChallengeSettings } from "./leaderboard";
 import type {
   MistakesAttemptInput,
   PlanAttemptInput,
@@ -36,8 +37,12 @@ export type SimulatorAttemptInput =
   PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput;
 
 function isPlanInput(input: SimulatorAttemptInput): input is PlanAttemptInput {
-  return input.purpose === "practice" && (input.mode === "plan" || input.mode === "diagnostic");
+  return input.purpose === "practice" &&
+    (input.mode === "plan" || input.mode === "diagnostic" || input.mode === "daily_challenge");
 }
+
+/** Sources that come from a real admission exam (same as the Simulator's «real»). */
+const pastExamSources = new Set(["admission_exam", "official_practice"]);
 
 export function isSimulatorPurpose(value: unknown): value is SimulatorPurpose {
   return value === "past_exam" || value === "practice";
@@ -166,6 +171,8 @@ export interface PublicSimulatorContext {
   mode?: string;
   courseIds: string[];
   size?: string;
+  /** Reto del día: its Peru day (`YYYY-MM-DD`). */
+  day?: string;
   /** Plan session: the weak topics it focuses on. */
   focusTopicIds?: string[];
   /** Course of each question, aligned with `questions` by order. */
@@ -362,9 +369,14 @@ export class SimulatorService {
 
   public async create(
     uid: string,
-    input: SimulatorAttemptInput,
+    requested: SimulatorAttemptInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<CreateExamAttemptResponse> {
+    // Reto del día: one attempt per student and Peru day, whatever request
+    // ID the app sends (docs/rankings_contract.md §6).
+    const input: SimulatorAttemptInput = isPlanInput(requested) && requested.mode === "daily_challenge"
+      ? { ...requested, requestId: `challenge_${peruDay(Date.now())}`, timed: true }
+      : requested;
     const requestRef = this.userRef(uid).collection("examRequestKeys").doc(input.requestId);
     const previous = await requestRef.get();
     metrics.readDocument();
@@ -391,7 +403,9 @@ export class SimulatorService {
         : isPlanInput(input)
           ? input.mode === "plan"
             ? await this.dailyPlan(uid, input, settings, metrics)
-            : await this.diagnosticPlan(uid, input, settings, metrics)
+            : input.mode === "daily_challenge"
+              ? await this.challengePlan(uid, input, profile.universityId, settings, metrics)
+              : await this.diagnosticPlan(uid, input, settings, metrics)
           : await this.practicePlan(uid, input, settings, metrics);
 
     const attemptRef = this.db.collection(this.config.collections.attempts).doc();
@@ -550,7 +564,7 @@ export class SimulatorService {
             reason: "attempt_data_invalid"
           });
         }
-        return simulatorResponse(attempt, attempt.answers, keys, meta, stored, settings);
+        return simulatorResponse(attempt, attempt.answers, keys, meta, stored, settings, challengeLocked(data.simulator));
       }
       const now = Date.now();
       const expiresAtMs = Date.parse(attempt.expiresAt);
@@ -677,7 +691,8 @@ export class SimulatorService {
         })
       );
       metrics.writeDocument(bestRef === undefined ? 3 : 4);
-      return simulatorResponse({ ...attempt, status: "submitted", answers }, answers, keys, meta, result, settings);
+      return simulatorResponse({ ...attempt, status: "submitted", answers }, answers, keys, meta, result, settings,
+        challengeLocked(data.simulator));
     });
   }
 
@@ -914,6 +929,148 @@ export class SimulatorService {
         focusTopicIds: focus.map((topic) => topic.topicId)
       }
     };
+  }
+
+  /**
+   * Reto del día: the same questions for every student of the university
+   * that day, in the same order (docs/rankings_contract.md §6).
+   */
+  private async challengePlan(
+    uid: string,
+    input: PlanAttemptInput,
+    universityId: string,
+    settings: SimulatorSettings,
+    metrics: OperationMetrics
+  ) {
+    const rankingsDoc = await this.db.collection(this.config.collections.config).doc("rankings").get();
+    metrics.readDocument();
+    const rankings = parseRankingsSettings(rankingsDoc.data());
+    if (!rankings.enabled || !rankings.challenge.enabled) {
+      throw failedPrecondition("The daily challenge is not enabled.", { reason: "challenge_disabled" });
+    }
+    const day = peruDay(Date.now());
+    const questionIds = await this.dailyChallengeQuestions(universityId, day, rankings.challenge, metrics);
+    const docs = await this.db.getAll(...questionIds.map((id) => this.db.collection(this.config.collections.questions).doc(id)));
+    metrics.readDocument(docs.length);
+    const questions = docs.flatMap((doc) => {
+      const question = doc.exists ? parseCandidateQuestion(doc.id, doc.data() ?? {}) : undefined;
+      return question === undefined ? [] : [question];
+    });
+    if (questions.length < 3) {
+      throw failedPrecondition("Today's challenge is not available.", { reason: "challenge_unavailable" });
+    }
+    const seed = `${uid}:${input.requestId}`;
+    return {
+      title: "Reto del día",
+      durationSeconds: rankings.challenge.minutes * 60,
+      // Same order for everyone; only the alternatives are shuffled per student.
+      picked: questions.map((question) => ({
+        question,
+        alternativeOrder: shuffle(question.alternatives.map((alternative) => alternative.id), `${seed}:${question.questionId}`)
+      })),
+      scoring: practiceScoring(questions.length, settings),
+      cutoffScore: undefined,
+      context: {
+        timed: true,
+        mode: "daily_challenge",
+        day,
+        challengeUniversityId: universityId,
+        courseIds: [...new Set(questions.map((question) => question.courseId))]
+      }
+    };
+  }
+
+  /**
+   * The question IDs of [day]'s challenge for [universityId], created the
+   * first time anyone asks for it: up to `ownPastExamQuestions` from the
+   * university's own past exams (at least one when there are any), the rest
+   * spread over the active courses, none used in its recent challenges.
+   */
+  private async dailyChallengeQuestions(
+    universityId: string,
+    day: string,
+    settings: ChallengeSettings,
+    metrics: OperationMetrics
+  ): Promise<string[]> {
+    const ref = this.db.collection(this.config.collections.dailyChallenges).doc(`${day}_${universityId}`);
+    const stored = await ref.get();
+    metrics.readDocument();
+    const storedIds = stored.data()?.questionIds;
+    if (Array.isArray(storedIds) && storedIds.length > 0) return storedIds.filter((id): id is string => typeof id === "string");
+
+    const seed = `challenge:${day}:${universityId}`;
+    const since = peruDay(Date.now() - settings.noRepeatDays * 24 * 60 * 60 * 1000);
+    const recent = settings.noRepeatDays === 0 ? undefined : await this.db.collection(this.config.collections.dailyChallenges)
+      .where("universityId", "==", universityId).where("day", ">=", since).get();
+    metrics.readQuery(recent?.size ?? 0);
+    const used = new Set<string>(recent?.docs.flatMap((doc) => {
+      const ids = doc.data().questionIds;
+      return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+    }) ?? []);
+
+    const ownSnapshot = await this.db.collection(this.config.collections.questions)
+      .where("universityId", "==", universityId).where("status", "==", "published").limit(600).get();
+    metrics.readQuery(ownSnapshot.size);
+    const own = ownSnapshot.docs.flatMap((doc) => {
+      const question = parseCandidateQuestion(doc.id, doc.data());
+      return question !== undefined && pastExamSources.has(question.sourceType) && !used.has(question.questionId)
+        ? [question]
+        : [];
+    });
+    const picked = challengeOwnPick(own, settings, seed);
+    const taken = new Set(picked.map((question) => question.questionId));
+
+    const courses = await this.db.collection(this.config.collections.courses).get();
+    metrics.readQuery(courses.size);
+    const courseIds = shuffle(courses.docs.filter((course) => isActive(course.data())).map((course) => course.id), `${seed}:courses`);
+    let missing = settings.questionCount - picked.length;
+    const want = splitEvenly(courseIds, missing);
+    const pools = new Map<string, CandidateQuestion[]>();
+    for (const courseId of courseIds) {
+      if ((want.get(courseId) ?? 0) === 0 && missing <= courseIds.length) continue;
+      const pool = await this.coursePool(courseId, [], Math.max(6, (want.get(courseId) ?? 1) * 4), `${seed}:${courseId}`, metrics);
+      pools.set(courseId, pool.filter((question) => !used.has(question.questionId)));
+    }
+    for (const courseId of courseIds) {
+      const chosen = pickFresh(pools.get(courseId) ?? [], want.get(courseId) ?? 0, new Set(), taken, `${seed}:${courseId}:pick`);
+      chosen.forEach((question) => taken.add(question.questionId));
+      picked.push(...chosen);
+    }
+    missing = settings.questionCount - picked.length;
+    for (const pool of [...pools.values(), own]) {
+      if (missing <= 0) break;
+      const extra = pickFresh(pool, missing, new Set(), taken, `${seed}:extra`);
+      extra.forEach((question) => taken.add(question.questionId));
+      picked.push(...extra);
+      missing -= extra.length;
+    }
+    if (picked.length < settings.questionCount) {
+      throw failedPrecondition("There are not enough questions for today's challenge.", {
+        reason: "challenge_unavailable",
+        available: picked.length,
+        required: settings.questionCount
+      });
+    }
+    const ids = shuffle(picked, `${seed}:order`).map((question) => question.questionId);
+    const ownCount = picked.filter((question) => question.universityId === universityId && pastExamSources.has(question.sourceType)).length;
+    // Two students may ask at once: the first stored set wins.
+    return this.db.runTransaction(async (transaction) => {
+      metrics.transactionAttempt();
+      const current = await transaction.get(ref);
+      const currentIds = current.data()?.questionIds;
+      if (Array.isArray(currentIds) && currentIds.length > 0) return currentIds.filter((id): id is string => typeof id === "string");
+      transaction.set(ref, {
+        schemaVersion: 1,
+        day,
+        universityId,
+        questionIds: ids,
+        ownPastExamCount: ownCount,
+        createdAt: FieldValue.serverTimestamp(),
+        createdAtMs: Date.now()
+      });
+      metrics.writeDocument();
+      return ids;
+    });
   }
 
   /** First session without history: a few questions of every active course. */
@@ -1270,6 +1427,7 @@ export function publicSimulatorContext(
     ...(typeof raw.mode === "string" ? { mode: raw.mode } : {}),
     courseIds: stringList(raw.courseIds),
     ...(typeof raw.size === "string" ? { size: raw.size } : {}),
+    ...(typeof raw.day === "string" ? { day: raw.day } : {}),
     ...(Array.isArray(raw.focusTopicIds) ? { focusTopicIds: stringList(raw.focusTopicIds) } : {}),
     questionCourseIds: [...(questionCourseIds ?? [])]
   };
@@ -1287,7 +1445,8 @@ function simulatorResponse(
   keys: readonly FrozenAnswerKey[],
   meta: ReadonlyMap<string, QuestionMeta>,
   result: SimulatorResult,
-  settings: SimulatorSettings
+  settings: SimulatorSettings,
+  hideReview = false
 ): SubmittedAttemptResponse {
   const grading = gradeFrozenAttempt(attempt.questions, answers, keys, 0);
   if (grading.correctAnswers !== result.correct) {
@@ -1302,7 +1461,8 @@ function simulatorResponse(
     percentage: grading.percentage,
     requiredCorrectAnswers: attempt.requiredCorrectAnswers,
     passed: result.reachedCutoff ?? false,
-    review: grading.review.map((item) => {
+    // Reto del día: the answers stay hidden until the next Peru day.
+    review: hideReview ? [] : grading.review.map((item) => {
       const info = meta.get(item.questionId);
       return {
         ...item,
@@ -1411,4 +1571,37 @@ function projectCreateResponse(attemptId: string, data: Record<string, unknown>)
     questions: response.questions,
     ...(response.simulator === undefined ? {} : { simulator: response.simulator })
   };
+}
+
+/**
+ * The university's own past-exam questions for a challenge: up to the
+ * setting (at least one when there are any), alternating courses.
+ */
+export function challengeOwnPick(
+  own: readonly CandidateQuestion[],
+  settings: Pick<ChallengeSettings, "ownPastExamQuestions" | "questionCount">,
+  seed: string
+): CandidateQuestion[] {
+  if (own.length === 0) return [];
+  const wanted = Math.min(own.length, settings.questionCount, Math.max(1, settings.ownPastExamQuestions));
+  const byCourse = new Map<string, CandidateQuestion[]>();
+  for (const question of shuffle(own, `${seed}:own`)) {
+    const list = byCourse.get(question.courseId) ?? [];
+    list.push(question);
+    byCourse.set(question.courseId, list);
+  }
+  const picked: CandidateQuestion[] = [];
+  while (picked.length < wanted) {
+    for (const list of byCourse.values()) {
+      const next = list.shift();
+      if (next !== undefined && picked.length < wanted) picked.push(next);
+    }
+  }
+  return picked;
+}
+
+/** A daily challenge keeps its answers hidden until the next Peru day. */
+export function challengeLocked(simulator: unknown, nowMs: number = Date.now()): boolean {
+  const context = record(simulator);
+  return context?.mode === "daily_challenge" && typeof context.day === "string" && peruDay(nowMs) <= context.day;
 }

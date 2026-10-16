@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/data/repo/rankings_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/xp_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/app_config_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -54,4 +55,8 @@ final appConfigRepoProvider = Provider<AppConfigRepo>(
 
 final xpRepoProvider = Provider<XpRepo>(
   (ref) => XpRepo(ref.watch(firestoreProvider)),
+);
+
+final rankingsRepoProvider = Provider<RankingsRepo>(
+  (ref) => RankingsRepo(ref.watch(firestoreProvider)),
 );
