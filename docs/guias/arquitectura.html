@@ -1,0 +1,383 @@
+<title>Arquitectura de IngresoYa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css">
+
+<div class="layout">
+<nav class="toc" aria-label="Índice">
+  <div class="brand">Arquitectura de IngresoYa</div>
+  <div class="meta">Documento vivo · actualizado el 15-oct-2026</div>
+  <ol>
+    <li><a href="#resumen">En 1 minuto</a></li>
+    <li><a href="#piezas">Las 4 piezas</a></li>
+    <li><a href="#guarda">Quién guarda qué</a></li>
+    <li><a href="#como">Cómo funciona cada cosa</a>
+      <ol>
+        <li><a href="#c-estudiar">Estudiar una parte</a></li>
+        <li><a href="#c-examen">Rendir el examen de la parte</a></li>
+        <li><a href="#c-medallas">Ganar medallas</a></li>
+        <li><a href="#c-practica">Practicar en el Simulador</a></li>
+        <li><a href="#c-pasado">Rendir un examen pasado</a></li>
+        <li><a href="#c-plan">«Hoy te toca»</a></li>
+        <li><a href="#c-telefonos">Sin internet y varios teléfonos</a></li>
+        <li><a href="#c-admin">El admin cambia contenido</a></li>
+      </ol></li>
+    <li><a href="#quepasasi">¿Qué pasa si…?</a></li>
+    <li><a href="#riesgos">Riesgos antes de publicar</a></li>
+    <li><a href="#glosario">Glosario</a></li>
+    <li><a href="#tecnico">Para desarrolladores</a></li>
+    <li><a href="#cambios">Historial de cambios</a></li>
+  </ol>
+</nav>
+
+<main>
+<p class="eyebrow">IngresoYa · cómo está hecho</p>
+<h1>Arquitectura de IngresoYa</h1>
+<p class="lede">Cómo se conectan las partes de IngresoYa, explicado sin tecnicismos. El detalle para programadores está al final, en «Para desarrolladores».</p>
+
+<h2 id="resumen">En 1 minuto</h2>
+<div class="note">
+  <p>Piensa en un colegio:</p>
+  <ul>
+    <li>La <b>app</b> es el <b>cuaderno del alumno</b>: ahí estudia, apunta su avance y practica.</li>
+    <li>El <b>panel admin</b> es la <b>sala de profesores</b>: ahí se escriben los cursos, las preguntas y las reglas.</li>
+    <li>El <b>servidor</b> es el <b>profesor que toma y corrige los exámenes</b>. Elige las preguntas, guarda las respuestas correctas bajo llave, califica y entrega las medallas.</li>
+    <li>La <b>base de datos</b> es el <b>archivo del colegio</b>: guarda todo lo anterior.</li>
+  </ul>
+  <p><b>La regla más importante:</b> el teléfono nunca ve las respuestas correctas antes de entregar, y nunca decide solo si aprobaste. Eso lo decide siempre el servidor.</p>
+</div>
+
+<h2 id="piezas">Las 4 piezas</h2>
+<pre class="mermaid">
+flowchart LR
+  A["📱 App del alumno"] -- "estudia y guarda su avance" --> D[("🗄️ Base de datos")]
+  A -- "pide exámenes y los entrega" --> S["👩‍🏫 Servidor"]
+  S -- "corrige y guarda notas y medallas" --> D
+  P["🏫 Panel admin"] -- "escribe cursos, preguntas y reglas" --> D
+  A -- "ve videos" --> Y["▶️ YouTube"]
+</pre>
+<div class="grid-cards">
+  <div class="card"><h4>📱 App del alumno</h4><p>La que se instala en el teléfono. Guarda una copia del contenido y del avance para funcionar aunque falle el internet.</p></div>
+  <div class="card"><h4>🏫 Panel admin</h4><p>Página web solo para el equipo (cuenta de Google con permiso de administrador). Ahí se cargan universidades, cursos, partes, preguntas, exámenes pasados y configuración.</p></div>
+  <div class="card"><h4>👩‍🏫 Servidor</h4><p>Programas que corren en Google (Firebase Cloud Functions). Son 8 «ventanillas»; la app las llama para crear, empezar y entregar exámenes, y para registrar el avance y las medallas.</p></div>
+  <div class="card"><h4>🗄️ Base de datos</h4><p>Firestore, de Google. Hoy todo trabaja en el ambiente de <b>pruebas (TEST)</b>; producción se activa al publicar en Play Store.</p></div>
+</div>
+
+<h2 id="guarda">Quién guarda qué</h2>
+<div class="table-wrap"><table>
+  <tr><th>Información</th><th>Quién la escribe</th><th>Quién la usa</th></tr>
+  <tr><td class="msg">Universidades, carreras y exámenes pasados</td><td>Panel admin</td><td>App y servidor</td></tr>
+  <tr><td class="msg">Cursos, temas, subtemas y partes (videos, lecciones, ejemplos…)</td><td>Panel admin</td><td>App y servidor</td></tr>
+  <tr><td class="msg">Preguntas y sus respuestas correctas</td><td>Panel admin</td><td>Solo el servidor (la app nunca ve las correctas antes de entregar)</td></tr>
+  <tr><td class="msg">Configuración (tiempos, tamaños, reglas del plan)</td><td>Panel admin</td><td>App y servidor</td></tr>
+  <tr><td class="msg">Perfil del alumno, avance en la guía, favoritos y meta del plan</td><td>App</td><td>App (y el servidor lee la universidad del perfil)</td></tr>
+  <tr><td class="msg">Exámenes rendidos, notas, medallas y aciertos por tema</td><td>Solo el servidor</td><td>App (solo los lee)</td></tr>
+</table></div>
+
+<h2 id="como">Cómo funciona cada cosa</h2>
+
+<div class="flow" id="c-estudiar">
+  <figure><img src="img/est-ruta-lista.jpg" alt="Tu ruta"><figcaption>Tu ruta con todo revisado.</figcaption></figure>
+  <div class="body">
+    <h3>Estudiar una parte</h3>
+    <ol>
+      <li>El alumno abre una sección (video, lección, ejemplos…).</li>
+      <li>Si la tuvo abierta el tiempo mínimo (o vio el % mínimo del video), la app la marca «Revisado» en el teléfono.</li>
+      <li>La app avisa al servidor: «revisó la lección de esta parte». El servidor lo anota.</li>
+      <li>Si no hay internet, queda anotado en el teléfono y se avisa al servidor cuando el alumno abre el examen.</li>
+    </ol>
+<pre class="mermaid">
+sequenceDiagram
+  actor Alumno
+  participant App as 📱 App
+  participant Servidor as 👩‍🏫 Servidor
+  Alumno->>App: abre y cierra la lección
+  App->>App: ¿estuvo el tiempo mínimo? → «Revisado»
+  App->>Servidor: «revisó la lección de la parte 1»
+  Servidor-->>App: anotado (y qué secciones faltan)
+</pre>
+  </div>
+</div>
+
+<div class="flow" id="c-examen">
+  <figure><img src="img/est-examen1.jpg" alt="Antes de comenzar"><figcaption>Antes de comenzar.</figcaption></figure>
+  <figure><img src="img/est-examen-result.jpg" alt="Resultado"><figcaption>Resultado.</figcaption></figure>
+  <div class="body">
+    <h3>Rendir el examen de la parte</h3>
+    <ol>
+      <li>El alumno toca «Rendir». El servidor <b>elige las preguntas</b> de esa parte y las «congela»: ese examen siempre tendrá esas preguntas.</li>
+      <li>Al tocar «Comenzar examen» empieza el reloj, contado <b>en el servidor</b> (cambiar la hora del teléfono no sirve).</li>
+      <li>Cada respuesta se guarda en el servidor al momento, así no se pierde si se cierra la app.</li>
+      <li>Al entregar, el servidor <b>corrige</b> con las respuestas correctas que solo él tiene.</li>
+      <li>La parte queda <b>completa</b> cuando hay examen aprobado <b>y</b> todas las secciones revisadas, en cualquier orden.</li>
+    </ol>
+<pre class="mermaid">
+sequenceDiagram
+  actor Alumno
+  participant App as 📱 App
+  participant Servidor as 👩‍🏫 Servidor
+  Alumno->>App: Rendir
+  App->>Servidor: créame un examen de esta parte
+  Servidor-->>App: preguntas (sin respuestas correctas)
+  Alumno->>App: Comenzar y responder
+  App->>Servidor: guarda cada respuesta
+  Alumno->>App: Entregar
+  App->>Servidor: entrego
+  Servidor->>Servidor: corrige
+  Servidor-->>App: nota, aprobado sí/no, explicaciones
+</pre>
+  </div>
+</div>
+
+<div class="flow" id="c-medallas">
+  <figure><img src="img/est-logro-subtema.jpg" alt="Plata"><figcaption>Plata.</figcaption></figure>
+  <figure><img src="img/est-dom-celebra2.jpg" alt="Oro"><figcaption>Oro.</figcaption></figure>
+  <div class="body">
+    <h3>Ganar medallas</h3>
+<pre class="mermaid">
+flowchart LR
+  A["Todas las partes del subtema completas"] --> B["🥈 Plata: subtema completado"]
+  B --> C["Examen de dominio"]
+  C -->|aprobado| D["🥇 Oro: subtema dominado"]
+  C -->|no aprobado| C
+</pre>
+    <ul>
+      <li>Las medallas las <b>entrega el servidor</b>. La app solo las muestra, y por eso a veces tarda unos segundos en celebrar.</li>
+      <li>Si el admin desactiva justo la parte que faltaba, el servidor revisa de nuevo y entrega la plata.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flow" id="c-practica">
+  <figure><img src="img/sim-practica.jpg" alt="Arma tu práctica"><figcaption>Arma tu práctica.</figcaption></figure>
+  <div class="body">
+    <h3>Practicar en el Simulador</h3>
+    <ol>
+      <li>El alumno elige cursos, temas y tamaño (por ejemplo, 20 preguntas en 30 min).</li>
+      <li>El servidor reparte las preguntas parejo entre los cursos y da primero las que el alumno <b>no vio en los últimos 14 días</b>.</li>
+      <li>Al entregar, el servidor guarda la nota y suma los aciertos de cada tema. Con eso se arman el historial, las estadísticas y «Hoy te toca».</li>
+    </ol>
+  </div>
+</div>
+
+<div class="flow" id="c-pasado">
+  <figure><img src="img/sim-pasados.jpg" alt="Exámenes pasados"><figcaption>Exámenes pasados.</figcaption></figure>
+  <figure><img src="img/sim-res-oficial.jpg" alt="Resultado"><figcaption>¿Te alcanzaba?</figcaption></figure>
+  <div class="body">
+    <h3>Rendir un examen pasado</h3>
+    <ol>
+      <li>El admin carga el examen, sus preguntas y sus reglas: tiempo, puntos por correcta e incorrecta, mínimo de ingreso por carrera.</li>
+      <li>El servidor solo lo deja rendir si tiene <b>todas</b> sus preguntas publicadas, para que la nota sea comparable con la real.</li>
+      <li>Al terminar el tiempo, la app lo entrega sola.</li>
+      <li>El servidor calcula la nota como en el examen real (sobre 1000), la compara con el mínimo de la carrera del alumno y guarda su mejor nota.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="flow" id="c-plan">
+  <figure><img src="img/sim-inicio-plan.jpg" alt="Hoy te toca"><figcaption>«Hoy te toca».</figcaption></figure>
+  <div class="body">
+    <h3>«Hoy te toca»</h3>
+    <ol>
+      <li>Cada vez que el alumno entrega un examen del Simulador, el servidor anota cuántas respondió y cuántas acertó <b>por tema</b>.</li>
+      <li>Un tema es <b>débil</b> si tiene al menos 5 respuestas y menos del 50 % de aciertos.</li>
+      <li>La app lee esos datos y muestra «Fallaste 7 de 8 en {tema}».</li>
+      <li>Al tocar «Empezar sesión», el servidor arma 10 preguntas: 6 de los temas débiles (hasta 3 temas) y 4 de cursos al azar.</li>
+      <li>Cuando el tema pasa del 50 %, deja de ser débil y el plan pasa al siguiente.</li>
+    </ol>
+<pre class="mermaid">
+flowchart LR
+  E["Entrega un examen"] --> T["Servidor suma aciertos por tema"]
+  T --> W{"¿Tema con 5+ respuestas y menos de 50 %?"}
+  W -->|sí| H["Hoy te toca: 6 de ese tema + 4 al azar"]
+  W -->|no| M["Hoy te toca: 10 al azar"]
+  H --> E
+  M --> E
+</pre>
+  </div>
+</div>
+
+<h3 id="c-telefonos">Sin internet y con varios teléfonos</h3>
+<ul>
+  <li><b>Sin internet</b> se puede seguir estudiando: el contenido y el avance están guardados en el teléfono. Los exámenes sí necesitan internet.</li>
+  <li><b>El avance se sube solo:</b> unos 45 segundos después de cada cambio, o al salir de la app.</li>
+  <li><b>Con dos teléfonos:</b> al iniciar sesión en el otro, baja todo el avance; mientras está abierto, se refresca cada 12 horas. Si los dos cambiaron lo mismo, se juntan y nunca se pierde lo ya aprobado.</li>
+  <li><b>Lo que no viaja entre teléfonos:</b> «Continúa donde lo dejaste» y las preguntas guardadas.</li>
+</ul>
+
+<h3 id="c-admin">El admin cambia contenido</h3>
+<ul>
+  <li><b>Editar una pregunta ya publicada</b> crea una versión nueva. Los exámenes que ya la usaron conservan la versión anterior, así nadie ve cambiar su nota.</li>
+  <li><b>Retirar una pregunta</b> la saca de los exámenes nuevos sin tocar los viejos.</li>
+  <li><b>Desactivar una parte</b> la oculta en la app y deja de contar para el avance.</li>
+  <li><b>Cambiar la configuración</b> (tiempos, tamaños, reglas del plan) se aplica la próxima vez que la app la lee, normalmente al abrirla.</li>
+</ul>
+
+<h2 id="quepasasi">¿Qué pasa si…?</h2>
+<div class="table-wrap"><table>
+  <tr><th>Si…</th><th>Entonces…</th></tr>
+  <tr><td class="msg">El alumno toca «Entregar» dos veces</td><td>Se entrega una sola vez. La segunda devuelve la misma nota.</td></tr>
+  <tr><td class="msg">Se cae el internet al crear el examen</td><td>Al reintentar se recupera el mismo examen, no uno nuevo. Excepción: «Hoy te toca» puede crear uno nuevo.</td></tr>
+  <tr><td class="msg">Se cae el internet mientras responde</td><td>Las respuestas quedan marcadas en el teléfono con «Reintentar» y se envían todas al entregar.</td></tr>
+  <tr><td class="msg">Se acaba el tiempo en un examen de la guía</td><td>No se corrige. Al volver a «Rendir» se crea un examen nuevo.</td></tr>
+  <tr><td class="msg">Se acaba el tiempo en el Simulador</td><td>La app lo entrega sola y cuenta lo que se alcanzó a marcar.</td></tr>
+  <tr><td class="msg">Cierra la app a mitad de un examen de la guía</td><td>Al volver, lo retoma con las mismas preguntas y respuestas (si no se acabó el tiempo).</td></tr>
+  <tr><td class="msg">Cierra la app a mitad de un examen del Simulador</td><td>Hoy no se puede retomar después de cerrar la app (pendiente).</td></tr>
+  <tr><td class="msg">No hay suficientes preguntas</td><td>El servidor usa primero las no vistas, luego repite y luego toma de otros cursos. Si aún faltan, avisa «no hay suficientes preguntas».</td></tr>
+  <tr><td class="msg">El examen pasado está incompleto</td><td>No se puede rendir aunque el admin lo marque como disponible.</td></tr>
+</table></div>
+
+<h2 id="riesgos">Riesgos antes de publicar</h2>
+<div class="table-wrap"><table>
+  <tr><th>#</th><th>Riesgo</th><th>Por qué importa</th></tr>
+  <tr><td class="num">1</td><td class="msg">Falta App Check en la app</td><td>En producción el servidor exige una «credencial de app legítima» que la app aún no envía: todos los exámenes fallarían.</td></tr>
+  <tr><td class="num">2</td><td class="msg">Hay dos archivos de reglas de seguridad</td><td>Uno es estricto (admin) y otro permisivo (app). Hay que asegurar que siempre se suba el estricto.</td></tr>
+  <tr><td class="num">3</td><td class="msg">El admin solo apunta a TEST</td><td>Para usarlo en producción hay que cambiar el código.</td></tr>
+  <tr><td class="num">4</td><td class="msg">Exámenes del Simulador sin recuperación</td><td>Si se cierra la app a mitad, el examen no se retoma.</td></tr>
+  <tr><td class="num">5</td><td class="msg">«Hoy te toca» puede duplicarse</td><td>Tras un fallo de internet, reintentar puede crear dos exámenes.</td></tr>
+  <tr><td class="num">6</td><td class="msg">Borrados sin protección en el admin</td><td>Se puede borrar una universidad o una carrera que todavía se usa.</td></tr>
+</table></div>
+
+<h2 id="glosario">Glosario</h2>
+<div class="table-wrap"><table>
+  <tr><th>Palabra</th><th>Qué significa</th></tr>
+  <tr><td class="msg">Servidor / Functions</td><td>Programas en Google que hacen lo que no se puede dejar en manos del teléfono: elegir preguntas, corregir y entregar medallas.</td></tr>
+  <tr><td class="msg">Base de datos / Firestore</td><td>Donde se guarda todo, en la nube de Google.</td></tr>
+  <tr><td class="msg">TEST / producción</td><td>Dos copias separadas: una para probar y otra para alumnos reales. Hoy solo se usa TEST.</td></tr>
+  <tr><td class="msg">Intento</td><td>Un examen rendido por un alumno, con sus preguntas fijas, respuestas y nota.</td></tr>
+  <tr><td class="msg">Plantilla</td><td>La «receta» de un examen de la guía: cuántas preguntas, cuánto tiempo y qué % para aprobar.</td></tr>
+  <tr><td class="msg">Versión de una pregunta</td><td>Cada edición publicada crea una versión nueva; las anteriores no se borran.</td></tr>
+  <tr><td class="msg">Copia en el teléfono</td><td>Lo que la app guarda para funcionar sin internet (contenido y avance). En el código se llama Hive.</td></tr>
+  <tr><td class="msg">Sincronizar</td><td>Subir y bajar el avance para que sea el mismo en todos los teléfonos.</td></tr>
+</table></div>
+
+<!-- ======================================================== TÉCNICO -->
+<h2 id="tecnico">Para desarrolladores</h2>
+<p>El mismo sistema con nombres reales del código. Cada bloque se abre al tocarlo.</p>
+
+<details>
+<summary>Entornos</summary>
+<div class="table-wrap"><table>
+  <tr><th>Componente</th><th>Cómo se elige</th><th>Valores</th></tr>
+  <tr><td class="msg">App</td><td>Flavor + entrada (<code>--flavor X -t lib/main_X.dart</code>)</td><td>development <code>com.ingresoya.app.dev</code> → <code>iya-*-test</code> · staging → <code>-staging</code> · production → sin sufijo. Hive con prefijo por flavor.</td></tr>
+  <tr><td class="msg">Functions</td><td><code>INGRESOYA_ENV</code></td><td>test · staging · production. Región <code>southamerica-east1</code>, máx. 10 instancias, 30 s, 256 MiB. App Check solo en producción.</td></tr>
+  <tr><td class="msg">Admin</td><td>Constantes en <code>lib/src/env/app_env.dart</code></td><td>Fijo en TEST.</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Las 8 Cloud Functions (callables)</summary>
+<p>Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
+<div class="table-wrap"><table>
+  <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Idempotencia</th></tr>
+  <tr><td class="msg"><code>createExamAttempt</code></td><td><code>requestId</code>, <code>purpose</code> y datos según el tipo</td><td>Valida catálogo y plantilla, elige y congela preguntas, crea <code>attempts/{id}</code>. Simulador vía <code>SimulatorService</code>.</td><td><code>examRequestKeys/{requestId}</code> (TTL 30 d)</td></tr>
+  <tr><td class="msg"><code>getExamAttempt</code></td><td><code>attemptId</code></td><td>Lee el intento propio (vencido → <code>expired</code>).</td><td>Lectura</td></tr>
+  <tr><td class="msg"><code>startExamAttempt</code></td><td><code>attemptId</code></td><td><code>expiresAt = ahora + duración</code>.</td><td>No mueve el reloj dos veces</td></tr>
+  <tr><td class="msg"><code>saveExamAnswers</code></td><td><code>answers</code> ≤ 50</td><td>Fusiona respuestas.</td><td>1 escritura/s</td></tr>
+  <tr><td class="msg"><code>submitExamAttempt</code></td><td><code>answers</code> ≤ 300</td><td>Califica; guía: aprobación de parte o medalla de dominio; Simulador: puntaje, <code>simulatorResults</code>, <code>simulatorTopicStats</code>, <code>pastExamBest</code>, <code>learningEvents</code>.</td><td>Entregado → mismo resultado</td></tr>
+  <tr><td class="msg"><code>recordPartSectionCompletion</code></td><td><code>partId</code>, <code>section(s)</code>, contexto</td><td>Registra secciones; verifica la parte y otorga plata si corresponde.</td><td>No reescribe lo registrado</td></tr>
+  <tr><td class="msg"><code>getAchievementSummary</code></td><td>—</td><td>Resumen de medallas (lo reconstruye una vez si está dañado).</td><td>Lectura</td></tr>
+  <tr><td class="msg"><code>reconcileSubtopicAchievement</code></td><td>curso, tema, subtema</td><td>Otorga plata si el subtema ya está completo.</td><td>ID de medalla fijo</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+  <tr><th>purpose / mode</th><th>Selección</th><th>Tiempo</th></tr>
+  <tr><td class="msg"><code>part_completion</code></td><td>Bloques de la plantilla filtrados por parte; menor exposición reciente.</td><td>Plantilla (3600 s por defecto)</td></tr>
+  <tr><td class="msg"><code>subtopic_mastery</code></td><td>Todo el subtema; exige la plata.</td><td>Plantilla</td></tr>
+  <tr><td class="msg"><code>past_exam</code></td><td>Todas las publicadas del examen = <code>questionCount</code>.</td><td><code>durationMinutes</code></td></tr>
+  <tr><td class="msg"><code>practice</code> course/mix/random</td><td>Reparto parejo; no vistas en <code>repeatWindowDays</code>.</td><td>Tamaño o 4 h</td></tr>
+  <tr><td class="msg"><code>practice</code> plan</td><td><code>weakSharePercent</code> de hasta 3 temas débiles + cursos al azar.</td><td><code>dailyMinutes</code></td></tr>
+  <tr><td class="msg"><code>practice</code> diagnostic</td><td><code>diagnosticPerCourse</code> por curso activo.</td><td>4 h</td></tr>
+  <tr><td class="msg"><code>practice</code> mistakes</td><td>Incorrectas y blancas (≤ 100), misma versión.</td><td>90 s/pregunta o 4 h</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Códigos de error (<code>reason</code>)</summary>
+<div class="table-wrap"><table>
+  <tr><th>Grupo</th><th>Reasons</th></tr>
+  <tr><td class="msg">Entrada</td><td><code>invalid_request</code>, <code>invalid_filters</code>, <code>authentication_required</code></td></tr>
+  <tr><td class="msg">Idempotencia</td><td><code>request_id_conflict</code>, <code>request_key_invalid</code>, <code>request_key_orphaned</code></td></tr>
+  <tr><td class="msg">Perfil y catálogo</td><td><code>profile_incomplete</code>, <code>part_not_available</code>, <code>part_not_enabled</code>, <code>part_context_ambiguous</code>, <code>subtopic_not_available</code>, <code>course_not_available</code>, <code>topic_not_available</code></td></tr>
+  <tr><td class="msg">Plantillas</td><td><code>template_not_found</code>, <code>template_not_published</code>, <code>template_incompatible</code>, <code>part_template_not_associated</code>, <code>mastery_template_not_associated</code>, <code>template_part_mismatch</code>, <code>template_subtopic_mismatch</code>, <code>template_changed_retry</code></td></tr>
+  <tr><td class="msg">Banco y Simulador</td><td><code>insufficient_questions</code>, <code>past_exam_unavailable</code>, <code>past_exam_incomplete</code>, <code>practice_size_unavailable</code>, <code>mistakes_unavailable</code>, <code>no_mistakes</code></td></tr>
+  <tr><td class="msg">Intento y logros</td><td><code>attempt_not_found</code>, <code>attempt_not_open</code>, <code>answer_save_rate_limit</code>, <code>answer_key_unavailable</code>, <code>attempt_data_invalid</code>, <code>mastery_prerequisite_missing</code>, <code>mastery_award_invalid</code></td></tr>
+  <tr><td class="msg">Otros</td><td><code>precondition_failed</code>, <code>resource_limit</code>, <code>unexpected_server_error</code></td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Modelo de datos (Firestore)</summary>
+<div class="table-wrap"><table>
+  <tr><th>Ruta</th><th>Contenido</th><th>Escribe → lee</th></tr>
+  <tr><td class="msg"><code>{universities}/{id}</code>, <code>modes</code>, <code>admissionExams</code>, <code>admissionExamKeys</code></td><td>Universidad, carreras, <code>simulatorVisible</code>; exámenes con <code>simulator{…}</code>; reserva única de convocatoria.</td><td>Admin → App, Functions</td></tr>
+  <tr><td class="msg"><code>{courses}/…/topics/…/subtopics</code></td><td>Subtema con <code>listPart[]</code>, <code>examTemplateId</code>, <code>masteryTemplateId</code>.</td><td>Admin → App, Functions</td></tr>
+  <tr><td class="msg"><code>{config}/sync · study · simulator</code></td><td>Sync, reglas de «Revisado», Simulador y plan.</td><td>Admin → App, Functions</td></tr>
+  <tr><td class="msg"><code>{questions}</code> + <code>versions</code>, <code>{answerKeys}/{qid}_{v}</code>, <code>{templates}</code></td><td>Banco v2 inmutable por versión, claves y plantillas.</td><td>Admin → Functions</td></tr>
+  <tr><td class="msg"><code>{attempts}/{id}</code></td><td>Intento congelado; en el Simulador también <code>simulator</code>, <code>questionMeta</code>, <code>simulatorResult</code>.</td><td>Functions → dueño (lectura)</td></tr>
+  <tr><td class="msg"><code>{profile}/{uid}</code>, <code>courseProgress</code>, <code>favorites/parts</code>, <code>simulatorPlan/current</code></td><td>Perfil, avance local sincronizado, favoritos, meta.</td><td>App → App, Functions</td></tr>
+  <tr><td class="msg"><code>learningProgress/current</code> (+ <code>achievements</code>, <code>achievementSummary</code>)</td><td>Partes verificadas y medallas.</td><td>Functions → App (get)</td></tr>
+  <tr><td class="msg"><code>simulatorResults</code>, <code>simulatorTopicStats</code>, <code>pastExamBest</code>, <code>learningEvents</code></td><td>Resultados, aciertos por tema, mejor nota, eventos (base del XP).</td><td>Functions → App</td></tr>
+  <tr><td class="msg"><code>examRequestKeys</code>, <code>recentQuestions</code></td><td>Idempotencia (TTL 30 d) y exposición (TTL 120 d).</td><td>Functions</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Arquitectura de la app</summary>
+<p>Por feature: <code>presentation</code> (pantallas y controllers Riverpod) → <code>domain</code> (Dart puro, puertos) ← <code>data</code> (Firestore, Hive, callables). <code>lib/app</code> inyecta las implementaciones.</p>
+<div class="table-wrap"><table>
+  <tr><th>Puerto</th><th>Implementación</th></tr>
+  <tr><td class="msg">CourseRepository</td><td>CachedCourseRepository (Firestore + Hive, 30 min)</td></tr>
+  <tr><td class="msg">CourseProgressRepository</td><td>HiveCourseProgressRepository (marca pendiente de sync)</td></tr>
+  <tr><td class="msg">SessionSyncRepository</td><td>OfflineFirstSessionSyncRepository; coordinador con espera de 45 s (tope 180 s), refresco cada 12 h</td></tr>
+  <tr><td class="msg">ExamAttemptRepository</td><td>FirebaseExamAttemptRepository (callables, 20 s)</td></tr>
+  <tr><td class="msg">ExamAttemptRecoveryStore</td><td>SharedPreferences (solo exámenes de la guía)</td></tr>
+  <tr><td class="msg">SimulatorCatalogRepository</td><td>Firestore</td></tr>
+  <tr><td class="msg">AchievementRepository</td><td>Callables + caché (8 s)</td></tr>
+  <tr><td class="msg">PartFavoritesStore</td><td>SharedPreferences + Firestore</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Arquitectura del admin</summary>
+<div class="table-wrap"><table>
+  <tr><th>Pantalla</th><th>Qué escribe</th></tr>
+  <tr><td class="msg">Universidades / Exámenes de origen / Reglas del Simulador</td><td>Universidad, modalidades, carreras; convocatorias con reserva y <code>revision</code>; campo <code>simulator</code> con cálculo de <code>complete</code>.</td></tr>
+  <tr><td class="msg">Cursos</td><td>Temas, subtemas (dominio) y partes (contenido y examen), validando la plantilla.</td></tr>
+  <tr><td class="msg">Preguntas</td><td>Borrador → validar → publicar (<code>forkPublishedForEdit</code>, <code>saveDraft</code>, <code>publishDraft</code>), retirar.</td></tr>
+  <tr><td class="msg">Plantillas / Configuración</td><td>Cada guardado crea una versión; <code>{config}/sync</code>, <code>study</code>, <code>simulator</code>, <code>simulator.plan</code>.</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary>Reglas de cálculo y límites</summary>
+<ul>
+  <li><b>Aprobar en la guía:</b> <code>correctas·100 &gt; total·passPercentExclusive</code>; meta <code>floor(n·p/100)+1</code>.</li>
+  <li><b>Examen pasado:</b> <code>round(máx(0, c·cp + i·ip + b·bp) · maxScore / (N·cp))</code>; parche final aceptado hasta 2 min tras vencer.</li>
+  <li><b>Práctica:</b> sobre 100, +1 / −0,25 si <code>practicePenalty</code> / 0.</li>
+  <li><b>Tema débil:</b> <code>answered ≥ 5</code> y <code>correct/answered &lt; 50 %</code>, máx. 3, el más bajo primero.</li>
+  <li><b>Límites:</b> 50 respuestas por guardado, 300 por entrega, 10 cursos en mezcla, 20 temas, 100 en «Mis errores», 200 resultados leídos por la app.</li>
+</ul>
+</details>
+
+<details>
+<summary>Seguridad y riesgos técnicos completos</summary>
+<ul>
+  <li>Catálogos y configuración: lectura con sesión, escritura solo con claim <code>admin</code>.</li>
+  <li>Banco, claves y plantillas: solo admin; versiones solo se crean.</li>
+  <li>Intentos: el dueño lee, nadie escribe desde el cliente.</li>
+  <li>Perfil: el dueño escribe raíz, <code>courseProgress</code>, <code>favorites</code> y <code>simulatorPlan</code>; solo lee resultados, estadísticas y medallas.</li>
+  <li>Docs desactualizados: <code>exam_attempt_app_flow.md</code>, <code>architecture.md</code> §18 y §20, <code>logros_app.md</code>, <code>environments.md</code>, límite 200 en <code>callable_contract.md</code> (el código acepta 300).</li>
+  <li>Config sin efecto: <code>diagnosticMinutes</code>; <code>onlyCompleteExams</code> y <code>practiceTimerDefault</code> solo en la app.</li>
+  <li>ms-iya-api: repositorios de grupos y secciones sin pantalla y con lectura rota.</li>
+  <li>Perfil entre teléfonos: solo se refresca al iniciar sesión o ante conflicto.</li>
+</ul>
+</details>
+
+<h2 id="cambios">Historial de cambios</h2>
+<ul class="changelog">
+  <li><b>15-oct-2026</b> · Reescrito en lenguaje sencillo; el detalle técnico pasa a «Para desarrolladores».</li>
+  <li><b>15-oct-2026</b> · Primera versión.</li>
+</ul>
+</main>
+</div>

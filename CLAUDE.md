@@ -10,6 +10,8 @@ Proyecto hermano: `../iya-app` (app del alumno). Ambos comparten contratos en `d
 ## Proceso obligatorio (sin preguntar)
 En cada desarrollo, commit o PR, actualizar `PROGRESO.md` (y este `CLAUDE.md` si cambió algo relevante) **en este repo y en `../iya-app`**, e incluirlo en el commit/PR.
 
+Si el cambio es funcional o de diseño, actualizar también las **guías vivas** (`docs/guias/`): la Guía de IngresoYa (pantallas y mensajes) y la Arquitectura (servicios, datos, flujos). Cómo hacerlo y sus direcciones publicadas: `docs/guias/README.md`.
+
 ## Flujo Git
 - `main` = producción, `desarrollo` = integración estable.
 - Cada cambio en rama nueva desde `desarrollo` con prefijo `codex/`. PR hacia `desarrollo`; release con PR `desarrollo` → `main`.
