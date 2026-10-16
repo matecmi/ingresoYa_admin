@@ -8,6 +8,7 @@ _Última actualización: 2026-10-15_
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
 ## Hecho (reciente)
+- **XP revisado en el teléfono (2026-10-15):** celebración «¡Subiste de rango!», tarjeta de rango en el Perfil, «Esta semana ganaste», «Tu camino de rangos» y «Ganaste XP +11» al terminar «Hoy te toca» funcionan con datos reales de TEST. Capturas `xp-*.jpg` agregadas a la sección XP de la Guía de IngresoYa (v4, misma dirección).
 - **XP y rango de perfil, fase 1** (admin `codex/xp-fase1`, app `codex/xp-fase1-app`; contrato `docs/xp_contract.md` en ambos).
   - **Functions** (`functions/src/xp.ts`): el XP se otorga después de cada entrega, sección revisada y reconciliación, con ids fijos (nunca suma dos veces), tope diario de 300 para sesiones, aciertos y racha, día y semana de Perú y rango que nunca baja. Las respuestas traen `xp`. El Simulador anota las preguntas nuevas al crear y `xpBasis` al entregar. Reglas: `xp` y `xpEvents` son de solo lectura para el alumno.
   - **Retroactivo:** `npm run xp:retro`, aplicado en TEST: 3 alumnos, 1188 XP; la segunda ejecución sumó 0.
