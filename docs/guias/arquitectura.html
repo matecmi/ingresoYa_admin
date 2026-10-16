@@ -21,6 +21,7 @@
         <li><a href="#c-pasado">Rendir un examen pasado</a></li>
         <li><a href="#c-plan">«Hoy te toca»</a></li>
         <li><a href="#c-telefonos">Sin internet y varios teléfonos</a></li>
+        <li><a href="#c-xp">Ganar XP y subir de rango</a></li>
         <li><a href="#c-admin">El admin cambia contenido</a></li>
       </ol></li>
     <li><a href="#quepasasi">¿Qué pasa si…?</a></li>
@@ -73,6 +74,7 @@ flowchart LR
   <tr><td class="msg">Configuración (tiempos, tamaños, reglas del plan)</td><td>Panel admin</td><td>App y servidor</td></tr>
   <tr><td class="msg">Perfil del alumno, avance en la guía, favoritos y meta del plan</td><td>App</td><td>App (y el servidor lee la universidad del perfil)</td></tr>
   <tr><td class="msg">Exámenes rendidos, notas, medallas y aciertos por tema</td><td>Solo el servidor</td><td>App (solo los lee)</td></tr>
+  <tr><td class="msg">XP total, rango y libro de XP</td><td>Solo el servidor (el admin puede revertir)</td><td>App (solo los lee)</td></tr>
 </table></div>
 
 <h2 id="como">Cómo funciona cada cosa</h2>
@@ -206,6 +208,28 @@ flowchart LR
   <li><b>Lo que no viaja entre teléfonos:</b> «Continúa donde lo dejaste» y las preguntas guardadas.</li>
 </ul>
 
+<h3 id="c-xp">Ganar XP y subir de rango</h3>
+<ol>
+  <li>El alumno termina algo: revisa una sección, aprueba una parte, completa o domina un subtema o entrega un examen del Simulador.</li>
+  <li>Primero se guarda eso, como siempre. <b>Después</b>, el servidor mira qué XP corresponde y lo suma al «libro de XP» del alumno. Cada logro tiene un nombre fijo, así que nunca se suma dos veces.</li>
+  <li>El servidor responde con «ganaste +N XP», el desglose y si subió de rango. La app lo muestra en el resultado y celebra si subió.</li>
+  <li>El rango se calcula con el XP total y la escalera del admin. Se guarda el más alto alcanzado, así que nunca baja.</li>
+  <li>Si sumar el XP falla, el examen o la sección no se pierden: el XP se recupera la próxima vez.</li>
+</ol>
+<pre class="mermaid">
+sequenceDiagram
+  actor Alumno
+  participant App as 📱 App
+  participant Servidor as 👩‍🏫 Servidor
+  Alumno->>App: Entregar examen
+  App->>Servidor: entrego
+  Servidor->>Servidor: corrige y guarda (como siempre)
+  Servidor->>Servidor: suma XP (tope diario, sin duplicar)
+  Servidor-->>App: nota + «+29 XP» + rango
+  App->>Alumno: resultado con «Ganaste XP» y, si subió, «¡Subiste de rango!»
+</pre>
+<p>El admin puede buscar a un alumno, ver su libro de XP y revertir un movimiento indicando el motivo.</p>
+
 <h3 id="c-admin">El admin cambia contenido</h3>
 <ul>
   <li><b>Editar una pregunta ya publicada</b> crea una versión nueva. Los exámenes que ya la usaron conservan la versión anterior, así nadie ve cambiar su nota.</li>
@@ -249,6 +273,7 @@ flowchart LR
   <tr><td class="msg">Plantilla</td><td>La «receta» de un examen de la guía: cuántas preguntas, cuánto tiempo y qué % para aprobar.</td></tr>
   <tr><td class="msg">Versión de una pregunta</td><td>Cada edición publicada crea una versión nueva; las anteriores no se borran.</td></tr>
   <tr><td class="msg">Copia en el teléfono</td><td>Lo que la app guarda para funcionar sin internet (contenido y avance). En el código se llama Hive.</td></tr>
+  <tr><td class="msg">XP y rango</td><td>Puntos por todo lo que el alumno hace. El rango (Bronce a Maestro, más estrellas) sale del total y nunca baja.</td></tr>
   <tr><td class="msg">Sincronizar</td><td>Subir y bajar el avance para que sea el mismo en todos los teléfonos.</td></tr>
 </table></div>
 
@@ -323,6 +348,18 @@ flowchart LR
 </details>
 
 <details>
+<summary>XP y rango (functions/src/xp.ts)</summary>
+<ul>
+  <li><b>Cuándo:</b> después de <code>submitExamAttempt</code>, <code>recordPartSectionCompletion</code> y <code>reconcileSubtopicAchievement</code>, en una transacción aparte (<code>XpService.afterAttempt</code> / <code>afterGuide</code>). Si falla, se registra en el log y no rompe la respuesta. Las tres respuestas llevan <code>xp</code> (<code>XpAward</code>).</li>
+  <li><b>Hechos que usa:</b> <code>learningEvents</code> (<code>part_passed_*</code>, <code>subtopic_completed_*</code>, <code>subtopic_mastered_*</code>), <code>learningProgress/current.partProgress.{parte}.sections</code>, y del intento del Simulador <code>simulatorResult</code>, <code>xpBasis{freshCorrect, previousBestScore}</code> y <code>xpFreshQuestionIds</code> (anotadas al crear con <code>recentQuestions</code>).</li>
+  <li><b>Datos:</b> <code>{config}/xp</code>, <code>{perfil}/xp/current</code> (<code>total</code>, <code>rankStep</code> máximo, <code>today</code>, <code>week</code>, <code>pastExamDays</code>) y <code>{perfil}/xpEvents/{id}</code>. El alumno solo lee ambos; el admin lee y actualiza (revertir).</li>
+  <li><b>Ids fijos:</b> <code>section_{parte}_{sección}</code>, <code>part_passed_{parte}</code>, <code>subtopic_completed_{s}</code>, <code>subtopic_mastered_{s}</code>, <code>session_{intento}</code>, <code>correct_{intento}</code>, <code>diagnostic</code>, <code>past_exam_{examen}_{día}</code>, <code>improve_{intento}</code>, <code>streak_{día}</code>, <code>weekly_goal_{lunes}</code>.</li>
+  <li><b>Retroactivo:</b> <code>npm run xp:retro -- [--dry-run]</code> (ya aplicado en TEST). Contrato completo: <code>docs/xp_contract.md</code>.</li>
+  <li><b>App:</b> <code>lib/features/xp/</code> (<code>XpRepository</code> en Firestore, <code>rankViewOf</code>, <code>ProfileRankCard</code>, <code>RankLadderScreen</code> en <code>/profile/ranks</code>, <code>XpAwardCard</code>, <code>RankCelebrationGate</code> con lo ya celebrado en SharedPreferences <code>rank_celebrated_v1|uid</code>). Insignias en <code>assets/ranks/</code>.</li>
+</ul>
+</details>
+
+<details>
 <summary>Arquitectura de la app</summary>
 <p>Por feature: <code>presentation</code> (pantallas y controllers Riverpod) → <code>domain</code> (Dart puro, puertos) ← <code>data</code> (Firestore, Hive, callables). <code>lib/app</code> inyecta las implementaciones.</p>
 <div class="table-wrap"><table>
@@ -376,6 +413,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>15-oct-2026</b> · XP y rango (fase 1): flujo «Ganar XP y subir de rango», datos y detalle técnico.</li>
   <li><b>15-oct-2026</b> · Reescrito en lenguaje sencillo; el detalle técnico pasa a «Para desarrolladores».</li>
   <li><b>15-oct-2026</b> · Primera versión.</li>
 </ul>
