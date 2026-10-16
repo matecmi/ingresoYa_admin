@@ -632,7 +632,10 @@ flowchart LR
   <li><b>XP de antes:</b> los alumnos que ya tenían partes, subtemas o simulacros recibieron ese XP una sola vez, de forma retroactiva.</li>
 </ul>
 
-<h3 id="xp-perfil">En el Perfil</h3>
+<div class="screen" id="xp-perfil">
+  <figure><img src="img/xp-perfil.jpg" alt="Perfil con rango"><figcaption>Perfil: Bronce III, 382 XP.</figcaption></figure>
+  <div class="body">
+<h3>En el Perfil</h3>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
   <tr><td class="msg">Insignia + «Zafiro I» + «3.450 XP» + barra + «450 XP para Zafiro II»</td><td>Siempre que hay sesión. La barra va del umbral del rango actual al del siguiente.</td><td>Abre «Tu camino de rangos».</td></tr>
@@ -640,8 +643,14 @@ flowchart LR
   <tr><td class="msg">«Esta semana ganaste +310 XP», con Guía de estudio, Simulador y Constancia</td><td>Suma los XP de la semana de Perú, agrupados. Si no hay: «Aún no ganas XP esta semana. Estudia una parte o rinde un examen en el Simulador.».</td><td>—</td></tr>
   <tr><td class="msg">«Cómo ganar más XP»</td><td>Con los valores del admin.</td><td>—</td></tr>
 </table></div>
+  </div>
+</div>
 
-<h3 id="xp-camino">Tu camino de rangos</h3>
+<div class="screen two" id="xp-camino">
+  <figure><img src="img/xp-camino.jpg" alt="Tu camino de rangos"><figcaption>Logrado · Actual · por lograr.</figcaption></figure>
+  <figure><img src="img/xp-camino2.jpg" alt="Final de la escalera"><figcaption>Maestro III y estrellas.</figcaption></figure>
+  <div class="body">
+<h3>Tu camino de rangos</h3>
 <p>Los 18 escalones, de Bronce I a Maestro III, con su insignia. Cada fila muestra «Logrado» (verde), «Actual» (azul, resaltada) o el XP desde el que se llega (atenuada). Al final, la fila de estrellas («Luego, una estrella cada 2.000 XP · sin límite») y la nota «Tu rango nunca baja: sube con todo lo que haces en la app.».</p>
 <div class="table-wrap"><table>
   <tr><th>Rango</th><th class="num">I</th><th class="num">II</th><th class="num">III</th></tr>
@@ -652,9 +661,14 @@ flowchart LR
   <tr><td class="msg">Amatista</td><td class="num">5.600</td><td class="num">6.600</td><td class="num">7.700</td></tr>
   <tr><td class="msg">Maestro</td><td class="num">9.000</td><td class="num">10.500</td><td class="num">12.000</td></tr>
 </table></div>
+  </div>
+</div>
 <p>Los nombres, umbrales e imágenes se cambian en el admin <span class="chip info">ADMIN</span>. Las insignias (paquete RhosGFX, licencia CC0) vienen en la app; el admin elige cuál usa cada escalón.</p>
 
-<h3 id="xp-terminar">Al terminar un examen</h3>
+<div class="screen" id="xp-terminar">
+  <figure><img src="img/xp-resultado.jpg" alt="Ganaste XP"><figcaption>«Hoy te toca»: +11 XP.</figcaption></figure>
+  <div class="body">
+<h3>Al terminar un examen</h3>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
   <tr><td class="msg">«Ganaste XP» · «+29 XP» con desglose («Sesión completada +10», «14 correctas nuevas +14», «Día de racha +5»…)</td><td>En el resultado del Simulador y del examen de la parte o de dominio, si esa entrega dio XP. Las secciones revisadas se agrupan en una línea («5 secciones revisadas +10»).</td></tr>
@@ -662,8 +676,13 @@ flowchart LR
   <tr><td class="msg">«Hoy llevas 160 de 300 XP posibles por día en sesiones, respuestas y racha.»</td><td>Si la entrega tuvo XP con tope diario.</td></tr>
   <tr><td class="msg">«Llegaste al tope de hoy: parte del XP de esta sesión no se sumó.»</td><td>Si el tope recortó algo.</td></tr>
 </table></div>
+  </div>
+</div>
 
-<h3 id="xp-celebracion">«¡Subiste de rango!»</h3>
+<div class="screen" id="xp-celebracion">
+  <figure><img src="img/xp-celebracion.jpg" alt="Subiste de rango"><figcaption>Bronce I → Bronce III.</figcaption></figure>
+  <div class="body">
+<h3>«¡Subiste de rango!»</h3>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
   <tr><td class="msg">«¡SUBISTE DE RANGO!» · insignia anterior → nueva · nombre del rango · «Tu nueva insignia ya aparece en tu perfil.» · búho: «Siguiente: {rango} en {N} XP.» · «¡Genial!» / «Ver todos los rangos»</td><td>Una sola vez por rango y cuenta, en el Inicio, el Perfil o el resultado de un examen. Si subió varios escalones a la vez, una sola celebración con el último.</td></tr>
@@ -671,6 +690,8 @@ flowchart LR
   <tr><td class="msg">«Llegaste al rango más alto. Ahora cada 2.000 XP suma una estrella.»</td><td>Al llegar a Maestro III.</td></tr>
 </table></div>
 <p>Si el admin revierte XP y el rango baja, no hay mensaje.</p>
+  </div>
+</div>
 
 <!-- ============================================================ ADMIN -->
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -711,7 +732,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
-  <li><b>15-oct-2026</b> · Rango de perfil y XP (fase 1): cómo se gana XP, Perfil, «Tu camino de rangos», «+N XP» al terminar y celebración; admin «XP y rangos» y «XP de un alumno» (app y admin «XP fase 1»). Capturas pendientes de la revisión en el teléfono.</li>
+  <li><b>15-oct-2026</b> · Rango de perfil y XP (fase 1): cómo se gana XP, Perfil, «Tu camino de rangos», «+N XP» al terminar y celebración; admin «XP y rangos» y «XP de un alumno» (app y admin «XP fase 1»). Capturas tomadas en el teléfono.</li>
   <li><b>15-oct-2026</b> · Primera versión. Reúne la guía del Simulador y la de la Guía de estudio que estaban en el lienzo de diseño, y agrega todos los mensajes con su condición. Incluye: % del Inicio que se actualiza en vivo y título «Examen de dominio: {subtema}» (app #87); exámenes pasados UNPRG 2025 I, 2025 II y 2026 II en TEST (admin #70).</li>
 </ul>
 </main>
