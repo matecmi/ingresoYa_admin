@@ -219,6 +219,28 @@ test("the top 100 is public to students but written only by the server; aliases 
   await assertSucceeds(admin.doc("iya-leaderboard-test/student-2").delete());
 });
 
+test("league seats and challenge results are public; groups and challenges are server-only", async () => {
+  const learner = firestoreFor("student-1");
+  const admin = firestoreFor("admin-1", true);
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("iya-league-members-test/2026-10-12_student-2").set({ alias: "Puma_1", weekXp: 40, groupId: "g1" });
+    await db.doc("iya-challenge-entries-test/2026-10-16_student-2").set({ alias: "Puma_1", correct: 7 });
+    await db.doc("iya-league-groups-test/2026-10-12_0_1").set({ size: 1 });
+    await db.doc("iya-daily-challenges-test/2026-10-16_u1").set({ questionIds: ["q1"] });
+  });
+  await assertSucceeds(learner.doc("iya-league-members-test/2026-10-12_student-2").get());
+  await assertSucceeds(learner.collection("iya-challenge-entries-test").where("day", "==", "2026-10-16").get());
+  await assertFails(firestoreFor().doc("iya-league-members-test/2026-10-12_student-2").get());
+  await assertFails(learner.doc("iya-league-members-test/2026-10-12_student-1").set({ weekXp: 9999 }));
+  await assertFails(learner.doc("iya-challenge-entries-test/2026-10-16_student-1").set({ correct: 10 }));
+  await assertFails(learner.doc("iya-league-groups-test/2026-10-12_0_1").get());
+  await assertFails(learner.doc("iya-daily-challenges-test/2026-10-16_u1").get());
+  await assertSucceeds(admin.doc("iya-daily-challenges-test/2026-10-16_u1").get());
+  await assertSucceeds(admin.doc("iya-daily-challenges-test/2026-10-16_u1").update({ questionIds: ["q2"] }));
+  await assertFails(admin.doc("iya-league-groups-test/2026-10-12_0_1").update({ size: 9 }));
+});
+
 test("admin claim can administer the bank while answer keys remain student-private", async () => {
   const admin = firestoreFor("editor-1", true);
   const learner = firestoreFor("student-1");

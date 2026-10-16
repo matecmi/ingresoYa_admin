@@ -15,6 +15,14 @@ export interface BackendCollections {
   leaderboard: string;
   /** Alias reservations (`{folded alias}` → uid); server-only. */
   aliases: string;
+  /** Weekly league seats `{week}_{uid}` (public to students). */
+  leagueMembers: string;
+  /** League groups and their open pointers (server-only). */
+  leagueGroups: string;
+  /** Daily challenge per day and university (server-only). */
+  dailyChallenges: string;
+  /** Daily challenge results `{day}_{uid}` (public to students). */
+  challengeEntries: string;
 }
 
 export interface BackendConfig {
@@ -46,7 +54,11 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     universities: "iya-universities-test",
     config: "iya-config-test",
     leaderboard: "iya-leaderboard-test",
-    aliases: "iya-aliases-test"
+    aliases: "iya-aliases-test",
+    leagueMembers: "iya-league-members-test",
+    leagueGroups: "iya-league-groups-test",
+    dailyChallenges: "iya-daily-challenges-test",
+    challengeEntries: "iya-challenge-entries-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -58,7 +70,11 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     universities: "iya-universities-staging",
     config: "iya-config-staging",
     leaderboard: "iya-leaderboard-staging",
-    aliases: "iya-aliases-staging"
+    aliases: "iya-aliases-staging",
+    leagueMembers: "iya-league-members-staging",
+    leagueGroups: "iya-league-groups-staging",
+    dailyChallenges: "iya-daily-challenges-staging",
+    challengeEntries: "iya-challenge-entries-staging"
   },
   production: {
     questions: "iya-questions",
@@ -70,7 +86,11 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     universities: "iya-universities",
     config: "iya-config",
     leaderboard: "iya-leaderboard",
-    aliases: "iya-aliases"
+    aliases: "iya-aliases",
+    leagueMembers: "iya-league-members",
+    leagueGroups: "iya-league-groups",
+    dailyChallenges: "iya-daily-challenges",
+    challengeEntries: "iya-challenge-entries"
   }
 };
 

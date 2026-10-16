@@ -68,60 +68,6 @@ const _minXp = [
   12000,
 ];
 
-/// `{config}/xp.leaderboard`: top 100 «Los más dedicados» (phase 2).
-class LeaderboardSettings {
-  const LeaderboardSettings({
-    this.enabled = true,
-    this.size = 100,
-    this.universityFilterMin = 50,
-    this.bannedWords = const [],
-  });
-
-  static const defaults = LeaderboardSettings();
-
-  final bool enabled;
-  final int size;
-  final int universityFilterMin;
-
-  /// Extra words an alias may not contain (the server has its own list too).
-  final List<String> bannedWords;
-
-  factory LeaderboardSettings.fromMap(Object? value) {
-    if (value is! Map) return defaults;
-    int bounded(Object? raw, int fallback, int min, int max) =>
-        XpSettings._bounded(raw, fallback, min, max);
-    final words = value['bannedWords'];
-    return LeaderboardSettings(
-      enabled: value['enabled'] is bool ? value['enabled'] as bool : true,
-      size: bounded(value['size'], 100, 10, 500),
-      universityFilterMin: bounded(value['universityFilterMin'], 50, 1, 100000),
-      bannedWords: words is List
-          ? [
-              for (final word in words)
-                if (word is String && word.trim().length >= 2)
-                  word.trim().toLowerCase(),
-            ]
-          : const [],
-    );
-  }
-
-  Map<String, dynamic> toMap() => {
-    'enabled': enabled,
-    'size': size,
-    'universityFilterMin': universityFilterMin,
-    'bannedWords': bannedWords,
-  };
-
-  String? validate() {
-    if (size < 10 || size > 500) return 'Tamaño del top: entre 10 y 500.';
-    if (universityFilterMin < 1 || universityFilterMin > 100000) {
-      return 'Filtro por universidad desde: entre 1 y 100 000 alumnos.';
-    }
-    if (bannedWords.length > 500) return 'Máximo 500 palabras prohibidas.';
-    return null;
-  }
-}
-
 class XpSettings {
   const XpSettings({
     required this.ranks,
@@ -133,7 +79,6 @@ class XpSettings {
     this.repeatWindowDays = 14,
     this.minSecondsPerQuestion = 5,
     this.pastExamEveryDays = 7,
-    this.leaderboard = LeaderboardSettings.defaults,
   });
 
   final List<RankStep> ranks;
@@ -145,7 +90,6 @@ class XpSettings {
   final int repeatWindowDays;
   final int minSecondsPerQuestion;
   final int pastExamEveryDays;
-  final LeaderboardSettings leaderboard;
 
   static final XpSettings defaults = XpSettings(
     ranks: [
@@ -231,7 +175,6 @@ class XpSettings {
         0,
         365,
       ),
-      leaderboard: LeaderboardSettings.fromMap(data['leaderboard']),
     );
   }
 
@@ -245,7 +188,6 @@ class XpSettings {
     'repeatWindowDays': repeatWindowDays,
     'minSecondsPerQuestion': minSecondsPerQuestion,
     'pastExamEveryDays': pastExamEveryDays,
-    'leaderboard': leaderboard.toMap(),
   };
 
   static String? validateRanks(List<RankStep> ranks) {
@@ -290,7 +232,7 @@ class XpSettings {
     if (pastExamEveryDays < 0 || pastExamEveryDays > 365) {
       return 'Examen pasado cada: entre 0 y 365 días.';
     }
-    return leaderboard.validate();
+    return null;
   }
 
   /// Stars after the last rank (same rule as Functions).

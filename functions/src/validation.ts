@@ -30,7 +30,7 @@ export type CreateExamAttemptInput = {
 export interface PlanAttemptInput {
   requestId: string;
   purpose: "practice";
-  mode: "plan" | "diagnostic";
+  mode: "plan" | "diagnostic" | "daily_challenge";
   timed: boolean;
 }
 
@@ -202,7 +202,8 @@ function parsePractice(value: Record<string, unknown>): PracticeAttemptInput {
 
 export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
   const value = object(data, "data");
-  if (value.purpose === "practice" && (value.mode === "plan" || value.mode === "diagnostic")) {
+  if (value.purpose === "practice" &&
+    (value.mode === "plan" || value.mode === "diagnostic" || value.mode === "daily_challenge")) {
     onlyKeys(value, ["requestId", "purpose", "mode", "timed"]);
     if (value.timed !== undefined && typeof value.timed !== "boolean") {
       throw invalidArgument("timed must be a boolean.");
@@ -212,7 +213,7 @@ export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
       purpose: "practice",
       mode: value.mode,
       // The diagnostic never has a clock (contract §4).
-      timed: value.mode === "plan" && value.timed !== false
+      timed: value.mode === "daily_challenge" || (value.mode === "plan" && value.timed !== false)
     };
   }
   if (value.purpose === "practice" && value.mode === "mistakes") {

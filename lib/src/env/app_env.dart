@@ -20,11 +20,17 @@ class AppEnv {
   static const String simulatorSettingsDocument = 'simulator';
   static const String xpSettingsDocument = 'xp';
 
-  /// Public top 100 (written by Functions; the admin moderates).
+  /// Public cards with the week XP (written by Functions; the admin moderates).
   static const String leaderboardCollection = 'iya-leaderboard-test';
 
   /// Alias reservations (server-only; the admin frees one when moderating).
   static const String aliasesCollection = 'iya-aliases-test';
+
+  /// Weekly league seats and daily challenges (docs/rankings_contract.md).
+  static const String leagueMembersCollection = 'iya-league-members-test';
+  static const String dailyChallengesCollection = 'iya-daily-challenges-test';
+  static const String challengeEntriesCollection = 'iya-challenge-entries-test';
+  static const String rankingsSettingsDocument = 'rankings';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =

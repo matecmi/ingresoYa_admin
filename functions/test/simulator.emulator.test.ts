@@ -6,7 +6,8 @@ import { db } from "../src/admin";
 import { ExamAttemptService, type AttemptQuestionSnapshot } from "../src/attempt_service";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
-import { XpService } from "../src/xp";
+import { ChallengeService } from "../src/challenge";
+import { peruDay, XpService } from "../src/xp";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
 const service = new ExamAttemptService(db, config);
@@ -267,6 +268,54 @@ test("XP: a practice gives session, fresh answers and streak once; repeats and r
   await service.start(uid, rushed.attemptId);
   await service.submit(uid, { attemptId: rushed.attemptId, answers: answersFor(rushed.questions, 3) });
   assert.equal(await xp.afterAttempt(uid, rushed.attemptId), undefined);
+});
+
+test("reto del día: same questions for the university, one attempt, answers hidden, entry and bonus", async () => {
+  await seed();
+  const rankings = db.collection(config.collections.config).doc("rankings");
+  await rankings.set({ enabled: false });
+  await assert.rejects(
+    service.create(uid, { requestId: "ch-0", purpose: "practice", mode: "daily_challenge", timed: true }),
+    hasReason("failed-precondition", "challenge_disabled")
+  );
+  await rankings.set({ enabled: true, startWeek: "2000-01-03", challenge: { ownPastExamQuestions: 4 } });
+  const day = peruDay(Date.now());
+  await db.collection(config.collections.dailyChallenges).doc(`${day}_${universityId}`).delete();
+  await db.collection(config.collections.challengeEntries).doc(`${day}_${uid}`).delete();
+
+  const first = await service.create(uid, { requestId: "ch-1", purpose: "practice", mode: "daily_challenge", timed: true });
+  assert.equal(first.questions.length, 10);
+  assert.equal(first.durationSeconds, 15 * 60);
+  assert.equal(first.simulator?.mode, "daily_challenge");
+  // Another tap (any request ID) is the same attempt: one per day.
+  const again = await service.create(uid, { requestId: "ch-2", purpose: "practice", mode: "daily_challenge", timed: true });
+  assert.equal(again.attemptId, first.attemptId);
+  // Another student of the university gets the same questions, in the same order.
+  const other = "simulator-fixture-other";
+  await db.collection(config.collections.users).doc(other).set({ profile: { universityIdDoc: universityId, professionId: "sim-profession" } });
+  await db.collection(config.collections.users).doc(other).collection("examRequestKeys").doc(`challenge_${day}`).delete();
+  const theirs = await service.create(other, { requestId: "ch-x", purpose: "practice", mode: "daily_challenge", timed: true });
+  assert.deepEqual(theirs.questions.map((q) => q.questionId), first.questions.map((q) => q.questionId));
+  const stored = (await db.collection(config.collections.dailyChallenges).doc(`${day}_${universityId}`).get()).data();
+  assert.ok((stored?.ownPastExamCount as number) >= 4);
+
+  await service.start(uid, first.attemptId);
+  // Answer at a human pace: the clock is the server's, so move it back.
+  await db.collection(config.collections.attempts).doc(first.attemptId).update({ startedAtMs: Date.now() - 5 * 60 * 1000 });
+  const result = await service.submit(uid, { attemptId: first.attemptId, answers: answersFor(first.questions, 7) });
+  assert.equal(result.correctAnswers, 7);
+  // The answers of today's challenge stay hidden until tomorrow.
+  assert.deepEqual(result.review, []);
+  const xp = new XpService(db, config);
+  const award = await xp.afterAttempt(uid, first.attemptId);
+  assert.ok(award?.items.some((item) => item.type === "daily_challenge" && item.xp === 20));
+  const entry = await new ChallengeService(db, config).recordEntry(uid, first.attemptId, await xp.settings());
+  assert.equal(entry?.correct, 7);
+  const saved = (await db.collection(config.collections.challengeEntries).doc(`${day}_${uid}`).get()).data();
+  assert.equal(saved?.correct, 7);
+  assert.equal(saved?.universityId, universityId);
+  assert.equal(saved?.professionId, "sim-profession");
+  await rankings.delete();
 });
 
 async function seed(): Promise<void> {

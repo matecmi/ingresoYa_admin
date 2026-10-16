@@ -1,11 +1,9 @@
 /**
- * Profile XP phase 2 (docs/xp_contract.md §7): alias, «Aparecer en rankings»
- * and the public top 100 «Los más dedicados».
- *
- * The public entry `{leaderboard}/{uid}` exists only while the student chose
- * to appear. It carries the alias, XP, rank and university/career, never the
- * name or email. Only the server writes it: here when the student changes the
- * choice, and in `XpService.grant` whenever the XP changes.
+ * Usernames (docs/rankings_contract.md §3): every student has one, chosen in
+ * the onboarding or generated at random, and may hide from the rankings.
+ * The public card `{leaderboard}/{uid}` never carries the name or email; only
+ * the server writes it: here when the username or the choice changes, and in
+ * `XpService.grant` whenever the XP changes.
  */
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 
@@ -17,9 +15,12 @@ import {
   leaderboardEntry,
   parseRankingChoice,
   profileFacts,
-  record
+  publicIdentity,
+  record,
+  suggestAlias,
+  type RankingsSettings
 } from "./leaderboard";
-import { parseXpState, starsFor, type XpSettings } from "./xp";
+import { parseXpState, peruWeek, starsFor, type XpSettings } from "./xp";
 
 // ---------------------------------------------------------------- alias
 
@@ -71,84 +72,112 @@ export function aliasProblem(alias: string, bannedWords: readonly string[], pers
 // ---------------------------------------------------------------- callable
 
 export interface UpdateRankingProfileInput {
-  visible: boolean;
+  /** A new username; absent keeps the current one (or generates one when there is none). */
   alias?: string;
+  /** «Ocultarme de los rankings»; absent keeps the current choice. */
+  hidden?: boolean;
 }
 
 export function parseUpdateRankingProfile(data: unknown): UpdateRankingProfileInput {
-  const raw = record(data);
-  if (raw === undefined || typeof raw.visible !== "boolean") throw invalidArgument("visible must be a boolean.");
-  const keys = Object.keys(raw);
-  if (keys.some((key) => key !== "visible" && key !== "alias")) throw invalidArgument("Unexpected fields.");
+  const raw = record(data ?? {});
+  if (raw === undefined) throw invalidArgument("The request must be an object.");
+  if (Object.keys(raw).some((key) => key !== "alias" && key !== "hidden")) throw invalidArgument("Unexpected fields.");
   if (raw.alias !== undefined && typeof raw.alias !== "string") throw invalidArgument("alias must be a string.");
-  return typeof raw.alias === "string" ? { visible: raw.visible, alias: raw.alias.trim() } : { visible: raw.visible };
+  if (raw.hidden !== undefined && typeof raw.hidden !== "boolean") throw invalidArgument("hidden must be a boolean.");
+  return {
+    ...(typeof raw.alias === "string" ? { alias: raw.alias.trim() } : {}),
+    ...(typeof raw.hidden === "boolean" ? { hidden: raw.hidden } : {})
+  };
 }
 
 export interface RankingProfileResponse {
-  alias: string | null;
-  visible: boolean;
+  alias: string;
+  hidden: boolean;
 }
 
 export class RankingService {
   public constructor(
     private readonly db: Firestore,
-    private readonly config: BackendConfig
+    private readonly config: BackendConfig,
+    private readonly random: () => number = Math.random
   ) {}
 
-  /** Saves the alias and the «Aparecer en rankings» choice, and creates or removes the public entry. */
+  /**
+   * Saves the username and «Ocultarme de los rankings», generating a random
+   * username when the student has none, and refreshes the public card and
+   * this week's league seat.
+   */
   public async update(
     uid: string,
     input: UpdateRankingProfileInput,
-    settings: XpSettings,
-    metrics?: OperationMetrics
+    xpSettings: XpSettings,
+    rankings: RankingsSettings,
+    metrics?: OperationMetrics,
+    account: { name?: string; email?: string } = {}
   ): Promise<RankingProfileResponse> {
-    const users = this.db.collection(this.config.collections.users);
-    const userRef = users.doc(uid);
+    const userRef = this.db.collection(this.config.collections.users).doc(uid);
     const choiceRef = userRef.collection("ranking").doc("current");
     const stateRef = userRef.collection("xp").doc("current");
     const entryRef = this.db.collection(this.config.collections.leaderboard).doc(uid);
+    const memberRef = this.db.collection(this.config.collections.leagueMembers).doc(`${peruWeek(Date.now())}_${uid}`);
     const aliases = this.db.collection(this.config.collections.aliases);
     return this.db.runTransaction(async (transaction: Transaction) => {
       metrics?.transactionAttempt();
-      const [choiceDoc, profileDoc, stateDoc] = await transaction.getAll(choiceRef, userRef, stateRef);
-      metrics?.readDocument(3);
+      const [choiceDoc, profileDoc, stateDoc, memberDoc] = await transaction.getAll(choiceRef, userRef, stateRef, memberRef);
+      metrics?.readDocument(4);
       const previous = parseRankingChoice(choiceDoc?.data());
       const profile = profileFacts(profileDoc?.data());
       let alias = previous.alias;
-      let aliasDocToDelete: string | undefined;
-      const changing = input.alias !== undefined && input.alias !== previous.alias;
-      if (changing) {
-        const requested = input.alias!;
-        const problem = aliasProblem(requested, settings.leaderboard.bannedWords, personalTokens(profile.name, profile.email));
+      let changed = false;
+      if (input.alias !== undefined && input.alias !== previous.alias) {
+        const problem = aliasProblem(input.alias, rankings.bannedWords, [
+          ...personalTokens(profile.name, profile.email),
+          ...personalTokens(account.name, account.email)
+        ]);
         if (problem !== undefined) throw failedPrecondition("The alias is not allowed.", { reason: `alias_${problem}` });
-        const key = foldAlias(requested);
-        const owner = await transaction.get(aliases.doc(key));
+        const owner = await transaction.get(aliases.doc(foldAlias(input.alias)));
         metrics?.readDocument();
         if (owner.exists && owner.data()?.uid !== uid) {
           throw new ExamBackendError("already-exists", "The alias is taken.", { reason: "alias_taken" });
         }
-        if (previous.alias !== null && foldAlias(previous.alias) !== key) aliasDocToDelete = foldAlias(previous.alias);
-        transaction.set(aliases.doc(key), { uid, alias: requested, updatedAtMs: Date.now() });
-        alias = requested;
+        alias = input.alias;
+        changed = true;
+      } else if (alias === null) {
+        // No username yet (skipped in the onboarding, or removed by the
+        // admin): a random one that is free.
+        for (let attempt = 0; attempt < 6 && alias === null; attempt++) {
+          const candidate = suggestAlias(this.random, profile.professionName);
+          const owner = await transaction.get(aliases.doc(foldAlias(candidate)));
+          metrics?.readDocument();
+          if (!owner.exists) alias = candidate;
+        }
+        if (alias === null) throw failedPrecondition("No free random alias.", { reason: "alias_taken" });
+        changed = true;
       }
-      if (input.visible && alias === null) throw failedPrecondition("An alias is required to appear.", { reason: "alias_required" });
-      if (aliasDocToDelete !== undefined) transaction.delete(aliases.doc(aliasDocToDelete));
+      const hidden = input.hidden ?? previous.hidden;
+      if (changed) {
+        if (previous.alias !== null && foldAlias(previous.alias) !== foldAlias(alias)) {
+          transaction.delete(aliases.doc(foldAlias(previous.alias)));
+        }
+        transaction.set(aliases.doc(foldAlias(alias)), { uid, alias, updatedAtMs: Date.now() });
+      }
       transaction.set(choiceRef, {
-        schemaVersion: 1,
+        schemaVersion: 2,
         alias,
-        visible: input.visible,
-        moderatedReason: changing ? null : previous.moderatedReason,
+        hidden,
+        moderatedReason: input.alias !== undefined && changed ? null : previous.moderatedReason,
         updatedAt: FieldValue.serverTimestamp(),
         updatedAtMs: Date.now()
-      });
-      if (input.visible && alias !== null) {
-        const state = parseXpState(stateDoc?.data());
-        transaction.set(entryRef, leaderboardEntry(alias, state, starsFor(state.total, settings), profile));
-      } else {
-        transaction.delete(entryRef);
+      }, { merge: true });
+      const choice = { ...previous, alias, hidden };
+      const state = parseXpState(stateDoc?.data());
+      const stars = starsFor(state.total, xpSettings);
+      transaction.set(entryRef, leaderboardEntry(choice, state, stars, profile));
+      if (memberDoc?.exists === true) {
+        transaction.set(memberRef, { ...publicIdentity(choice, state, stars), updatedAtMs: Date.now() }, { merge: true });
       }
-      metrics?.writeDocument(3);
-      return { alias, visible: input.visible };
+      metrics?.writeDocument(4);
+      return { alias, hidden };
     });
   }
 }

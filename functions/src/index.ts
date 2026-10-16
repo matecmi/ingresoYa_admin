@@ -1,10 +1,12 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { config as loadDotenv } from "dotenv";
 
 import "./admin";
 import { readBackendConfig } from "./config";
 import { createCallableHandlers } from "./handlers";
+import { closeLastLeagueWeek } from "./league_job";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
 // environment variables. Loading the ignored local .env lets that discovery
@@ -40,4 +42,15 @@ export const updateRankingProfile = onCall(callableOptions, handlers.updateRanki
 export const reconcileSubtopicAchievement = onCall(
   callableOptions,
   handlers.reconcileSubtopicAchievement
+);
+
+/**
+ * Weekly league close (docs/rankings_contract.md §5): Monday 00:10 in Lima,
+ * only while rankings are enabled.
+ */
+export const closeLeagueWeek = onSchedule(
+  { schedule: "10 0 * * 1", timeZone: "America/Lima", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    await closeLastLeagueWeek(config);
+  }
 );

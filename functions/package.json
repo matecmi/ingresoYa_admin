@@ -11,6 +11,7 @@
     "test": "npm run build && node --test lib/test/validation.test.js lib/test/simulator.test.js lib/test/xp.test.js lib/test/ranking.test.js",
     "admin:claim": "npm run build && node lib/scripts/manage_admin_claim.js",
     "xp:retro": "npm run build && node lib/scripts/xp_retroactive.js",
+    "rankings:aliases": "npm run build && node lib/scripts/rankings_aliases.js",
     "fixtures:emulators": "npm run build && node lib/scripts/load_emulator_fixtures.js",
     "emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:start --only auth,firestore,storage,functions",
     "test:emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:exec --only auth,firestore,storage \"node --test --test-concurrency=1 lib/test/rules.emulator.test.js lib/test/attempt_service.emulator.test.js lib/test/simulator.emulator.test.js lib/test/ranking.emulator.test.js\""
