@@ -62,6 +62,18 @@ service cloud.firestore {
       ];
     }
 
+    function isLeaderboardCollection(collectionName) {
+      return collectionName in [
+        'iya-leaderboard-test', 'iya-leaderboard-staging', 'iya-leaderboard'
+      ];
+    }
+
+    function isAliasCollection(collectionName) {
+      return collectionName in [
+        'iya-aliases-test', 'iya-aliases-staging', 'iya-aliases'
+      ];
+    }
+
     function isProfileCollection(collectionName) {
       return collectionName in [
         'iya-profile-test', 'iya-profile-staging', 'iya-profile'
@@ -199,7 +211,8 @@ service cloud.firestore {
           && subcollection != 'learningEvents'
           && subcollection != 'simulatorTopicStats'
           && subcollection != 'xp'
-          && subcollection != 'xpEvents';
+          && subcollection != 'xpEvents'
+          && subcollection != 'ranking';
     }
 
     // Simulator results, best score per past exam and learning events are
@@ -207,7 +220,7 @@ service cloud.firestore {
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isOwner(userId)
         && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents',
-          'simulatorTopicStats', 'xp', 'xpEvents'];
+          'simulatorTopicStats', 'xp', 'xpEvents', 'ranking'];
     }
 
     // Admin XP tool (docs/xp_contract.md): find a student, read the XP
@@ -218,9 +231,22 @@ service cloud.firestore {
 
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isAdmin()
-        && subcollection in ['xp', 'xpEvents'];
+        && subcollection in ['xp', 'xpEvents', 'ranking'];
       allow update: if isProfileCollection(profiles) && isAdmin()
-        && subcollection in ['xp', 'xpEvents'];
+        && subcollection in ['xp', 'xpEvents', 'ranking'];
+    }
+
+    // Top 100 «Los más dedicados» (phase 2): public to signed-in students,
+    // written only by Functions. The admin keeps it in step when reverting
+    // XP and removes an entry when moderating an alias.
+    match /{collectionName}/{userId} {
+      allow read: if isLeaderboardCollection(collectionName) && signedIn();
+      allow update, delete: if isLeaderboardCollection(collectionName) && isAdmin();
+    }
+
+    // Alias reservations: server-only; the admin frees one when moderating.
+    match /{collectionName}/{aliasKey} {
+      allow read, delete: if isAliasCollection(collectionName) && isAdmin();
     }
 
     // These records are server-owned: request IDs provide idempotency and

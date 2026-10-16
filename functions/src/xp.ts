@@ -10,6 +10,14 @@ import { FieldValue, type DocumentReference, type Firestore } from "firebase-adm
 
 import type { BackendConfig } from "./config";
 import type { OperationMetrics } from "./operation_metrics";
+import {
+  defaultLeaderboardSettings,
+  leaderboardEntry,
+  parseLeaderboardSettings,
+  parseRankingChoice,
+  profileFacts,
+  type LeaderboardSettings
+} from "./leaderboard";
 
 // ---------------------------------------------------------------- settings
 
@@ -57,6 +65,8 @@ export interface XpSettings {
   /** Sessions answered faster than this (average) give no XP. */
   minSecondsPerQuestion: number;
   pastExamEveryDays: number;
+  /** Phase 2: top 100 «Los más dedicados» and aliases. */
+  leaderboard: LeaderboardSettings;
 }
 
 const defaultNames = ["Bronce", "Plata", "Platino", "Zafiro", "Amatista", "Maestro"];
@@ -88,7 +98,8 @@ export const defaultXpSettings: XpSettings = {
   minQuestionsPerSession: 10,
   repeatWindowDays: 14,
   minSecondsPerQuestion: 5,
-  pastExamEveryDays: 7
+  pastExamEveryDays: 7,
+  leaderboard: defaultLeaderboardSettings
 };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -151,7 +162,8 @@ export function parseXpSettings(value: unknown): XpSettings {
     minQuestionsPerSession: bounded(raw.minQuestionsPerSession, d.minQuestionsPerSession, 1, 300),
     repeatWindowDays: bounded(raw.repeatWindowDays, d.repeatWindowDays, 0, 365),
     minSecondsPerQuestion: bounded(raw.minSecondsPerQuestion, d.minSecondsPerQuestion, 0, 600),
-    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365)
+    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365),
+    leaderboard: parseLeaderboardSettings(raw.leaderboard)
   };
 }
 
@@ -480,6 +492,8 @@ export class XpService {
     const settings = preloaded ?? await this.settings(metrics);
     const stateRef = this.userRef(uid).collection("xp").doc("current");
     const events = this.userRef(uid).collection("xpEvents");
+    const choiceRef = this.userRef(uid).collection("ranking").doc("current");
+    const entryRef = this.db.collection(this.config.collections.leaderboard).doc(uid);
     return this.db.runTransaction(async (transaction) => {
       metrics?.transactionAttempt();
       const snapshot = await transaction.get(stateRef);
@@ -490,7 +504,16 @@ export class XpService {
       metrics?.readDocument(1 + candidates.length);
       const fresh = candidates.filter((_, index) => existing[index]?.exists !== true);
       if (fresh.length === 0) return undefined;
+      // Phase 2: a student who appears in rankings gets the public entry
+      // updated in the same transaction (reads must precede the writes).
+      const [choiceDoc, profileDoc] = await transaction.getAll(choiceRef, this.userRef(uid));
+      metrics?.readDocument(2);
+      const choice = parseRankingChoice(choiceDoc?.data());
       const { state, applied } = applyXpGrants(before, fresh, settings);
+      if (choice.visible && choice.alias !== null) {
+        transaction.set(entryRef, leaderboardEntry(choice.alias, state, starsFor(state.total, settings), profileFacts(profileDoc?.data())));
+        metrics?.writeDocument();
+      }
       for (const event of applied) {
         transaction.set(events.doc(event.id), {
           schemaVersion: 1,

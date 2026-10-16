@@ -11,6 +11,10 @@ export interface BackendCollections {
   universities: string;
   /** Admin-edited settings, e.g. `simulator`. */
   config: string;
+  /** Public top 100 entries (`{uid}`), only for students who chose to appear. */
+  leaderboard: string;
+  /** Alias reservations (`{folded alias}` → uid); server-only. */
+  aliases: string;
 }
 
 export interface BackendConfig {
@@ -40,7 +44,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     users: "iya-profile-test",
     courses: "iya-courses-test",
     universities: "iya-universities-test",
-    config: "iya-config-test"
+    config: "iya-config-test",
+    leaderboard: "iya-leaderboard-test",
+    aliases: "iya-aliases-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -50,7 +56,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     users: "iya-profile-staging",
     courses: "iya-courses-staging",
     universities: "iya-universities-staging",
-    config: "iya-config-staging"
+    config: "iya-config-staging",
+    leaderboard: "iya-leaderboard-staging",
+    aliases: "iya-aliases-staging"
   },
   production: {
     questions: "iya-questions",
@@ -60,7 +68,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     users: "iya-profile",
     courses: "iya-courses",
     universities: "iya-universities",
-    config: "iya-config"
+    config: "iya-config",
+    leaderboard: "iya-leaderboard",
+    aliases: "iya-aliases"
   }
 };
 

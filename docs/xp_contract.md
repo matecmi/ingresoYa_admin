@@ -1,4 +1,4 @@
-# Contrato de XP y rango de perfil (fase 1)
+# Contrato de XP y rango de perfil (fases 1 y 2)
 
 Compartido por el admin, Functions y la app (`iya-app/docs/xp_contract.md` es una copia). Diseño: lienzo «Rango de perfil y XP».
 
@@ -45,6 +45,9 @@ Las tres respuestas incluyen `xp` (§4) cuando algo se otorgó.
 | `{config}/xp` | `ranks[{name, minXp, image}]`, `starsEnabled`, `xpPerStar`, `amounts{…}`, `dailyCap`, `minQuestionsPerSession`, `repeatWindowDays`, `minSecondsPerQuestion`, `pastExamEveryDays` | Admin | Functions, app |
 | `{profile}/{uid}/xp/current` | `total`, `rankStep` (el más alto alcanzado), `today{day, capped}`, `week{key, xp, sessionDays[]}`, `pastExamDays{examId: día}`, `updatedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
 | `{profile}/{uid}/xpEvents/{id}` | `type`, `xp`, `requested`, `count?`, `day`, `week`, `atMs`, `source{…}`, `createdAt`; si se revirtió: `reverted`, `revertedXp`, `revertReason`, `revertedBy`, `revertedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
+| `{profile}/{uid}/ranking/current` | `alias`, `visible`, `moderatedReason`, `updatedAtMs` (fase 2) | Functions (y el admin al retirar un alias) | Dueño, admin |
+| `iya-leaderboard-{env}/{uid}` | `alias`, `total`, `rankStep`, `stars`, `universityId`, `universityAcronym`, `professionId`, `professionName`, `updatedAtMs` (fase 2) | Functions (el admin actualiza al revertir y borra al moderar) | Cualquier alumno con sesión |
+| `iya-aliases-{env}/{alias sin tildes, minúsculas}` | `uid`, `alias` (fase 2) | Functions (el admin borra al moderar) | Admin |
 
 **Valores de fábrica** (cualquier campo ausente o inválido usa el suyo):
 - **Escalera** de 18 escalones:
@@ -90,7 +93,26 @@ El evento revertido no se vuelve a otorgar, porque su id sigue existiendo.
 
 No cubre aciertos nuevos, mejoras de puntaje ni metas semanales, porque esos datos no se pueden saber después.
 
-## 7. Fases siguientes
+## 7. Fase 2: alias y top 100 «Los más dedicados»
 
-- Fase 2: alias, «Aparecer en rankings» y top 100 (índices sobre el total).
+**Configuración** `{config}/xp.leaderboard`: `enabled` (true), `size` (100, de 10 a 500), `universityFilterMin` (50), `bannedWords` (lista del admin; además hay una de fábrica en `functions/src/ranking.ts`).
+
+**Callable `updateRankingProfile({visible, alias?})`** (transacción):
+- Si `alias` cambia, se valida y se reserva en `iya-aliases-{env}/{clave}`; el alias anterior se libera. Errores (`failed-precondition` salvo el último):
+  - `alias_length`: de 3 a 20 caracteres.
+  - `alias_characters`: solo letras (con tildes y ñ), números y `_`, con al menos una letra.
+  - `alias_banned`: una palabra prohibida (palabra completa; las de 6 letras o más, también dentro del alias, para no rechazar «Cálculo»).
+  - `alias_personal`: contiene una palabra de 4 letras o más del nombre o del correo del perfil.
+  - `alias_required`: `visible: true` sin alias.
+  - `alias_taken` (`already-exists`): otro alumno ya lo usa (sin importar tildes ni mayúsculas).
+- Guarda `ranking/current` y crea (`visible`) o borra la fila del top. Responde `{alias, visible}`.
+
+**Sincronía:** `XpService.grant` lee `ranking/current` y el perfil dentro de la transacción del XP y reescribe la fila si `visible`. Al revertir XP, el admin actualiza `total`, `rankStep` y `stars` de la fila si existe.
+
+**Lectura en la app:** top = `orderBy(total desc).limit(size)` (filtrado por `universityId` si su universidad tiene `universityFilterMin` alumnos visibles o más); puesto = `count(total > mío) + 1`, también si el alumno no aparece (solo él lo ve).
+
+**Moderación (admin):** «Top 100 y alias» borra la fila y el alias, y deja `ranking/current` con `alias: null`, `visible: false` y `moderatedReason`, que la app muestra hasta que elija otro.
+
+## 8. Fases siguientes
+
 - Fase 3: liga semanal (`week.xp`), reto del día y XP del ranking de admisión.
