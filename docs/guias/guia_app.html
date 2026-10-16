@@ -635,7 +635,7 @@ flowchart LR
 </ul>
 
 <div class="screen" id="xp-perfil">
-  <figure><img src="img/xp-perfil.jpg" alt="Perfil con rango"><figcaption>Perfil: Bronce III, 393 XP, y los accesos.</figcaption></figure>
+  <figure><img src="img/xp-perfil.jpg" alt="Perfil con rango"><figcaption>Perfil: «Todos los rangos» y «Rankings».</figcaption></figure>
   <div class="body">
 <h3>En el Perfil</h3>
 <div class="table-wrap"><table>
@@ -698,7 +698,11 @@ flowchart LR
   </div>
 </div>
 
-<h3 id="xp-usuario">Nombre de usuario</h3>
+<div class="screen two" id="xp-usuario">
+  <figure><img src="img/rk-nombre-asignado.jpg" alt="Te asignamos un nombre de usuario"><figcaption>Aviso único a una cuenta que ya existía.</figcaption></figure>
+  <figure><img src="img/rk-nombre-usuario.jpg" alt="Tu nombre de usuario"><figcaption>Perfil → «Tu nombre de usuario».</figcaption></figure>
+  <div class="body">
+<h3>Nombre de usuario</h3>
 <p>Todos los alumnos tienen un nombre de usuario: es lo único que los demás ven en los rankings, junto a la insignia del rango. Nunca se muestra el nombre real, el correo ni las respuestas.</p>
 <div class="table-wrap"><table>
   <tr><th>Dónde</th><th>Mensaje</th><th>Cuándo aparece</th></tr>
@@ -708,8 +712,14 @@ flowchart LR
   <tr><td class="msg">Perfil → «Tu nombre de usuario»</td><td>Campo · «Otro al azar» · «Ocultarme de los rankings» (apagado: «Apareces con tu nombre de usuario y tu insignia.»; encendido: «Juegas igual y ves tu puesto, pero los demás te ven como «Postulante oculto».») · «Los demás ven / Nunca ven» · «Compites en UNPRG · Ingeniería Civil, según tu perfil.» · «Guardar» → «Listo, guardado.»</td><td>Siempre.</td></tr>
   <tr><td class="msg">Errores del nombre</td><td>«El alias debe tener de 3 a 20 caracteres.» · «Usa solo letras, números y _ (sin espacios), con al menos una letra.» · «Ese alias no está permitido. Prueba con otro.» · «No uses tu nombre ni tu correo en el alias.» · «Ese alias ya lo usa otro alumno.»</td><td>Los dos primeros los revisa la app; el resto, el servidor (palabras prohibidas de fábrica + las del admin <span class="chip info">ADMIN</span>).</td></tr>
 </table></div>
+  </div>
+</div>
 
-<h3 id="xp-rankings">Rankings: «Mi liga»</h3>
+<div class="screen two" id="xp-rankings">
+  <figure><img src="img/rk-mi-liga.jpg" alt="Mi liga"><figcaption>Aspirante, 1° de 1, reto hecho.</figcaption></figure>
+  <figure><img src="img/rk-esta-semana.jpg" alt="Esta semana"><figcaption>«Esta semana» en la UNPRG.</figcaption></figure>
+  <div class="body">
+<h3>Rankings: «Mi liga»</h3>
 <p>Se abre desde el Perfil. Solo existe cuando el admin enciende los rankings <span class="chip info">ADMIN</span> (de fábrica están apagados). La <b>liga semanal</b> mide el XP que ganas de lunes a domingo (hora de Lima) frente a un grupo de unos 30 alumnos <span class="chip info">ADMIN</span> de tu misma <b>etapa</b>: Aspirante → Postulante → Finalista → Ingresante <span class="chip info">ADMIN</span>. La etapa no es el rango del perfil: el rango solo sube; la etapa sube o baja cada semana.</p>
 <ul>
   <li><b>Entrar a un grupo:</b> al ganar tu primer XP de la semana entras al primer grupo de tu etapa con cupo; si está lleno, se abre otro (por orden de llegada). Sin XP, no ocupas lugar.</li>
@@ -727,8 +737,13 @@ flowchart LR
   <tr><td class="msg">El lunes, una vez: «¡Subiste a Finalista!» / «Te mantienes en Postulante» / «Bajaste a Aspirante» · «La semana pasada quedaste {p}° de {n} en tu grupo. ¡Esta semana empiezas de cero!» · «¡Vamos!»</td><td>Al abrir Rankings después del cierre.</td></tr>
   <tr><td class="msg">«Los rankings todavía no están disponibles.»</td><td>Si el admin los apagó.</td></tr>
 </table></div>
+  </div>
+</div>
 
-<h3 id="xp-reto">Reto del día</h3>
+<div class="screen" id="xp-reto">
+  <figure><img src="img/rk-reto-tabla.jpg" alt="Tabla del reto"><figcaption>Tabla del día: UNPRG / Mi carrera.</figcaption></figure>
+  <div class="body">
+<h3>Reto del día</h3>
 <p>Un mini examen diario de 10 preguntas <span class="chip info">ADMIN</span> <b>iguales para toda tu universidad</b>, con 15 min <span class="chip info">ADMIN</span> y <b>un solo intento</b>. Aparece en Rankings y en el Inicio del Simulador (solo con los rankings encendidos).</p>
 <ul>
   <li><b>Preguntas:</b> el servidor arma el reto la primera vez que alguien de la universidad lo abre ese día. Siempre trae preguntas de <b>exámenes pasados de esa universidad</b> (hasta 6 <span class="chip info">ADMIN</span>; al menos 1 si existen); el resto, de exámenes de otras universidades o propias de IngresoYa, repartidas entre los cursos. No repite preguntas de sus retos de los últimos 30 días <span class="chip info">ADMIN</span>.</li>
@@ -742,11 +757,13 @@ flowchart LR
   <tr><td class="msg">«Reto del día» · «10 preguntas iguales para todos · cierra a medianoche» · «Jugar»</td><td>Si hoy no lo jugó.</td></tr>
   <tr><td class="msg">«Hecho · 8/10 · 6:42» · «Ver tabla»</td><td>Ya lo jugó hoy.</td></tr>
   <tr><td class="msg">«Reto de ayer: 7/10» · «Ver respuestas» · «Ver tabla»</td><td>Si jugó ayer: las respuestas con su explicación y la tabla final.</td></tr>
-  <tr><td class="msg">Intro «Reto del día» · «Un solo intento: al empezar, ya cuenta…»</td><td>Antes de empezar (pantalla del examen del Simulador, con reloj).</td></tr>
-  <tr><td class="msg">Resultado: puntaje, «Ganaste XP» (con «Reto del día +20») · «Mañana verás las respuestas y la tabla final.» · «Ver la tabla de hoy»</td><td>Al entregar. «Revisar» no muestra respuestas ese día.</td></tr>
+  <tr><td class="msg">Intro «Reto del día» · «10 preguntas» · «15:00» · «Un solo intento: al empezar, ya cuenta. Gana quien acierta más; si empatan, quien tardó menos. Las respuestas se ven mañana.»</td><td>Antes de empezar (pantalla del examen del Simulador, con reloj).</td></tr>
+  <tr><td class="msg">Resultado: puntaje, correctas / incorrectas / en blanco, «Ganaste XP» (con «Reto del día +20») · «Mañana verás las respuestas y la tabla final.» · «Ver la tabla de hoy» · «Volver»</td><td>Al entregar. Ese día no se muestran «Revisar», «Practicar mis errores», «Por curso y tema» ni el tema más débil, porque revelarían las respuestas (el servidor también rechaza practicar esos errores).</td></tr>
   <tr><td class="msg">Tabla «Reto del día · 15/10» con pestañas UNPRG / «Mi carrera» · «Tu puesto: 12° de 47» · filas «8/10 · 6:42»</td><td>La carrera es la del perfil al jugar; su pestaña se llena desde 5 jugadores <span class="chip info">ADMIN</span>.</td></tr>
   <tr><td class="msg">«Ya jugaste el reto de hoy. Vuelve mañana.» · «Hoy no hay reto para tu universidad.» · «Elige tu universidad en el Perfil para jugar el reto.»</td><td>Segundo intento · sin preguntas suficientes · perfil sin universidad.</td></tr>
 </table></div>
+  </div>
+</div>
 
 <!-- ============================================================ ADMIN -->
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -789,7 +806,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
-  <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Capturas pendientes.</li>
+  <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Probado en el teléfono (el reto trajo preguntas del examen UNPRG 2025 I); el resultado del reto oculta ese día lo que revela respuestas.</li>
   <li><b>15-oct-2026</b> · Pendientes antes de Play Console: un solo % del curso, «Tienes un examen sin terminar · Retomar» en el Simulador, «Hoy te toca» sin duplicados y botón «Continuar examen». Observaciones 1, 9 (en parte) y 11 corregidas.</li>
   <li><b>15-oct-2026</b> · XP fase 2: «Los más dedicados» (top 100), «Rankings y privacidad» con alias, accesos en el Perfil; admin «Top 100 y alias». Capturas del teléfono.</li>
   <li><b>15-oct-2026</b> · Rango de perfil y XP (fase 1): cómo se gana XP, Perfil, «Tu camino de rangos», «+N XP» al terminar y celebración; admin «XP y rangos» y «XP de un alumno» (app y admin «XP fase 1»). Capturas tomadas en el teléfono.</li>
