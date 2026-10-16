@@ -18,7 +18,7 @@ import { type CandidateQuestion, parseCandidateQuestion } from "./exam_contracts
 import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
-import { parseXpSettings } from "./xp";
+import { parseXpSettings, peruDay } from "./xp";
 import type {
   MistakesAttemptInput,
   PlanAttemptInput,
@@ -369,6 +369,16 @@ export class SimulatorService {
     const previous = await requestRef.get();
     metrics.readDocument();
     if (previous.exists) return this.existing(uid, previous.data()?.attemptId, input, metrics);
+    // «Hoy te toca»: a second tap or a retry after a timeout carries a new
+    // request ID; while today's plan session is still open it is returned
+    // instead of creating another one.
+    const openPlanRef = isPlanInput(input) && input.mode === "plan"
+      ? this.userRef(uid).collection("examRequestKeys").doc(`open_plan_${peruDay(Date.now())}`)
+      : undefined;
+    if (openPlanRef !== undefined) {
+      const open = await this.openPlanAttempt(uid, openPlanRef, metrics);
+      if (open !== undefined) return projectCreateResponse(open.id, open.data);
+    }
 
     const [profile, settings] = await Promise.all([
       this.profile(uid, metrics),
@@ -406,11 +416,20 @@ export class SimulatorService {
     };
     const publicContext = publicSimulatorContext(simulator, plan.picked.map(({ question }) => question.courseId));
     const freshQuestionIds = await this.freshForXp(uid, questions.map(({ questionId }) => questionId), now, metrics);
-    const created = await this.db.runTransaction(async (transaction) => {
+    const created = await this.db.runTransaction(async (transaction): Promise<boolean | string> => {
       metrics.transactionAttempt();
       const existing = await transaction.get(requestRef);
       metrics.readDocument();
       if (existing.exists) return false;
+      if (openPlanRef !== undefined) {
+        const open = await this.openPlanAttempt(uid, openPlanRef, metrics, transaction);
+        if (open !== undefined) return open.id;
+        transaction.set(openPlanRef, {
+          attemptId: attemptRef.id,
+          createdAt: FieldValue.serverTimestamp(),
+          expireAt: new Date(now + requestKeyRetentionMs)
+        });
+      }
       transaction.set(attemptRef, {
         schemaVersion: 2,
         id: attemptRef.id,
@@ -469,6 +488,11 @@ export class SimulatorService {
       }
       return true;
     });
+    if (typeof created === "string") {
+      const open = await this.db.collection(this.config.collections.attempts).doc(created).get();
+      metrics.readDocument();
+      return projectCreateResponse(created, open.data() ?? {});
+    }
     if (!created) {
       const request = await requestRef.get();
       metrics.readDocument();
@@ -1177,19 +1201,28 @@ export class SimulatorService {
     if (!sameRequest) {
       throw failedPrecondition("The request ID belongs to another exam request.", { reason: "request_id_conflict" });
     }
-    const response: ExamAttemptResponse = projectAttemptResponse(attemptId, data);
-    return {
-      attemptId,
-      status: response.status,
-      title: response.title,
-      questionCount: response.questionCount,
-      requiredCorrectAnswers: response.requiredCorrectAnswers,
-      expiresAt: response.expiresAt,
-      durationSeconds: response.durationSeconds,
-      ...(response.startedAtMs === undefined ? {} : { startedAtMs: response.startedAtMs }),
-      questions: response.questions,
-      ...(response.simulator === undefined ? {} : { simulator: response.simulator })
-    };
+    return projectCreateResponse(attemptId, data);
+  }
+
+  /** Today's plan attempt when it is still open (not submitted, clock not over). */
+  private async openPlanAttempt(
+    uid: string,
+    openPlanRef: DocumentReference,
+    metrics: OperationMetrics,
+    transaction?: Transaction
+  ): Promise<{ id: string; data: Record<string, unknown> } | undefined> {
+    const key = transaction === undefined ? await openPlanRef.get() : await transaction.get(openPlanRef);
+    metrics.readDocument();
+    const attemptId = key.data()?.attemptId;
+    if (typeof attemptId !== "string" || attemptId.length === 0) return undefined;
+    const ref = this.db.collection(this.config.collections.attempts).doc(attemptId);
+    const attempt = transaction === undefined ? await ref.get() : await transaction.get(ref);
+    metrics.readDocument();
+    const data = attempt.data();
+    const expiresAt = data?.expiresAt as { toMillis?: () => number } | undefined;
+    const open = data?.userId === uid && data?.status === "in_progress" &&
+      typeof expiresAt?.toMillis === "function" && expiresAt.toMillis() > Date.now();
+    return open ? { id: attemptId, data: data! } : undefined;
   }
 
   private async answerKeys(
@@ -1360,5 +1393,22 @@ function practiceScoring(questionCount: number, settings: SimulatorSettings): Si
     correctPoints: 1,
     incorrectPoints: settings.practicePenalty ? practicePenaltyPoints : 0,
     blankPoints: 0
+  };
+}
+
+/** The create response for an attempt that already exists. */
+function projectCreateResponse(attemptId: string, data: Record<string, unknown>): CreateExamAttemptResponse {
+  const response: ExamAttemptResponse = projectAttemptResponse(attemptId, data);
+  return {
+    attemptId,
+    status: response.status,
+    title: response.title,
+    questionCount: response.questionCount,
+    requiredCorrectAnswers: response.requiredCorrectAnswers,
+    expiresAt: response.expiresAt,
+    durationSeconds: response.durationSeconds,
+    ...(response.startedAtMs === undefined ? {} : { startedAtMs: response.startedAtMs }),
+    questions: response.questions,
+    ...(response.simulator === undefined ? {} : { simulator: response.simulator })
   };
 }
