@@ -123,7 +123,7 @@ class _StudyReviewRulesCardState extends ConsumerState<StudyReviewRulesCard> {
   @override
   Widget build(BuildContext context) {
     final record = widget.record;
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: AppTheme.cardDeco(),

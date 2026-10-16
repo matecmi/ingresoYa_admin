@@ -1,0 +1,111 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ingresoya_admin/src/providers/providers.dart';
+import 'package:ingresoya_admin/src/ui/admin_router.dart';
+import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
+
+/// Arnés de capturas del admin: pinta una ruta con datos falsos y la guarda
+/// en `test_shots/out/<name>.png`. No forma parte de `flutter test`; se corre
+/// con `flutter test test_shots --update-goldens`.
+Future<void> loadShotFonts() async {
+  Future<void> family(String name, List<String> files) async {
+    final loader = FontLoader(name);
+    for (final f in files) {
+      final bytes = File(f).readAsBytesSync();
+      loader.addFont(Future.value(ByteData.view(bytes.buffer)));
+    }
+    await loader.load();
+  }
+
+  await family(AppTheme.fontFamily, [
+    for (final w in [400, 500, 600, 700, 800])
+      'assets/fonts/PlusJakartaSans-$w.ttf',
+  ]);
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'] ?? r'C:\flutter';
+  await family('MaterialIcons', [
+    '$flutterRoot/bin/cache/artifacts/material_fonts/materialicons-regular.otf',
+  ]);
+  await family('Roboto', [
+    '$flutterRoot/bin/cache/artifacts/material_fonts/roboto-regular.ttf',
+  ]);
+}
+
+Future<void> shot(
+  WidgetTester tester, {
+  required String name,
+  required String location,
+  required FakeFirebaseFirestore db,
+  Size size = const Size(1440, 1000),
+  Future<void> Function(WidgetTester tester)? act,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  final router = buildAdminRouter(
+    initialLocation: location,
+    userLabel: 'kevin@ingresoya.test',
+  );
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        firestoreProvider.overrideWithValue(db),
+        firebaseFirestoreProvider.overrideWithValue(db),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        routerConfig: router,
+      ),
+    ),
+  );
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 200));
+  }
+  if (act != null) {
+    await act(tester);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+  await expectLater(
+    find.byType(MaterialApp),
+    matchesGoldenFile('out/$name.png'),
+  );
+}
+
+Object? _decode(Object? v, FakeFirebaseFirestore db) {
+  if (v is Map) {
+    if (v.containsKey('__ts')) {
+      return Timestamp.fromMillisecondsSinceEpoch(v['__ts'] as int);
+    }
+    if (v.containsKey('__ref')) return db.doc(v['__ref'] as String);
+    return v.map((k, x) => MapEntry(k as String, _decode(x, db)));
+  }
+  if (v is List) return v.map((x) => _decode(x, db)).toList();
+  return v;
+}
+
+/// Muestra de TEST leída con la cuenta de servicio (no va al repo):
+/// `test_shots/fixtures/test_sample.json`. Si falta, devuelve una base vacía.
+Future<FakeFirebaseFirestore> sampleDb() async {
+  final db = FakeFirebaseFirestore();
+  final file = File('test_shots/fixtures/test_sample.json');
+  if (!file.existsSync()) return db;
+  final docs = jsonDecode(file.readAsStringSync()) as List;
+  for (final raw in docs) {
+    final m = raw as Map<String, dynamic>;
+    await db
+        .doc(m['path'] as String)
+        .set(_decode(m['data'], db) as Map<String, dynamic>);
+  }
+  return db;
+}

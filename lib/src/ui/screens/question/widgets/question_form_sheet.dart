@@ -176,7 +176,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            border: Border.all(color: AppTheme.ink.withValues(alpha: .08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: .26),
@@ -274,7 +274,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           child: Text(
             isEdit ? 'Editar pregunta' : 'Nueva pregunta',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .92),
+              color: AppTheme.ink.withValues(alpha: .92),
               fontWeight: FontWeight.w900,
               fontSize: 16.5,
             ),
@@ -284,7 +284,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           onPressed: () => Navigator.pop(context),
           icon: Icon(
             Icons.close_rounded,
-            color: Colors.white.withValues(alpha: .85),
+            color: AppTheme.ink.withValues(alpha: .85),
           ),
         ),
       ],
@@ -295,7 +295,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     return Text(
       t,
       style: TextStyle(
-        color: Colors.white.withValues(alpha: .92),
+        color: AppTheme.ink.withValues(alpha: .92),
         fontWeight: FontWeight.w900,
       ),
     );
@@ -314,22 +314,22 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         controller: c,
         keyboardType: keyboardType,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: .92),
+          color: AppTheme.ink.withValues(alpha: .92),
           fontWeight: FontWeight.w800,
         ),
         decoration: InputDecoration(
           labelText: label,
           helperText: helperText,
-          labelStyle: TextStyle(color: Colors.white.withValues(alpha: .70)),
+          labelStyle: TextStyle(color: AppTheme.ink.withValues(alpha: .70)),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: .05),
+          fillColor: AppTheme.ink.withValues(alpha: .05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: .10)),
+            borderSide: BorderSide(color: AppTheme.ink.withValues(alpha: .10)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: .10)),
+            borderSide: BorderSide(color: AppTheme.ink.withValues(alpha: .10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
@@ -367,9 +367,9 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .05),
+        color: AppTheme.ink.withValues(alpha: .05),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        border: Border.all(color: AppTheme.ink.withValues(alpha: .10)),
       ),
       child: Row(
         children: [
@@ -385,7 +385,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             child: Text(
               active ? 'Activa' : 'Inactiva',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: .90),
+                color: AppTheme.ink.withValues(alpha: .90),
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -428,7 +428,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     padding: const EdgeInsets.all(12),
     decoration: AppTheme.cardDeco(
       radius: 16,
-      color: Colors.white.withValues(alpha: .03),
+      color: AppTheme.ink.withValues(alpha: .03),
     ),
     child: Row(
       children: [
@@ -477,7 +477,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 20,
-        color: Colors.white.withValues(alpha: .03),
+        color: AppTheme.ink.withValues(alpha: .03),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -490,7 +490,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                 child: Text(
                   'Enunciado *',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .92),
+                    color: AppTheme.ink.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -540,7 +540,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                   ? 'Aún no definiste el enunciado. Usa el Constructor.'
                   : _short(statementRaw),
               style: TextStyle(
-                color: Colors.white.withValues(alpha: .72),
+                color: AppTheme.ink.withValues(alpha: .72),
                 fontWeight: FontWeight.w700,
                 height: 1.25,
               ),
@@ -575,7 +575,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
               padding: const EdgeInsets.all(12),
               decoration: AppTheme.cardDeco(
                 radius: 16,
-                color: Colors.white.withValues(alpha: .03),
+                color: AppTheme.ink.withValues(alpha: .03),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,7 +609,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                                 : Text(
                                     'Usa el editor visual para definir la alternativa.',
                                     style: TextStyle(
-                                      color: Colors.white.withValues(
+                                      color: AppTheme.ink.withValues(
                                         alpha: .65,
                                       ),
                                     ),
@@ -646,7 +646,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       const SizedBox(height: 4),
       Text(
         'Mínimo $_minimumAlternatives. Arrastra para reordenar; el ID interno no cambia.',
-        style: TextStyle(color: Colors.white.withValues(alpha: .65)),
+        style: TextStyle(color: AppTheme.ink.withValues(alpha: .65)),
       ),
     ],
   );
@@ -668,14 +668,14 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     padding: const EdgeInsets.all(12),
     decoration: AppTheme.cardDeco(
       radius: 16,
-      color: Colors.white.withValues(alpha: .03),
+      color: AppTheme.ink.withValues(alpha: .03),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Solo se almacena en la clave privada; la app móvil no puede leerla antes de entregar.',
-          style: TextStyle(color: Colors.white.withValues(alpha: .68)),
+          style: TextStyle(color: AppTheme.ink.withValues(alpha: .68)),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -706,7 +706,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     padding: const EdgeInsets.all(12),
     decoration: AppTheme.cardDeco(
       radius: 16,
-      color: Colors.white.withValues(alpha: .03),
+      color: AppTheme.ink.withValues(alpha: .03),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,7 +819,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       child: Tooltip(
         message: tooltip,
         child: Material(
-          color: Colors.white.withValues(alpha: .08),
+          color: AppTheme.ink.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             onTap: onTap,
@@ -829,11 +829,11 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
               height: 40,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: .10)),
+                border: Border.all(color: AppTheme.ink.withValues(alpha: .10)),
               ),
               child: Icon(
                 icon,
-                color: Colors.white.withValues(alpha: .90),
+                color: AppTheme.ink.withValues(alpha: .90),
                 size: 20,
               ),
             ),

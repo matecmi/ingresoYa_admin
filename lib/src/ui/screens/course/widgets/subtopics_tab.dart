@@ -114,8 +114,12 @@ class SubtopicsTab extends StatelessWidget {
                     } catch (error) {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
-      );
+                        SnackBar(
+                          content: Text(
+                            '$error'.replaceFirst('Bad state: ', ''),
+                          ),
+                        ),
+                      );
                     }
                   },
                 ),

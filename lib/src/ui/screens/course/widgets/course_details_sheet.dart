@@ -43,7 +43,7 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(24),
               ),
-              border: Border.all(color: Colors.white.withOpacity(.08)),
+              border: Border.all(color: AppTheme.ink.withOpacity(.08)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(.26),
@@ -65,7 +65,7 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(.92),
+                            color: AppTheme.ink.withOpacity(.92),
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
                           ),
@@ -75,7 +75,7 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(
                           Icons.close_rounded,
-                          color: Colors.white.withOpacity(.85),
+                          color: AppTheme.ink.withOpacity(.85),
                         ),
                       ),
                     ],
@@ -83,8 +83,8 @@ class _CourseDetailsSheetState extends ConsumerState<CourseDetailsSheet> {
                 ),
                 TabBar(
                   indicatorColor: AppTheme.accent,
-                  labelColor: Colors.white.withOpacity(.92),
-                  unselectedLabelColor: Colors.white.withOpacity(.60),
+                  labelColor: AppTheme.ink.withOpacity(.92),
+                  unselectedLabelColor: AppTheme.ink.withOpacity(.60),
                   tabs: const [
                     Tab(text: 'Datos'),
                     Tab(text: 'Temas'),

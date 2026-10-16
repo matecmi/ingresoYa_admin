@@ -42,6 +42,7 @@
       </ol></li>
     <li><a href="#xp">Rango de perfil y XP</a>
       <ol><li><a href="#xp-ganar">Cómo se gana XP</a></li><li><a href="#xp-perfil">En el Perfil</a></li><li><a href="#xp-camino">Tu camino de rangos</a></li><li><a href="#xp-terminar">Al terminar un examen</a></li><li><a href="#xp-celebracion">¡Subiste de rango!</a></li><li><a href="#xp-usuario">Nombre de usuario</a></li><li><a href="#xp-rankings">Rankings: Mi liga</a></li><li><a href="#xp-reto">Reto del día</a></li></ol></li>
+    <li><a href="#panel-admin">Panel de administración</a></li>
     <li><a href="#admin">Lo que se cambia en el admin</a></li>
     <li><a href="#observaciones">Observaciones abiertas</a></li>
     <li><a href="#cambios">Historial de cambios</a></li>
@@ -769,6 +770,26 @@ flowchart LR
 </div>
 
 <!-- ============================================================ ADMIN -->
+<!-- ============================================================ PANEL DE ADMINISTRACIÓN -->
+<h2 id="panel-admin"><span class="chip info">ADMIN</span><br>Panel de administración</h2>
+<p>El admin se rehízo en fases (rediseño aprobado en el lienzo, versión 3.1). Esta sección se completa en cada fase con capturas reales del panel.</p>
+
+<h3 id="admin-inicio">Marco, menú e Inicio</h3>
+<div class="wide-pair">
+  <figure class="wide-shot"><img src="img/adm-inicio.jpg" alt="Inicio del admin con el menú agrupado por tareas"><figcaption>Inicio: aviso de entorno, menú por tareas y accesos rápidos.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-ayuda.jpg" alt="Ayuda de la sección Banco de preguntas"><figcaption>«?» en la barra superior: para qué sirve la sección.</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Elemento</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Estás en PRUEBAS (TEST): los cambios solo los ven las cuentas de prueba.»</td><td>Siempre, arriba de todo, mientras el admin apunte a las colecciones <code>-test</code>. En producción dirá «Estás en PRODUCCIÓN: lo que cambies lo ven todos los alumnos.» en rojo.</td><td>Nada.</td></tr>
+  <tr><td class="msg">Menú: Inicio · CONTENIDO (Cursos, Banco de preguntas, Plantillas de examen, Universidades y exámenes, Carreras) · AJUSTES (Configuración)</td><td>Siempre en pantallas anchas (desde 1000 px); en angostas se abre con ☰.</td><td>Va a la sección.</td></tr>
+  <tr><td class="msg">«Contenido / Banco de preguntas»</td><td>Barra superior: grupo y sección actual.</td><td>Nada.</td></tr>
+  <tr><td class="msg">«?»</td><td>Siempre en la barra superior.</td><td>Abre «¿Para qué sirve esta sección?», con «Lo más usado» y «Abrir la guía completa» (esta guía, en la parte del admin).</td></tr>
+  <tr><td class="msg">Inicio: «Cargar preguntas», «Armar un curso», «Exámenes pasados»</td><td>Siempre.</td><td>Abren el Banco de preguntas, Cursos y Universidades.</td></tr>
+  <tr><td class="msg">Correo y «Cerrar sesión»</td><td>Pie del menú.</td><td>Cierra la sesión.</td></tr>
+</table></div>
+<p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
+
 <h2 id="admin">Lo que se cambia en el admin</h2>
 <div class="table-wrap"><table>
   <tr><th>Dónde (admin)</th><th>Qué controla</th><th>Fábrica</th></tr>
@@ -809,6 +830,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 1 del rediseño: tema claro, menú por tareas, aviso de entorno TEST y ayuda «?» por sección. Nueva sección «Panel de administración».</li>
   <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Probado en el teléfono (el reto trajo preguntas del examen UNPRG 2025 I); el resultado del reto oculta ese día lo que revela respuestas.</li>
   <li><b>15-oct-2026</b> · Pendientes antes de Play Console: un solo % del curso, «Tienes un examen sin terminar · Retomar» en el Simulador, «Hoy te toca» sin duplicados y botón «Continuar examen». Observaciones 1, 9 (en parte) y 11 corregidas.</li>
   <li><b>15-oct-2026</b> · XP fase 2: «Los más dedicados» (top 100), «Rankings y privacidad» con alias, accesos en el Perfil; admin «Top 100 y alias». Capturas del teléfono.</li>

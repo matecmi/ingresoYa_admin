@@ -166,7 +166,7 @@ class _PlanSettingsCardState extends ConsumerState<PlanSettingsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     Widget toggle(
       String key,
       bool value,

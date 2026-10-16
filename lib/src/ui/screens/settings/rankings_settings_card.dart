@@ -235,7 +235,7 @@ class _RankingsSettingsCardState extends ConsumerState<RankingsSettingsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     final s = widget.settings;
     return Container(
       padding: const EdgeInsets.all(18),
@@ -497,7 +497,7 @@ class _RankingsToolsState extends ConsumerState<RankingsTools> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: AppTheme.cardDeco(),

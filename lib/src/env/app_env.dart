@@ -1,5 +1,12 @@
+enum AdminEnvironment { test, staging, production }
+
 class AppEnv {
   AppEnv._();
+
+  /// Entorno al que apuntan las colecciones de abajo. Cambiarlo junto con los
+  /// sufijos (`-test`, `-staging`, sin sufijo en producción). El admin lo
+  /// muestra en la franja superior para no confundir entornos.
+  static const environment = AdminEnvironment.test;
 
   /// ✅ Cambiar aquí cuando pases a producción
   static const universitiesCollection = 'iya-universities-test';

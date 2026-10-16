@@ -5,7 +5,6 @@ import 'package:ingresoya_admin/src/ui/widgets/exam_question.dart';
 
 import 'content_builder_models.dart';
 
-
 class ContentBuilderSheet extends StatefulWidget {
   const ContentBuilderSheet({
     super.key,
@@ -29,11 +28,12 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
   @override
   void initState() {
     super.initState();
-    lines = _parseRawToLines(widget.initialRaw) ??
+    lines =
+        _parseRawToLines(widget.initialRaw) ??
         [
           ContentLine(
             segments: [ContentSegment(type: ContentSegType.text, content: '')],
-          )
+          ),
         ];
 
     // asegura controllers iniciales
@@ -81,7 +81,10 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
 
   TextEditingController _controllerFor(ContentSegment seg) {
     final k = _segKey(seg);
-    return _ctrls.putIfAbsent(k, () => TextEditingController(text: seg.content));
+    return _ctrls.putIfAbsent(
+      k,
+      () => TextEditingController(text: seg.content),
+    );
   }
 
   void _touch() {
@@ -101,7 +104,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withOpacity(.08)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.26),
@@ -172,7 +175,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
           child: Text(
             widget.title,
             style: TextStyle(
-              color: Colors.white.withOpacity(.92),
+              color: AppTheme.ink.withOpacity(.92),
               fontWeight: FontWeight.w900,
               fontSize: 16.5,
             ),
@@ -180,7 +183,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+          icon: Icon(Icons.close_rounded, color: AppTheme.ink.withOpacity(.85)),
         ),
       ],
     );
@@ -190,7 +193,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 22,
-        color: Colors.white.withOpacity(.03),
+        color: AppTheme.ink.withOpacity(.03),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -198,7 +201,8 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
         children: [
           _titleRow(
             title: 'Estructura',
-            subtitle: 'Líneas ( [%] ) • Bloques en misma línea ( [#] ) • Tipo ( [@] )',
+            subtitle:
+                'Líneas ( [%] ) • Bloques en misma línea ( [#] ) • Tipo ( [@] )',
             right: Row(
               children: [
                 _miniBtn(
@@ -208,7 +212,12 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
                     setState(() {
                       lines.add(
                         ContentLine(
-                          segments: [ContentSegment(type: ContentSegType.text, content: '')],
+                          segments: [
+                            ContentSegment(
+                              type: ContentSegType.text,
+                              content: '',
+                            ),
+                          ],
                         ),
                       );
                     });
@@ -224,7 +233,12 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
                     setState(() {
                       lines = [
                         ContentLine(
-                          segments: [ContentSegment(type: ContentSegType.text, content: '')],
+                          segments: [
+                            ContentSegment(
+                              type: ContentSegType.text,
+                              content: '',
+                            ),
+                          ],
                         ),
                       ];
                     });
@@ -249,7 +263,9 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
                 onChanged: _touch,
                 onAddSegment: () {
                   setState(() {
-                    line.segments.add(ContentSegment(type: ContentSegType.text, content: ''));
+                    line.segments.add(
+                      ContentSegment(type: ContentSegType.text, content: ''),
+                    );
                   });
                   _ensureControllers();
                   HapticFeedback.selectionClick();
@@ -259,8 +275,13 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
                     if (lines.length == 1) {
                       lines = [
                         ContentLine(
-                          segments: [ContentSegment(type: ContentSegType.text, content: '')],
-                        )
+                          segments: [
+                            ContentSegment(
+                              type: ContentSegType.text,
+                              content: '',
+                            ),
+                          ],
+                        ),
                       ];
                     } else {
                       // limpia controllers de los segmentos de esa línea
@@ -320,9 +341,9 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: raw));
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Raw copiado ✅')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Raw copiado ✅')));
               },
             ),
           ),
@@ -349,14 +370,14 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.05),
+        color: AppTheme.ink.withOpacity(.05),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(.10)),
+        border: Border.all(color: AppTheme.ink.withOpacity(.10)),
       ),
       child: Text(
         raw.isEmpty ? '(vacío)' : raw,
         style: TextStyle(
-          color: Colors.white.withOpacity(.86),
+          color: AppTheme.ink.withOpacity(.86),
           fontWeight: FontWeight.w700,
           fontFamily: 'monospace',
           height: 1.25,
@@ -380,7 +401,9 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
               backgroundColor: AppTheme.accent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
           ),
         ),
@@ -402,7 +425,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
               Text(
                 title,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
+                  color: AppTheme.ink.withOpacity(.92),
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -410,7 +433,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.60),
+                  color: AppTheme.ink.withOpacity(.60),
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),
@@ -429,7 +452,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white.withOpacity(.10),
+      color: AppTheme.ink.withOpacity(.10),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -438,16 +461,16 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.14)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.14)),
           ),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white.withOpacity(.92), size: 18),
+              Icon(icon, color: AppTheme.ink.withOpacity(.92), size: 18),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
+                  color: AppTheme.ink.withOpacity(.92),
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -484,10 +507,7 @@ class _ContentBuilderSheetState extends State<ContentBuilderSheet> {
         final content = parts[0].trim();
         final tag = parts[1].trim();
         segs.add(
-          ContentSegment(
-            type: ContentSegTypeX.fromTag(tag),
-            content: content,
-          ),
+          ContentSegment(type: ContentSegTypeX.fromTag(tag), content: content),
         );
       }
 
@@ -528,7 +548,10 @@ class _LineEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.02)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: AppTheme.ink.withOpacity(.02),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,16 +559,19 @@ class _LineEditor extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.06),
+                  color: AppTheme.ink.withOpacity(.06),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withOpacity(.10)),
+                  border: Border.all(color: AppTheme.ink.withOpacity(.10)),
                 ),
                 child: Text(
                   'Línea ${index + 1}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.90),
+                    color: AppTheme.ink.withOpacity(.90),
                     fontWeight: FontWeight.w900,
                     fontSize: 12,
                   ),
@@ -554,9 +580,15 @@ class _LineEditor extends StatelessWidget {
               const Spacer(),
               _miniIconBtn(icon: Icons.arrow_upward_rounded, onTap: onMoveUp),
               const SizedBox(width: 8),
-              _miniIconBtn(icon: Icons.arrow_downward_rounded, onTap: onMoveDown),
+              _miniIconBtn(
+                icon: Icons.arrow_downward_rounded,
+                onTap: onMoveDown,
+              ),
               const SizedBox(width: 8),
-              _miniIconBtn(icon: Icons.delete_outline_rounded, onTap: onRemoveLine),
+              _miniIconBtn(
+                icon: Icons.delete_outline_rounded,
+                onTap: onRemoveLine,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -574,7 +606,9 @@ class _LineEditor extends StatelessWidget {
                 onRemove: () {
                   line.segments.removeAt(j);
                   if (line.segments.isEmpty) {
-                    line.segments.add(ContentSegment(type: ContentSegType.text, content: ''));
+                    line.segments.add(
+                      ContentSegment(type: ContentSegType.text, content: ''),
+                    );
                   }
                   HapticFeedback.selectionClick();
                   onChanged();
@@ -594,11 +628,13 @@ class _LineEditor extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(.10),
+                    backgroundColor: AppTheme.ink.withOpacity(.10),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    side: BorderSide(color: Colors.white.withOpacity(.14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    side: BorderSide(color: AppTheme.ink.withOpacity(.14)),
                   ),
                 ),
               ),
@@ -613,7 +649,7 @@ class _LineEditor extends StatelessWidget {
     return Opacity(
       opacity: onTap == null ? .35 : 1,
       child: Material(
-        color: Colors.white.withOpacity(.08),
+        color: AppTheme.ink.withOpacity(.08),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
@@ -623,9 +659,9 @@ class _LineEditor extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(.10)),
+              border: Border.all(color: AppTheme.ink.withOpacity(.10)),
             ),
-            child: Icon(icon, color: Colors.white.withOpacity(.90), size: 18),
+            child: Icon(icon, color: AppTheme.ink.withOpacity(.90), size: 18),
           ),
         ),
       ),
@@ -659,9 +695,9 @@ class _SegmentEditor extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.03),
+        color: AppTheme.ink.withOpacity(.03),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(.08)),
+        border: Border.all(color: AppTheme.ink.withOpacity(.08)),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -678,7 +714,7 @@ class _SegmentEditor extends StatelessWidget {
                           child: Text(
                             t.label,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(.92),
+                              color: AppTheme.ink.withOpacity(.92),
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -694,29 +730,38 @@ class _SegmentEditor extends StatelessWidget {
                   dropdownColor: AppTheme.card,
                   decoration: InputDecoration(
                     labelText: 'Tipo (bloque ${index + 1})',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+                    labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(.05),
+                    fillColor: AppTheme.ink.withOpacity(.05),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: AppTheme.ink.withOpacity(.10),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: AppTheme.ink.withOpacity(.10),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
+                      borderSide: BorderSide(
+                        color: AppTheme.accent.withOpacity(.65),
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Material(
-                color: Colors.white.withOpacity(.08),
+                color: AppTheme.ink.withOpacity(.08),
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   onTap: onRemove,
@@ -726,11 +771,11 @@ class _SegmentEditor extends StatelessWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(.10)),
+                      border: Border.all(color: AppTheme.ink.withOpacity(.10)),
                     ),
                     child: Icon(
                       Icons.delete_outline_rounded,
-                      color: Colors.white.withOpacity(.88),
+                      color: AppTheme.ink.withOpacity(.88),
                     ),
                   ),
                 ),
@@ -747,7 +792,7 @@ class _SegmentEditor extends StatelessWidget {
             minLines: seg.type == ContentSegType.text ? 2 : 3,
             maxLines: seg.type == ContentSegType.text ? 6 : 10,
             style: TextStyle(
-              color: Colors.white.withOpacity(.92),
+              color: AppTheme.ink.withOpacity(.92),
               fontWeight: FontWeight.w700,
               fontFamily: seg.type == ContentSegType.math ? 'monospace' : null,
             ),
@@ -755,21 +800,24 @@ class _SegmentEditor extends StatelessWidget {
               hintText: seg.type == ContentSegType.text
                   ? 'Escribe el texto…'
                   : seg.type == ContentSegType.math
-                      ? r'Escribe LaTeX (ej: \frac{a}{b})'
-                      : 'Pega URL de imagen…',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                  ? r'Escribe LaTeX (ej: \frac{a}{b})'
+                  : 'Pega URL de imagen…',
+              hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
               filled: true,
-              fillColor: Colors.white.withOpacity(.05),
+              fillColor: AppTheme.ink.withOpacity(.05),
               isDense: true,
-              
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),

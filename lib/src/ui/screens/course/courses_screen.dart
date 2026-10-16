@@ -9,7 +9,6 @@ import 'package:ingresoya_admin/src/ui/screens/course/widgets/search_bar.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart';
 
-
 class CoursesScreen extends ConsumerStatefulWidget {
   const CoursesScreen({super.key});
 
@@ -45,7 +44,7 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                   child: Text(
                     'Cursos',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.92),
+                      color: AppTheme.ink.withOpacity(.92),
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -100,7 +99,7 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                       child: Text(
                         'No hay cursos (o tu búsqueda no encontró resultados).',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(.75),
+                          color: AppTheme.ink.withOpacity(.75),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -151,9 +150,9 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
     }
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Eliminado ✅')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Eliminado ✅')));
   }
 
   Future<void> _openCourseForm(BuildContext context, {CourseEntity? c}) async {
@@ -177,7 +176,6 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   }
 }
 
-
 // ---------- UI atoms (igual estilo que tus otros módulos) ----------
 
 class _GlassBtn extends StatelessWidget {
@@ -193,36 +191,13 @@ class _GlassBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(.10),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.14)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white.withOpacity(.92), size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }
 }
-
-
-

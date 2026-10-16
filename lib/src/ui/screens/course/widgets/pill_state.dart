@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 class PillState extends StatelessWidget {
@@ -11,9 +12,9 @@ class PillState extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.05),
+        color: AppTheme.ink.withOpacity(.05),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(.10)),
+        border: Border.all(color: AppTheme.ink.withOpacity(.10)),
       ),
       child: Row(
         children: [
@@ -29,7 +30,7 @@ class PillState extends StatelessWidget {
             child: Text(
               active ? 'Activa' : 'Inactiva',
               style: TextStyle(
-                color: Colors.white.withOpacity(.90),
+                color: AppTheme.ink.withOpacity(.90),
                 fontWeight: FontWeight.w900,
               ),
             ),

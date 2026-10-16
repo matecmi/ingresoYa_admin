@@ -56,7 +56,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withOpacity(.08)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.26),
@@ -101,7 +101,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
           child: Text(
             isEdit ? 'Editar curso' : 'Nuevo curso',
             style: TextStyle(
-              color: Colors.white.withOpacity(.92),
+              color: AppTheme.ink.withOpacity(.92),
               fontWeight: FontWeight.w900,
               fontSize: 16.5,
             ),
@@ -109,7 +109,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+          icon: Icon(Icons.close_rounded, color: AppTheme.ink.withOpacity(.85)),
         ),
       ],
     );
@@ -119,7 +119,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
     return Text(
       t,
       style: TextStyle(
-        color: Colors.white.withOpacity(.92),
+        color: AppTheme.ink.withOpacity(.92),
         fontWeight: FontWeight.w900,
       ),
     );
@@ -135,29 +135,31 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
       child: TextFormField(
         controller: c,
         style: TextStyle(
-          color: Colors.white.withOpacity(.92),
+          color: AppTheme.ink.withOpacity(.92),
           fontWeight: FontWeight.w800,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+          labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
           filled: true,
-          fillColor: Colors.white.withOpacity(.05),
+          fillColor: AppTheme.ink.withOpacity(.05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
           ),
           isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
         validator: (v) {
           if (!requiredField) return null;
@@ -201,7 +203,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 20,
-        color: Colors.white.withOpacity(.03),
+        color: AppTheme.ink.withOpacity(.03),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -221,7 +223,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
             Text(
               'Activa para pegar una lista de cursos y subirlos a Firestore.',
               style: TextStyle(
-                color: Colors.white.withOpacity(.65),
+                color: AppTheme.ink.withOpacity(.65),
                 fontWeight: FontWeight.w700,
               ),
             )
@@ -231,7 +233,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
               'Formato esperado: LISTA JSON\n'
               '[{"idDoc":"course-1","name":"Álgebra","description":"..."}]',
               style: TextStyle(
-                color: Colors.white.withOpacity(.60),
+                color: AppTheme.ink.withOpacity(.60),
                 fontWeight: FontWeight.w700,
                 height: 1.25,
               ),
@@ -242,22 +244,22 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
               minLines: 7,
               maxLines: 12,
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: AppTheme.ink.withOpacity(.92),
                 fontWeight: FontWeight.w700,
                 fontFamily: 'monospace',
               ),
               decoration: InputDecoration(
                 hintText: 'Pega aquí el JSON…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                 filled: true,
-                fillColor: Colors.white.withOpacity(.05),
+                fillColor: AppTheme.ink.withOpacity(.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                  borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                  borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
                 ),
               ),
               onChanged: (_) {
@@ -269,10 +271,7 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
             ),
             const SizedBox(height: 10),
             if (_jsonError != null)
-              _StateBox(
-                tone: _StateTone.bad,
-                text: _jsonError!,
-              )
+              _StateBox(tone: _StateTone.bad, text: _jsonError!)
             else if (_jsonValidCount > 0)
               _StateBox(
                 tone: _StateTone.good,
@@ -290,13 +289,13 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(.10),
+                      backgroundColor: AppTheme.ink.withOpacity(.10),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      side: BorderSide(color: Colors.white.withOpacity(.14)),
+                      side: BorderSide(color: AppTheme.ink.withOpacity(.14)),
                     ),
                   ),
                 ),
@@ -391,15 +390,15 @@ class _CourseFormSheetState extends ConsumerState<CourseFormSheet> {
     final repo = ref.read(courseRepoProvider);
 
     if (widget.course == null) {
-      await repo.createCourse(
-        name: name.text,
-        description: description.text,
-      );
+      await repo.createCourse(name: name.text, description: description.text);
     } else {
-      await repo.updateCourse(widget.course!.id, patch: {
-        'name': name.text.trim(),
-        'description': description.text.trim(),
-      });
+      await repo.updateCourse(
+        widget.course!.id,
+        patch: {
+          'name': name.text.trim(),
+          'description': description.text.trim(),
+        },
+      );
     }
 
     if (!mounted) return;
@@ -434,7 +433,7 @@ class _StateBox extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withOpacity(.92),
+          color: AppTheme.ink.withOpacity(.92),
           fontWeight: FontWeight.w800,
         ),
       ),

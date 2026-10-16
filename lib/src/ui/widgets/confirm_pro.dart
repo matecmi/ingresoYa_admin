@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
@@ -21,13 +20,13 @@ Future<bool> confirmPro(
         title: Text(
           title,
           style: TextStyle(
-            color: Colors.white.withOpacity(.92),
+            color: AppTheme.ink.withOpacity(.92),
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
           message,
-          style: TextStyle(color: Colors.white.withOpacity(.80), height: 1.25),
+          style: TextStyle(color: AppTheme.ink.withOpacity(.80), height: 1.25),
         ),
         actions: [
           TextButton(
@@ -37,7 +36,7 @@ Future<bool> confirmPro(
             },
             child: Text(
               'Cancelar',
-              style: TextStyle(color: Colors.white.withOpacity(.78)),
+              style: TextStyle(color: AppTheme.ink.withOpacity(.78)),
             ),
           ),
           ElevatedButton(

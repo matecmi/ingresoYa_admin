@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Capturas locales del arnés (test_shots)
+/test_shots/out/
+/test_shots/failures/
+/test_shots/fixtures/

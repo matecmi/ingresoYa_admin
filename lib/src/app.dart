@@ -1,15 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ingresoya_admin/src/ui/screens/auth/admin_login_screen.dart';
-import 'package:ingresoya_admin/src/ui/screens/course/courses_screen.dart';
-import 'package:ingresoya_admin/src/ui/screens/professions/professions_screen.dart';
-import 'package:ingresoya_admin/src/ui/screens/question/questions_screen.dart';
-import 'package:ingresoya_admin/src/ui/screens/settings/settings_screen.dart';
-import 'package:ingresoya_admin/src/ui/screens/templates/exam_templates_screen.dart';
 
-import 'ui/screens/dashboard_shell.dart';
-import 'ui/screens/universities/universities_screen.dart';
+import 'ui/admin_router.dart';
 import 'ui/theme/app_theme.dart';
 
 class AdminApp extends StatelessWidget {
@@ -19,7 +12,7 @@ class AdminApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
+      theme: AppTheme.light(),
       // El enrutador real vive dentro del control de acceso. En web no se debe
       // intentar resolver `/courses` en este MaterialApp exterior.
       initialRoute: '/',
@@ -62,56 +55,28 @@ class _AdminAccessGate extends StatelessWidget {
   }
 }
 
-class _AdminRouter extends StatelessWidget {
+class _AdminRouter extends StatefulWidget {
   const _AdminRouter();
 
   @override
-  Widget build(BuildContext context) {
-    final router = GoRouter(
-      initialLocation: '/universities',
-      routes: [
-        ShellRoute(
-          builder: (context, state, child) => DashboardShell(child: child),
-          routes: [
-            GoRoute(
-              path: '/universities',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: UniversitiesScreen()),
-            ),
-            GoRoute(
-              path: '/courses',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: CoursesScreen()),
-            ),
-            GoRoute(
-              path: '/professions',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: ProfessionsScreen()),
-            ),
-            GoRoute(
-              path: '/questions',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: QuestionsScreen()),
-            ),
-            GoRoute(
-              path: '/exam-templates',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: ExamTemplatesScreen()),
-            ),
-            GoRoute(
-              path: '/settings',
-              pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: SettingsScreen()),
-            ),
-          ],
-        ),
-      ],
-    );
+  State<_AdminRouter> createState() => _AdminRouterState();
+}
 
+class _AdminRouterState extends State<_AdminRouter> {
+  late final _router = buildAdminRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      routerConfig: router,
+      theme: AppTheme.light(),
+      routerConfig: _router,
     );
   }
 }
@@ -146,7 +111,7 @@ class _AccessDeniedScreen extends StatelessWidget {
                   const Icon(
                     Icons.block_rounded,
                     size: 52,
-                    color: Color(0xFFFCA5A5),
+                    color: AppTheme.error,
                   ),
                   const SizedBox(height: 18),
                   const Text(
@@ -157,7 +122,7 @@ class _AccessDeniedScreen extends StatelessWidget {
                   Text(
                     '$email inició sesión, pero no tiene el permiso de administrador.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white.withValues(alpha: .7)),
+                    style: TextStyle(color: AppTheme.ink.withValues(alpha: .7)),
                   ),
                   const SizedBox(height: 20),
                   OutlinedButton.icon(

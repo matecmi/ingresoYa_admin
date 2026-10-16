@@ -35,7 +35,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(24),
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+              border: Border.all(color: AppTheme.ink.withValues(alpha: .08)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: .26),
@@ -50,9 +50,8 @@ class QuestionDetailsSheet extends ConsumerWidget {
                 _topBar(context),
                 TabBar(
                   indicatorColor: AppTheme.accent,
-                  labelColor: Colors.white.withValues(alpha: .92),
-                  unselectedLabelColor: Colors.white.withValues(alpha: .65),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  labelColor: AppTheme.ink.withValues(alpha: .92),
+                  unselectedLabelColor: AppTheme.ink.withValues(alpha: .65),
                   tabs: const [
                     Tab(text: 'Datos'),
                     Tab(text: 'Alternativas'),
@@ -87,7 +86,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
                   ? 'Pregunta'
                   : 'Pregunta N.º ${q.originalNumber} del examen de origen',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: .92),
+                color: AppTheme.ink.withValues(alpha: .92),
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
               ),
@@ -97,7 +96,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             icon: Icon(
               Icons.close_rounded,
-              color: Colors.white.withValues(alpha: .85),
+              color: AppTheme.ink.withValues(alpha: .85),
             ),
           ),
         ],
@@ -158,7 +157,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
       child: Container(
         decoration: AppTheme.cardDeco(
           radius: 18,
-          color: Colors.white.withValues(alpha: .03),
+          color: AppTheme.ink.withValues(alpha: .03),
         ),
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -168,7 +167,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
               child: Text(
                 k,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .70),
+                  color: AppTheme.ink.withValues(alpha: .70),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -178,7 +177,7 @@ class QuestionDetailsSheet extends ConsumerWidget {
               child: Text(
                 v,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .90),
+                  color: AppTheme.ink.withValues(alpha: .90),
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -296,19 +295,19 @@ class _AltRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isCorrect
                     ? const Color(0xFF22C55E).withValues(alpha: .14)
-                    : Colors.white.withValues(alpha: .06),
+                    : AppTheme.ink.withValues(alpha: .06),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isCorrect
                       ? const Color(0xFF22C55E).withValues(alpha: .35)
-                      : Colors.white.withValues(alpha: .10),
+                      : AppTheme.ink.withValues(alpha: .10),
                 ),
               ),
               child: Center(
                 child: Text(
                   alt.value,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .92),
+                    color: AppTheme.ink.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -351,7 +350,7 @@ class _AltRow extends StatelessWidget {
     return Tooltip(
       message: hint,
       child: Material(
-        color: Colors.white.withValues(alpha: .08),
+        color: AppTheme.ink.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
@@ -361,11 +360,11 @@ class _AltRow extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: .10)),
+              border: Border.all(color: AppTheme.ink.withValues(alpha: .10)),
             ),
             child: Icon(
               icon,
-              color: Colors.white.withValues(alpha: .90),
+              color: AppTheme.ink.withValues(alpha: .90),
               size: 18,
             ),
           ),
@@ -395,7 +394,7 @@ class _SectionHeader extends StatelessWidget {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 22,
-        color: Colors.white.withValues(alpha: .03),
+        color: AppTheme.ink.withValues(alpha: .03),
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -407,7 +406,7 @@ class _SectionHeader extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .92),
+                    color: AppTheme.ink.withValues(alpha: .92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -415,7 +414,7 @@ class _SectionHeader extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .65),
+                    color: AppTheme.ink.withValues(alpha: .65),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -452,13 +451,13 @@ class _EmptyCard extends StatelessWidget {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 22,
-        color: Colors.white.withValues(alpha: .03),
+        color: AppTheme.ink.withValues(alpha: .03),
       ),
       padding: const EdgeInsets.all(14),
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: .70),
+          color: AppTheme.ink.withValues(alpha: .70),
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -484,8 +483,8 @@ class _Pill extends StatelessWidget {
       bg = const Color(0xFFEF4444).withValues(alpha: .14);
       border = const Color(0xFFEF4444).withValues(alpha: .35);
     } else {
-      bg = Colors.white.withValues(alpha: .06);
-      border = Colors.white.withValues(alpha: .10);
+      bg = AppTheme.ink.withValues(alpha: .06);
+      border = AppTheme.ink.withValues(alpha: .10);
     }
 
     return Container(
@@ -500,7 +499,7 @@ class _Pill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: .90),
+          color: AppTheme.ink.withValues(alpha: .90),
           fontWeight: FontWeight.w900,
           fontSize: 12,
         ),
@@ -527,14 +526,14 @@ Future<bool> _confirmMini(
       title: Text(
         title,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: .92),
+          color: AppTheme.ink.withValues(alpha: .92),
           fontWeight: FontWeight.w900,
         ),
       ),
       content: Text(
         message,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: .80),
+          color: AppTheme.ink.withValues(alpha: .80),
           height: 1.25,
         ),
       ),
@@ -546,7 +545,7 @@ Future<bool> _confirmMini(
           },
           child: Text(
             'Cancelar',
-            style: TextStyle(color: Colors.white.withValues(alpha: .78)),
+            style: TextStyle(color: AppTheme.ink.withValues(alpha: .78)),
           ),
         ),
         ElevatedButton(

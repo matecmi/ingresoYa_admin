@@ -41,7 +41,7 @@ class _ProfessionsScreenState extends ConsumerState<ProfessionsScreen> {
                   child: Text(
                     'Profesiones',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.92),
+                      color: AppTheme.ink.withOpacity(.92),
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -92,7 +92,7 @@ class _ProfessionsScreenState extends ConsumerState<ProfessionsScreen> {
                       child: Text(
                         'No hay profesiones (o tu búsqueda no encontró resultados).',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(.75),
+                          color: AppTheme.ink.withOpacity(.75),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -143,9 +143,9 @@ class _ProfessionsScreenState extends ConsumerState<ProfessionsScreen> {
 
     await ref.read(professionRepoProvider).delete(p.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Eliminada ✅')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Eliminada ✅')));
   }
 }
 
@@ -172,11 +172,14 @@ class _ProCard extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.06),
+                color: AppTheme.ink.withOpacity(.06),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(.10)),
+                border: Border.all(color: AppTheme.ink.withOpacity(.10)),
               ),
-              child: Icon(Icons.work_rounded, color: Colors.white.withOpacity(.92)),
+              child: Icon(
+                Icons.work_rounded,
+                color: AppTheme.ink.withOpacity(.92),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -188,7 +191,7 @@ class _ProCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.92),
+                      color: AppTheme.ink.withOpacity(.92),
                       fontWeight: FontWeight.w900,
                       fontSize: 14.5,
                     ),
@@ -224,7 +227,8 @@ class _ProfessionFormSheet extends ConsumerStatefulWidget {
   final ProfessionEntity? p;
 
   @override
-  ConsumerState<_ProfessionFormSheet> createState() => _ProfessionFormSheetState();
+  ConsumerState<_ProfessionFormSheet> createState() =>
+      _ProfessionFormSheetState();
 }
 
 class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
@@ -272,7 +276,7 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                     child: Text(
                       isEdit ? 'Editar profesión' : 'Nueva profesión',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(.92),
+                        color: AppTheme.ink.withOpacity(.92),
                         fontWeight: FontWeight.w900,
                         fontSize: 16.5,
                       ),
@@ -280,7 +284,10 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: AppTheme.ink.withOpacity(.85),
+                    ),
                   ),
                 ],
               ),
@@ -299,7 +306,7 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                       title: Text(
                         'Activa',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(.92),
+                          color: AppTheme.ink.withOpacity(.92),
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -348,7 +355,7 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
                         child: Text(
                           _saveError!,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(.92),
+                            color: AppTheme.ink.withOpacity(.92),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -364,23 +371,33 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
     );
   }
 
-  Widget _tf(TextEditingController c, String label, {bool requiredField = false}) {
+  Widget _tf(
+    TextEditingController c,
+    String label, {
+    bool requiredField = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
         controller: c,
-        style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w800),
+        style: TextStyle(
+          color: AppTheme.ink.withOpacity(.92),
+          fontWeight: FontWeight.w800,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+          labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
           filled: true,
-          fillColor: Colors.white.withOpacity(.05),
+          fillColor: AppTheme.ink.withOpacity(.05),
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
@@ -437,6 +454,7 @@ class _ProfessionFormSheetState extends ConsumerState<_ProfessionFormSheet> {
     }
   }
 }
+
 class _IconMiniBtn extends StatelessWidget {
   const _IconMiniBtn({required this.icon, required this.onTap});
   final IconData icon;
@@ -445,7 +463,7 @@ class _IconMiniBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(.08),
+      color: AppTheme.ink.withOpacity(.08),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -455,9 +473,9 @@ class _IconMiniBtn extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.10)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.10)),
           ),
-          child: Icon(icon, color: Colors.white.withOpacity(.90), size: 18),
+          child: Icon(icon, color: AppTheme.ink.withOpacity(.90), size: 18),
         ),
       ),
     );
@@ -482,8 +500,8 @@ class _Pill extends StatelessWidget {
       bg = const Color(0xFFEF4444).withOpacity(.14);
       border = const Color(0xFFEF4444).withOpacity(.35);
     } else {
-      bg = Colors.white.withOpacity(.06);
-      border = Colors.white.withOpacity(.10);
+      bg = AppTheme.ink.withOpacity(.06);
+      border = AppTheme.ink.withOpacity(.10);
     }
 
     return Container(
@@ -498,7 +516,7 @@ class _Pill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: Colors.white.withOpacity(.90),
+          color: AppTheme.ink.withOpacity(.90),
           fontWeight: FontWeight.w900,
           fontSize: 12,
         ),
@@ -506,6 +524,7 @@ class _Pill extends StatelessWidget {
     );
   }
 }
+
 Future<bool> _confirm(
   BuildContext context, {
   required String title,
@@ -525,13 +544,13 @@ Future<bool> _confirm(
         title: Text(
           title,
           style: TextStyle(
-            color: Colors.white.withOpacity(.92),
+            color: AppTheme.ink.withOpacity(.92),
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
           message,
-          style: TextStyle(color: Colors.white.withOpacity(.80), height: 1.25),
+          style: TextStyle(color: AppTheme.ink.withOpacity(.80), height: 1.25),
         ),
         actions: [
           TextButton(
@@ -541,7 +560,7 @@ Future<bool> _confirm(
             },
             child: Text(
               'Cancelar',
-              style: TextStyle(color: Colors.white.withOpacity(.78)),
+              style: TextStyle(color: AppTheme.ink.withOpacity(.78)),
             ),
           ),
           ElevatedButton(
@@ -556,7 +575,10 @@ Future<bool> _confirm(
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(primary, style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              primary,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       );
@@ -565,6 +587,7 @@ Future<bool> _confirm(
 
   return res == true;
 }
+
 class _SearchBar extends StatelessWidget {
   const _SearchBar({
     required this.controller,
@@ -583,19 +606,19 @@ class _SearchBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Row(
         children: [
-          Icon(Icons.search_rounded, color: Colors.white.withOpacity(.78)),
+          Icon(Icons.search_rounded, color: AppTheme.ink.withOpacity(.78)),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: AppTheme.ink.withOpacity(.92),
                 fontWeight: FontWeight.w800,
               ),
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre, sigla, ubicación…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -621,32 +644,12 @@ class _GlassBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(.10),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.14)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white.withOpacity(.92), size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }
