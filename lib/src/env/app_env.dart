@@ -18,6 +18,7 @@ class AppEnv {
   static const String syncSettingsDocument = 'sync';
   static const String studyReviewRulesDocument = 'study';
   static const String simulatorSettingsDocument = 'simulator';
+  static const String xpSettingsDocument = 'xp';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =

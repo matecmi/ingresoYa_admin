@@ -1,3 +1,4 @@
+import type { XpAward } from "./xp";
 import type {
   DocumentReference,
   Firestore,
@@ -154,6 +155,8 @@ export interface SubmittedAttemptResponse {
   masteryUpdate?: SubtopicContext & { mastered: true };
   /** Score and per-course/topic results of a Simulator attempt. */
   simulator?: SimulatorResult;
+  /** XP granted by this submission (docs/xp_contract.md). */
+  xp?: XpAward;
 }
 
 export interface AttemptReview {
@@ -176,6 +179,7 @@ export interface PartCompletionResponse {
   status: PartProgressStatus;
   missingSections: PartSection[];
   examAttemptId?: string;
+  xp?: XpAward;
 }
 
 interface PendingSubtopicAward {

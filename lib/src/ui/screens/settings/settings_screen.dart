@@ -7,6 +7,8 @@ import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/settings/plan_settings_card.dart';
 import 'package:ingresoya_admin/src/ui/screens/settings/simulator_settings_card.dart';
 import 'package:ingresoya_admin/src/ui/screens/settings/study_review_rules_card.dart';
+import 'package:ingresoya_admin/src/ui/screens/settings/xp_settings_card.dart';
+import 'package:ingresoya_admin/src/ui/screens/settings/xp_student_tool.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 /// «Configuración»: values the student app reads at startup.
@@ -84,6 +86,22 @@ class SettingsScreen extends ConsumerWidget {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 720),
                         child: const PlanSettingsSection(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: const XpSettingsSection(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: const XpStudentTool(),
                       ),
                     ),
                   ],

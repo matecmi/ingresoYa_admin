@@ -6,6 +6,7 @@ import { db } from "../src/admin";
 import { ExamAttemptService, type AttemptQuestionSnapshot } from "../src/attempt_service";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
+import { XpService } from "../src/xp";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
 const service = new ExamAttemptService(db, config);
@@ -215,9 +216,43 @@ test("submitting builds topic stats; the plan focuses on the weak topic", async 
   assert.ok((count(daily.simulator?.questionCourseIds ?? []).get("sim-course-a") ?? 0) >= 6);
 });
 
+test("XP: a practice gives session, fresh answers and streak once; repeats and rushing give none", async () => {
+  await seed();
+  const xp = new XpService(db, config);
+  const user = db.collection(config.collections.users).doc(uid);
+  await user.collection("simulatorPlan").doc("current").set({ sessionsPerWeek: 1, mockDay: 6 });
+  const first = await service.create(uid, {
+    requestId: "xp-1", purpose: "practice", mode: "course",
+    courseIds: ["sim-course-a"], topicIds: [], size: "short", timed: true
+  });
+  assert.equal(((await db.collection(config.collections.attempts).doc(first.attemptId).get()).data()?.xpFreshQuestionIds as string[]).length, 10);
+  await service.start(uid, first.attemptId);
+  // Ten minutes used: well above the 5 s per question minimum.
+  await db.collection(config.collections.attempts).doc(first.attemptId).update({ startedAtMs: Date.now() - 10 * 60 * 1000 });
+  const graded = await service.submit(uid, { attemptId: first.attemptId, answers: answersFor(first.questions, 7) });
+  assert.equal(graded.simulator?.correct, 7);
+  const award = await xp.afterAttempt(uid, first.attemptId);
+  assert.deepEqual(award?.items.map((item) => [item.type, item.xp]), [
+    ["simulator_session", 10],
+    ["correct_answers", 7],
+    ["streak_day", 5],
+    ["weekly_goal", 50]
+  ]);
+  assert.equal(award?.total, 72);
+  assert.equal(await xp.afterAttempt(uid, first.attemptId), undefined);
+  assert.equal((await user.collection("xp").doc("current").get()).data()?.total, 72);
+  assert.equal((await user.collection("xpEvents").doc(`session_${first.attemptId}`).get()).data()?.xp, 10);
+
+  // «Mis errores» repeats seen questions and is answered too fast: nothing.
+  const rushed = await service.create(uid, { requestId: "xp-2", purpose: "practice", mode: "mistakes", fromAttemptId: first.attemptId, timed: false });
+  await service.start(uid, rushed.attemptId);
+  await service.submit(uid, { attemptId: rushed.attemptId, answers: answersFor(rushed.questions, 3) });
+  assert.equal(await xp.afterAttempt(uid, rushed.attemptId), undefined);
+});
+
 async function seed(): Promise<void> {
   const user = db.collection(config.collections.users).doc(uid);
-  for (const name of ["recentQuestions", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats"]) {
+  for (const name of ["recentQuestions", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats", "xp", "xpEvents", "simulatorPlan"]) {
     const docs = await user.collection(name).get();
     const cleanup = db.batch();
     docs.docs.forEach((doc) => cleanup.delete(doc.ref));

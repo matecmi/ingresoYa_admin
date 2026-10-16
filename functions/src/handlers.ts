@@ -13,6 +13,7 @@ import {
 import { asHttpsError, unauthenticated } from "./errors";
 import { safeError, safeLog } from "./logging";
 import { OperationMetrics } from "./operation_metrics";
+import { XpService, type XpAward } from "./xp";
 import {
   parseCreateExamAttempt,
   parseGetAchievementSummary,
@@ -35,10 +36,26 @@ export function requireUid(request: CallableRequest<unknown>): string {
  */
 export function createCallableHandlers(config: BackendConfig) {
   const attempts = new ExamAttemptService(db, config);
+  const xp = new XpService(db, config);
+  /** XP never breaks the operation it rewards: a failure is logged and retried by the next call. */
+  async function grantXp(
+    uid: string,
+    run: () => Promise<XpAward | undefined>,
+    metrics: OperationMetrics
+  ): Promise<{ xp?: XpAward }> {
+    try {
+      const award = await run();
+      if (award !== undefined) safeLog("xp_granted", uid, { ...metrics.logFields(), gained: award.gained });
+      return award === undefined ? {} : { xp: award };
+    } catch (error) {
+      safeError("xp_grant_failed", error, metrics.logFields(), { environment: config.environment, uid });
+      return {};
+    }
+  }
   return {
     async reconcileSubtopicAchievement(
       request: CallableRequest<unknown>
-    ): Promise<{ complete: boolean; awarded: boolean; missingPartIds: string[] }> {
+    ): Promise<{ complete: boolean; awarded: boolean; missingPartIds: string[]; xp?: XpAward }> {
       const metrics = new OperationMetrics();
       try {
         const uid = requireUid(request);
@@ -48,7 +65,7 @@ export function createCallableHandlers(config: BackendConfig) {
           ...metrics.logFields(),
           awarded: response.awarded
         });
-        return response;
+        return { ...response, ...await grantXp(uid, () => xp.afterGuide(uid, { subtopicId: input.subtopicId }, metrics), metrics) };
       } catch (error) {
         safeError("subtopic_achievement_reconcile_rejected", error, metrics.logFields(), {
           environment: config.environment,
@@ -153,7 +170,7 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("part_section_completion_requested", uid);
         const response = await attempts.recordPartSectionCompletion(uid, input, metrics);
         safeLog("part_section_completion_completed", uid, metrics.logFields());
-        return response;
+        return { ...response, ...await grantXp(uid, () => xp.afterGuide(uid, { partId: input.partId }, metrics), metrics) };
       } catch (error) {
         safeError("part_section_completion_rejected", error, metrics.logFields(), {
           environment: config.environment,
@@ -172,7 +189,7 @@ export function createCallableHandlers(config: BackendConfig) {
         safeLog("exam_attempt_submit_requested", uid);
         const response = await attempts.submit(uid, input, metrics);
         safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
-        return response;
+        return { ...response, ...await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics), metrics) };
       } catch (error) {
         safeError("exam_attempt_submit_rejected", error, metrics.logFields(), {
           environment: config.environment,
