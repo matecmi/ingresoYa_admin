@@ -315,6 +315,11 @@ test("reto del día: same questions for the university, one attempt, answers hid
   assert.equal(saved?.correct, 7);
   assert.equal(saved?.universityId, universityId);
   assert.equal(saved?.professionId, "sim-profession");
+  // «Practicar mis errores» of today's challenge would reveal the answers.
+  await assert.rejects(
+    service.create(uid, { requestId: "ch-mistakes", purpose: "practice", mode: "mistakes", fromAttemptId: first.attemptId, timed: false }),
+    hasReason("failed-precondition", "mistakes_unavailable")
+  );
   await rankings.delete();
 });
 

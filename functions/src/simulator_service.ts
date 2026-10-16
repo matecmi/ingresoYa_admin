@@ -801,6 +801,10 @@ export class SimulatorService {
       data?.status !== "submitted") {
       throw failedPrecondition("That attempt cannot be practiced again.", { reason: "mistakes_unavailable" });
     }
+    // Practicing today's challenge mistakes would reveal its answers.
+    if (challengeLocked(simulator)) {
+      throw failedPrecondition("The challenge answers are hidden until tomorrow.", { reason: "mistakes_unavailable" });
+    }
     const attempt = projectAttemptResponse(input.fromAttemptId, data);
     const keys = await this.db.getAll(
       ...attempt.questions.map((question) =>
