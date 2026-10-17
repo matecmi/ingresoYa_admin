@@ -57,7 +57,7 @@ const adminNav = <AdminNavItem>[
           'El estado del contenido de un vistazo: lo que hoy bloquea al alumno, '
           'lo que le resta calidad y los accesos a lo que más se usa.',
       shortcuts: [
-        ('Cargar preguntas una tras otra', '/questions'),
+        ('Cargar preguntas una tras otra', '/questions/quick'),
         ('Ver los cursos', '/courses'),
       ],
       guideAnchor: 'admin-inicio',
@@ -90,7 +90,7 @@ const adminNav = <AdminNavItem>[
           'Simulador y reto del día. Puedes buscarlas, editarlas o cargar '
           'nuevas.',
       shortcuts: [
-        ('Cargar preguntas una tras otra', '/questions'),
+        ('Cargar preguntas una tras otra', '/questions/quick'),
         ('Importar un examen completo', '/universities'),
       ],
       guideAnchor: 'admin-preguntas',

@@ -37,7 +37,7 @@ class HomeScreen extends ConsumerWidget {
                   title: 'Cargar preguntas',
                   text: 'Pega o escribe, y sigue con la siguiente',
                   icon: Icons.bolt_rounded,
-                  onTap: () => context.go('/questions'),
+                  onTap: () => context.go('/questions/quick'),
                 ),
               if (can(StaffSection.courses))
                 _QuickCard(
