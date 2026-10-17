@@ -4,7 +4,6 @@ import 'package:ingresoya_admin/src/ui/widgets/mini_btn.dart';
 import 'package:ingresoya_admin/src/ui/widgets/pill_pro.dart';
 import 'package:ingresoya_admin/src/ui/widgets/pill_tone.dart';
 
-
 class RowCard extends StatelessWidget {
   const RowCard({
     required this.icon,
@@ -30,7 +29,7 @@ class RowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = selected ? AppTheme.accent : Colors.white.withOpacity(.08);
+    final border = selected ? AppTheme.accent : AppTheme.ink.withOpacity(.08);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -77,12 +76,12 @@ class RowCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: selected
                               ? AppTheme.accent.withOpacity(.20)
-                              : Colors.white.withOpacity(.06),
+                              : AppTheme.ink.withOpacity(.06),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: selected
                                 ? AppTheme.accent.withOpacity(.50)
-                                : Colors.white.withOpacity(.10),
+                                : AppTheme.ink.withOpacity(.10),
                           ),
                         ),
                         child: Icon(
@@ -115,7 +114,7 @@ class RowCard extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(.70),
+                                color: AppTheme.ink.withOpacity(.70),
                                 fontWeight: FontWeight.w700,
                                 height: 1.2,
                                 fontSize: 12.5,

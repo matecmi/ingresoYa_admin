@@ -215,7 +215,7 @@ class _SimulatorSettingsCardState extends ConsumerState<SimulatorSettingsCard> {
   @override
   Widget build(BuildContext context) {
     final record = widget.record;
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     final digits = [FilteringTextInputFormatter.digitsOnly];
     Widget toggle(
       String key,

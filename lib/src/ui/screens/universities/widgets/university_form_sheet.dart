@@ -93,7 +93,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withOpacity(.08)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.26),
@@ -103,7 +103,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             ],
           ),
           child: Form(
-             key: _formKey,
+            key: _formKey,
             child: ListView(
               controller: scroll,
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
@@ -111,11 +111,11 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               children: [
                 _topBar(isEdit),
                 const SizedBox(height: 10),
-            
+
                 // ✅ Compact sections
                 _sectionTitle('Datos principales'),
                 const SizedBox(height: 10),
-            
+
                 LayoutBuilder(
                   builder: (context, c) {
                     final twoCols = c.maxWidth >= 720; // web/tablet
@@ -131,7 +131,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         ],
                       );
                     }
-            
+
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -146,21 +146,18 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            children: [
-                              _tf(acronym, 'Sigla'),
-                              _activePill(),
-                            ],
+                            children: [_tf(acronym, 'Sigla'), _activePill()],
                           ),
                         ),
                       ],
                     );
                   },
                 ),
-            
+
                 const SizedBox(height: 12),
                 _sectionTitle('Ubicación'),
                 const SizedBox(height: 10),
-            
+
                 LayoutBuilder(
                   builder: (context, c) {
                     final twoCols = c.maxWidth >= 720;
@@ -175,29 +172,32 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                         ],
                       );
                     }
-            
+
                     return Column(
                       children: [
-                        _row2(_tf(department, 'Departamento'), _tf(province, 'Provincia')),
+                        _row2(
+                          _tf(department, 'Departamento'),
+                          _tf(province, 'Provincia'),
+                        ),
                         _row2(_tf(district, 'Distrito'), _tf(ubigeo, 'Ubigeo')),
                         _tf(location, 'Location'),
                       ],
                     );
                   },
                 ),
-            
+
                 const SizedBox(height: 12),
                 _sectionTitle('Contacto / Media'),
                 const SizedBox(height: 10),
                 _tf(address, 'Dirección'),
                 _tf(urlImage, 'URL Imagen'),
-            
+
                 const SizedBox(height: 12),
                 _linksEditor(),
-            
+
                 const SizedBox(height: 16),
                 _primaryActions(isEdit),
-            
+
                 const SizedBox(height: 18),
                 _jsonImportSection(isEdit),
               ],
@@ -215,7 +215,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
           child: Text(
             isEdit ? 'Editar universidad' : 'Nueva universidad',
             style: TextStyle(
-              color: Colors.white.withOpacity(.92),
+              color: AppTheme.ink.withOpacity(.92),
               fontWeight: FontWeight.w900,
               fontSize: 16.5,
             ),
@@ -223,7 +223,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+          icon: Icon(Icons.close_rounded, color: AppTheme.ink.withOpacity(.85)),
         ),
       ],
     );
@@ -233,7 +233,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
     return Text(
       t,
       style: TextStyle(
-        color: Colors.white.withOpacity(.92),
+        color: AppTheme.ink.withOpacity(.92),
         fontWeight: FontWeight.w900,
       ),
     );
@@ -249,28 +249,31 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
       child: TextFormField(
         controller: c,
         style: TextStyle(
-          color: Colors.white.withOpacity(.92),
+          color: AppTheme.ink.withOpacity(.92),
           fontWeight: FontWeight.w800,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+          labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
           filled: true,
-          fillColor: Colors.white.withOpacity(.05),
+          fillColor: AppTheme.ink.withOpacity(.05),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide(color: AppTheme.accent.withOpacity(.65)),
           ),
           isDense: true, // ✅ compacto
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
         ),
         validator: (v) {
           if (!requiredField) return null;
@@ -296,9 +299,9 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.05),
+        color: AppTheme.ink.withOpacity(.05),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(.10)),
+        border: Border.all(color: AppTheme.ink.withOpacity(.10)),
       ),
       child: Row(
         children: [
@@ -314,7 +317,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             child: Text(
               active ? 'Activa' : 'Inactiva',
               style: TextStyle(
-                color: Colors.white.withOpacity(.90),
+                color: AppTheme.ink.withOpacity(.90),
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -334,7 +337,10 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
 
   Widget _linksEditor() {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 20, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 20,
+        color: AppTheme.ink.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +352,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             Text(
               'Aún no agregaste links.',
               style: TextStyle(
-                color: Colors.white.withOpacity(.60),
+                color: AppTheme.ink.withOpacity(.60),
                 fontWeight: FontWeight.w700,
               ),
             )
@@ -356,9 +362,9 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               runSpacing: 8,
               children: links.map((l) {
                 return Chip(
-                  backgroundColor: Colors.white.withOpacity(.06),
+                  backgroundColor: AppTheme.ink.withOpacity(.06),
                   shape: StadiumBorder(
-                    side: BorderSide(color: Colors.white.withOpacity(.10)),
+                    side: BorderSide(color: AppTheme.ink.withOpacity(.10)),
                   ),
                   label: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 260),
@@ -366,12 +372,12 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                       l,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(.90),
+                        color: AppTheme.ink.withOpacity(.90),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  deleteIconColor: Colors.white.withOpacity(.75),
+                  deleteIconColor: AppTheme.ink.withOpacity(.75),
                   onDeleted: () {
                     setState(() => links.remove(l));
                     HapticFeedback.selectionClick();
@@ -387,23 +393,30 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                 child: TextField(
                   controller: _linkCtrl,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: AppTheme.ink.withOpacity(.92),
                     fontWeight: FontWeight.w800,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Agregar link (https://...)',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                    hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(.05),
+                    fillColor: AppTheme.ink.withOpacity(.05),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: AppTheme.ink.withOpacity(.10),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                      borderSide: BorderSide(
+                        color: AppTheme.ink.withOpacity(.10),
+                      ),
                     ),
                   ),
                 ),
@@ -455,7 +468,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
 
   Widget _miniIconBtn({required IconData icon, required VoidCallback onTap}) {
     return Material(
-      color: Colors.white.withOpacity(.08),
+      color: AppTheme.ink.withOpacity(.08),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -465,9 +478,9 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
           height: 44,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.10)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.10)),
           ),
-          child: Icon(icon, color: Colors.white.withOpacity(.90)),
+          child: Icon(icon, color: AppTheme.ink.withOpacity(.90)),
         ),
       ),
     );
@@ -480,7 +493,10 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
     }
 
     return Container(
-      decoration: AppTheme.cardDeco(radius: 20, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 20,
+        color: AppTheme.ink.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,7 +515,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
             Text(
               'Activa para pegar una lista de universidades y subirlas a Firestore.',
               style: TextStyle(
-                color: Colors.white.withOpacity(.65),
+                color: AppTheme.ink.withOpacity(.65),
                 fontWeight: FontWeight.w700,
               ),
             )
@@ -509,7 +525,7 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               'Formato esperado: una LISTA JSON de objetos. Ej:\n'
               '[{"idDoc":"uni-1","name":"UNMSM","acronym":"UNMSM","active":true,"links":["https://..."]}]',
               style: TextStyle(
-                color: Colors.white.withOpacity(.60),
+                color: AppTheme.ink.withOpacity(.60),
                 fontWeight: FontWeight.w700,
                 height: 1.25,
               ),
@@ -520,22 +536,22 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
               minLines: 7,
               maxLines: 12,
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: AppTheme.ink.withOpacity(.92),
                 fontWeight: FontWeight.w700,
                 fontFamily: 'monospace',
               ),
               decoration: InputDecoration(
                 hintText: 'Pega aquí el JSON…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                 filled: true,
-                fillColor: Colors.white.withOpacity(.05),
+                fillColor: AppTheme.ink.withOpacity(.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                  borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+                  borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
                 ),
               ),
               onChanged: (_) {
@@ -554,12 +570,14 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFEF4444).withOpacity(.12),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFEF4444).withOpacity(.35)),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withOpacity(.35),
+                  ),
                 ),
                 child: Text(
                   _jsonError!,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: AppTheme.ink.withOpacity(.92),
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -570,12 +588,14 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF22C55E).withOpacity(.12),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFF22C55E).withOpacity(.35)),
+                  border: Border.all(
+                    color: const Color(0xFF22C55E).withOpacity(.35),
+                  ),
                 ),
                 child: Text(
                   'JSON válido ✅ Items: $_jsonValidCount',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: AppTheme.ink.withOpacity(.92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -593,13 +613,13 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(.10),
+                      backgroundColor: AppTheme.ink.withOpacity(.10),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      side: BorderSide(color: Colors.white.withOpacity(.14)),
+                      side: BorderSide(color: AppTheme.ink.withOpacity(.14)),
                     ),
                   ),
                 ),
@@ -676,13 +696,13 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
   Future<void> _importJson() async {
     try {
       final list = _parseJsonListOrThrow(_jsonCtrl.text.trim());
-      await ref.read(universityRepoProvider).bulkUpsertUniversitiesFromJsonList(list);
+      await ref
+          .read(universityRepoProvider)
+          .bulkUpsertUniversitiesFromJsonList(list);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Importadas/actualizadas: ${list.length} ✅'),
-        ),
+        SnackBar(content: Text('Importadas/actualizadas: ${list.length} ✅')),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -713,20 +733,23 @@ class _UniversityFormSheetState extends ConsumerState<UniversityFormSheet> {
         links: links,
       );
     } else {
-      await repo.updateUniversity(widget.university!.id, patch: {
-        'name': name.text.trim(),
-        'acronym': acronym.text.trim(),
-        'active': active,
-        'slogan': slogan.text.trim(),
-        'address': address.text.trim(),
-        'urlImage': urlImage.text.trim(),
-        'location': location.text.trim(),
-        'ubigeo': ubigeo.text.trim(),
-        'department': department.text.trim(),
-        'province': province.text.trim(),
-        'district': district.text.trim(),
-        'links': links,
-      });
+      await repo.updateUniversity(
+        widget.university!.id,
+        patch: {
+          'name': name.text.trim(),
+          'acronym': acronym.text.trim(),
+          'active': active,
+          'slogan': slogan.text.trim(),
+          'address': address.text.trim(),
+          'urlImage': urlImage.text.trim(),
+          'location': location.text.trim(),
+          'ubigeo': ubigeo.text.trim(),
+          'department': department.text.trim(),
+          'province': province.text.trim(),
+          'district': district.text.trim(),
+          'links': links,
+        },
+      );
     }
 
     if (!mounted) return;

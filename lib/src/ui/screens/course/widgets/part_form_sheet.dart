@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
@@ -774,9 +775,9 @@ class _EditorCard extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(.035),
+      color: AppTheme.ink.withOpacity(.035),
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: Colors.white.withOpacity(.1)),
+      border: Border.all(color: AppTheme.ink.withOpacity(.1)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -925,7 +926,7 @@ class _EntryDialogState extends State<_EntryDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.06),
+                  color: AppTheme.ink.withOpacity(.06),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Math.tex(
@@ -980,7 +981,7 @@ class _MobilePartPreview extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFF0A0F2C),
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: Colors.white.withOpacity(.14)),
+      border: Border.all(color: AppTheme.ink.withOpacity(.14)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -996,7 +997,7 @@ class _MobilePartPreview extends StatelessWidget {
         ),
         Text(
           '$difficulty${minutes.isEmpty ? '' : ' • $minutes min'}',
-          style: TextStyle(color: Colors.white.withOpacity(.65)),
+          style: TextStyle(color: AppTheme.ink.withOpacity(.65)),
         ),
         if (summary.trim().isNotEmpty)
           Padding(
@@ -1119,7 +1120,7 @@ class _MobilePartPreview extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.05),
+        color: AppTheme.ink.withOpacity(.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1130,7 +1131,7 @@ class _MobilePartPreview extends StatelessWidget {
           if (body.trim().isNotEmpty)
             MathText(
               body,
-              style: TextStyle(color: Colors.white.withOpacity(.72)),
+              style: TextStyle(color: AppTheme.ink.withOpacity(.72)),
             ),
           ...details
               .where((value) => value.trim().isNotEmpty)

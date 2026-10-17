@@ -35,7 +35,7 @@ class CourseEntityFormSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.card,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(color: Colors.white.withOpacity(.09)),
+          border: Border.all(color: AppTheme.ink.withOpacity(.09)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(.30),
@@ -53,7 +53,7 @@ class CourseEntityFormSheet extends StatelessWidget {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.22),
+                  color: AppTheme.ink.withOpacity(.22),
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -84,27 +84,29 @@ class CourseEntityFormSheet extends StatelessWidget {
                     IconButton(
                       tooltip: 'Cerrar',
                       onPressed: saving ? null : () => Navigator.pop(context),
-                      icon: Icon(Icons.close_rounded,
-                          color: Colors.white.withOpacity(.82)),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.ink.withOpacity(.82),
+                      ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.white.withOpacity(.08)),
+              Divider(height: 1, color: AppTheme.ink.withOpacity(.08)),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
                   physics: const BouncingScrollPhysics(),
-                  children: [
-                    _FormSection(child: child),
-                  ],
+                  children: [_FormSection(child: child)],
                 ),
               ),
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                 decoration: BoxDecoration(
                   color: AppTheme.card,
-                  border: Border(top: BorderSide(color: Colors.white.withOpacity(.08))),
+                  border: Border(
+                    top: BorderSide(color: AppTheme.ink.withOpacity(.08)),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -112,8 +114,10 @@ class CourseEntityFormSheet extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: saving ? null : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white.withOpacity(.88),
-                          side: BorderSide(color: Colors.white.withOpacity(.18)),
+                          foregroundColor: AppTheme.ink.withOpacity(.88),
+                          side: BorderSide(
+                            color: AppTheme.ink.withOpacity(.18),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: const Text('Cancelar'),
@@ -134,8 +138,10 @@ class CourseEntityFormSheet extends StatelessWidget {
                                 ),
                               )
                             : const Icon(Icons.save_rounded, size: 19),
-                        label: Text(saving ? 'Guardando...' : 'Guardar',
-                            style: const TextStyle(fontWeight: FontWeight.w900)),
+                        label: Text(
+                          saving ? 'Guardando...' : 'Guardar',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.accent,
                           foregroundColor: Colors.white,
@@ -154,12 +160,12 @@ class CourseEntityFormSheet extends StatelessWidget {
   }
 
   static final _titleStyle = TextStyle(
-    color: Colors.white.withOpacity(.94),
+    color: AppTheme.ink.withOpacity(.94),
     fontSize: 18,
     fontWeight: FontWeight.w900,
   );
   static final _descriptionStyle = TextStyle(
-    color: Colors.white.withOpacity(.62),
+    color: AppTheme.ink.withOpacity(.62),
     fontWeight: FontWeight.w600,
   );
 }
@@ -170,11 +176,11 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: AppTheme.cardDeco(
-          radius: 20,
-          color: Colors.white.withOpacity(.035),
-        ),
-        child: child,
-      );
+    padding: const EdgeInsets.all(14),
+    decoration: AppTheme.cardDeco(
+      radius: 20,
+      color: AppTheme.ink.withOpacity(.035),
+    ),
+    child: child,
+  );
 }

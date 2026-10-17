@@ -13,7 +13,7 @@ class EmptyCard extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white.withOpacity(.75),
+          color: AppTheme.ink.withOpacity(.75),
           fontWeight: FontWeight.w700,
         ),
       ),

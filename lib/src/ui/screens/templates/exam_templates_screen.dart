@@ -175,7 +175,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
                   width: 46,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: AppTheme.ink.withOpacity(.24),
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
@@ -193,7 +193,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
               const SizedBox(height: 6),
               Text(
                 'Cada guardado crea una revisión inmutable; los intentos existentes no cambian.',
-                style: TextStyle(color: Colors.white.withValues(alpha: .68)),
+                style: TextStyle(color: AppTheme.ink.withValues(alpha: .68)),
               ),
               const SizedBox(height: 20),
               _section('Datos generales', [
@@ -311,9 +311,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
     Text(
       'Suma actual: $_blockCount / $_questionCount preguntas',
       style: TextStyle(
-        color: _blockCount == _questionCount
-            ? const Color(0xFF86EFAC)
-            : const Color(0xFFFCD34D),
+        color: _blockCount == _questionCount ? AppTheme.success : AppTheme.warn,
         fontWeight: FontWeight.w800,
       ),
     ),
@@ -337,7 +335,7 @@ class _ExamTemplateFormSheetState extends ConsumerState<ExamTemplateFormSheet> {
   Widget _fixedEditor() => _section('Preguntas fijas', [
     Text(
       'La cantidad debe coincidir con las revisiones listadas.',
-      style: TextStyle(color: Colors.white.withValues(alpha: .7)),
+      style: TextStyle(color: AppTheme.ink.withValues(alpha: .7)),
     ),
     const SizedBox(height: 8),
     for (final item in _fixed)
@@ -600,7 +598,7 @@ class _BlockEditorState extends State<_BlockEditor> {
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 12),
-    color: Colors.white.withValues(alpha: .04),
+    color: AppTheme.ink.withValues(alpha: .04),
     child: Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -816,7 +814,7 @@ class _Header extends StatelessWidget {
           child: Text(
             'Plantillas de examen',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .94),
+              color: AppTheme.ink.withValues(alpha: .94),
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),

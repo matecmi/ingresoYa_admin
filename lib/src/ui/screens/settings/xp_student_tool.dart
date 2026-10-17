@@ -47,7 +47,7 @@ class _XpStudentToolState extends ConsumerState<XpStudentTool> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: AppTheme.cardDeco(),
@@ -127,7 +127,7 @@ class _StudentLedger extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(xpRepoProvider);
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: StreamBuilder<XpSettings>(

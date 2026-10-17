@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ingresoya_admin/src/domain/entities/topic_entity.dart';
-import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart' show confirmPro;
+import 'package:ingresoya_admin/src/ui/widgets/confirm_pro.dart'
+    show confirmPro;
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'package:ingresoya_admin/src/ui/widgets/dialog_tf.dart';
 import 'package:ingresoya_admin/src/ui/widgets/empty_card.dart';
@@ -78,8 +78,12 @@ class TopicsTab extends StatelessWidget {
                     } catch (error) {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error'.replaceFirst('Bad state: ', ''))),
-      );
+                        SnackBar(
+                          content: Text(
+                            '$error'.replaceFirst('Bad state: ', ''),
+                          ),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -108,29 +112,55 @@ class TopicsTab extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(editing == null ? 'Nuevo tema' : 'Editar tema',
-            style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900)),
+        title: Text(
+          editing == null ? 'Nuevo tema' : 'Editar tema',
+          style: TextStyle(
+            color: AppTheme.ink.withOpacity(.92),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            DialogTF(ctrl: name, label: 'Nombre *'),
-            DialogTF(ctrl: orderCtrl, label: 'Orden (int) *', keyboardType: TextInputType.number),
-            DialogTF(ctrl: summary, label: 'Resumen'),
-            DialogTF(ctrl: desc, label: 'Descripción', maxLines: 3),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DialogTF(ctrl: name, label: 'Nombre *'),
+              DialogTF(
+                ctrl: orderCtrl,
+                label: 'Orden (int) *',
+                keyboardType: TextInputType.number,
+              ),
+              DialogTF(ctrl: summary, label: 'Resumen'),
+              DialogTF(ctrl: desc, label: 'Descripción', maxLines: 3),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () async {
               final cleanName = name.text.trim();
               final order = int.tryParse(orderCtrl.text.trim()) ?? 0;
               if (cleanName.isEmpty || order <= 0) return;
-              await repo.upsertTopic(courseId: courseId, topicId: editing?.id, name: cleanName,
-                  description: desc.text.trim(), order: order, summary: summary.text.trim());
+              await repo.upsertTopic(
+                courseId: courseId,
+                topicId: editing?.id,
+                name: cleanName,
+                description: desc.text.trim(),
+                order: order,
+                summary: summary.text.trim(),
+              );
               HapticFeedback.selectionClick();
-              if (dialogContext.mounted) Navigator.of(dialogContext, rootNavigator: true).pop();
+              if (dialogContext.mounted)
+                Navigator.of(dialogContext, rootNavigator: true).pop();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Guardar'),
           ),
         ],

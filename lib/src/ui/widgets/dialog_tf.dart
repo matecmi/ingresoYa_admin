@@ -26,14 +26,14 @@ class DialogTF extends StatelessWidget {
         maxLines: maxLines,
         onChanged: onChanged,
         style: TextStyle(
-          color: Colors.white.withOpacity(.92),
+          color: AppTheme.ink.withOpacity(.92),
           fontWeight: FontWeight.w800,
         ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+          labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
           filled: true,
-          fillColor: Colors.white.withOpacity(.05),
+          fillColor: AppTheme.ink.withOpacity(.05),
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -41,11 +41,11 @@ class DialogTF extends StatelessWidget {
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+            borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),

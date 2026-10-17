@@ -21,7 +21,7 @@ class SectionHeader extends StatelessWidget {
     return Container(
       decoration: AppTheme.cardDeco(
         radius: 22,
-        color: Colors.white.withOpacity(.03),
+        color: AppTheme.ink.withOpacity(.03),
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -30,11 +30,11 @@ class SectionHeader extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(.06),
+              color: AppTheme.ink.withOpacity(.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(.10)),
+              border: Border.all(color: AppTheme.ink.withOpacity(.10)),
             ),
-            child: Icon(icon, color: Colors.white.withOpacity(.92)),
+            child: Icon(icon, color: AppTheme.ink.withOpacity(.92)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -44,7 +44,7 @@ class SectionHeader extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.92),
+                    color: AppTheme.ink.withOpacity(.92),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -54,7 +54,7 @@ class SectionHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.60),
+                    color: AppTheme.ink.withOpacity(.60),
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),

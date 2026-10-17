@@ -38,9 +38,8 @@ class UniversityDetailsSheet extends ConsumerWidget {
                   child: TabBar(
                     isScrollable: true,
                     indicatorColor: AppTheme.accent,
-                    labelColor: Colors.white.withOpacity(.92),
-                    unselectedLabelColor: Colors.white.withOpacity(.60),
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+                    labelColor: AppTheme.ink.withOpacity(.92),
+                    unselectedLabelColor: AppTheme.ink.withOpacity(.60),
                     tabs: const [
                       Tab(text: 'Datos'),
                       Tab(text: 'Links'),
@@ -87,7 +86,7 @@ class _TopBar extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: AppTheme.ink.withOpacity(.92),
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
               ),
@@ -95,8 +94,11 @@ class _TopBar extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
-          )
+            icon: Icon(
+              Icons.close_rounded,
+              color: AppTheme.ink.withOpacity(.85),
+            ),
+          ),
         ],
       ),
     );
@@ -114,7 +116,10 @@ class _DatosTab extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       children: [
         Container(
-          decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+          decoration: AppTheme.cardDeco(
+            radius: 22,
+            color: AppTheme.ink.withOpacity(.03),
+          ),
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,8 +129,12 @@ class _DatosTab extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _Pill(text: u.acronym.isEmpty ? '—' : u.acronym),
-                  _Pill(text: u.active ? 'Activa' : 'Inactiva', tone: u.active ? _PillTone.good : _PillTone.bad),
-                  if (u.department.trim().isNotEmpty || u.province.trim().isNotEmpty)
+                  _Pill(
+                    text: u.active ? 'Activa' : 'Inactiva',
+                    tone: u.active ? _PillTone.good : _PillTone.bad,
+                  ),
+                  if (u.department.trim().isNotEmpty ||
+                      u.province.trim().isNotEmpty)
                     _Pill(text: '${u.department} • ${u.province}'),
                   if (u.district.trim().isNotEmpty) _Pill(text: u.district),
                 ],
@@ -136,7 +145,7 @@ class _DatosTab extends StatelessWidget {
                 Text(
                   u.slogan,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(.80),
+                    color: AppTheme.ink.withOpacity(.80),
                     fontWeight: FontWeight.w800,
                     height: 1.25,
                   ),
@@ -152,7 +161,7 @@ class _DatosTab extends StatelessWidget {
               Text(
                 'Links',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
+                  color: AppTheme.ink.withOpacity(.92),
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -160,7 +169,10 @@ class _DatosTab extends StatelessWidget {
               if ((u.links ?? const []).isEmpty)
                 Text(
                   'Sin links',
-                  style: TextStyle(color: Colors.white.withOpacity(.60), fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: AppTheme.ink.withOpacity(.60),
+                    fontWeight: FontWeight.w700,
+                  ),
                 )
               else
                 Wrap(
@@ -204,51 +216,59 @@ class _LinksTabState extends ConsumerState<_LinksTab> {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(16),
+    children: [
+      _SectionHeader(
+        title: 'Links oficiales',
+        subtitle: '${_links.length} registrados',
+        actionLabel: 'Guardar',
+        icon: Icons.link_rounded,
+        onAction: () async {
+          await ref
+              .read(universityRepoProvider)
+              .updateUniversity(widget.u.id, patch: {'links': _links});
+          if (mounted)
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Links guardados ✅')));
+        },
+      ),
+      const SizedBox(height: 12),
+      Row(
         children: [
-          _SectionHeader(
-            title: 'Links oficiales',
-            subtitle: '${_links.length} registrados',
-            actionLabel: 'Guardar',
-            icon: Icons.link_rounded,
-            onAction: () async {
-              await ref.read(universityRepoProvider).updateUniversity(
-                widget.u.id,
-                patch: {'links': _links},
-              );
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Links guardados ✅')));
+          Expanded(
+            child: _DialogTF(ctrl: _ctrl, label: 'https://sitio-oficial...'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_rounded),
+            onPressed: () {
+              final value = _ctrl.text.trim();
+              if (value.isEmpty || _links.contains(value)) return;
+              setState(() {
+                _links.add(value);
+                _ctrl.clear();
+              });
             },
           ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _DialogTF(ctrl: _ctrl, label: 'https://sitio-oficial...')),
-            IconButton(
-              icon: const Icon(Icons.add_circle_rounded),
-              onPressed: () {
-                final value = _ctrl.text.trim();
-                if (value.isEmpty || _links.contains(value)) return;
-                setState(() {
-                  _links.add(value);
-                  _ctrl.clear();
-                });
-              },
-            ),
-          ]),
-          const SizedBox(height: 8),
-          if (_links.isEmpty) _EmptyCard(text: 'Aún no hay links oficiales.'),
-          ..._links.map((link) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _RowCard(
-                  icon: Icons.language_rounded,
-                  title: link,
-                  subtitle: 'Link oficial',
-                  rightPill: 'Activo',
-                  rightPillTone: _PillTone.good,
-                  onDelete: () => setState(() => _links.remove(link)),
-                ),
-              )),
         ],
-      );
+      ),
+      const SizedBox(height: 8),
+      if (_links.isEmpty) _EmptyCard(text: 'Aún no hay links oficiales.'),
+      ..._links.map(
+        (link) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _RowCard(
+            icon: Icons.language_rounded,
+            title: link,
+            subtitle: 'Link oficial',
+            rightPill: 'Activo',
+            rightPillTone: _PillTone.good,
+            onDelete: () => setState(() => _links.remove(link)),
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class _KV extends StatelessWidget {
@@ -268,7 +288,7 @@ class _KV extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.white.withOpacity(.60),
+                color: AppTheme.ink.withOpacity(.60),
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -277,7 +297,7 @@ class _KV extends StatelessWidget {
             child: Text(
               v,
               style: TextStyle(
-                color: Colors.white.withOpacity(.86),
+                color: AppTheme.ink.withOpacity(.86),
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -296,7 +316,6 @@ class _ModesTab extends StatelessWidget {
   const _ModesTab({required this.u, required this.uniRepo});
   final UniversityEntity u;
   final UniversityRepo uniRepo;
-
 
   @override
   Widget build(BuildContext context) {
@@ -322,8 +341,7 @@ class _ModesTab extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            if (items.isEmpty)
-              _EmptyCard(text: 'Aún no hay modalidades.'),
+            if (items.isEmpty) _EmptyCard(text: 'Aún no hay modalidades.'),
             ...items.map((m) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -353,12 +371,22 @@ class _ModesTab extends StatelessWidget {
     );
   }
 
-  Future<void> _modeDialog(BuildContext context, UniversityRepo repo, String universityId,
-      {ModeEntity? editing}) async {
-    await showDialog<void>(context: context, barrierDismissible: false,
-      builder: (_) => ModeFormDialog(repo: repo, universityId: universityId, editing: editing));
+  Future<void> _modeDialog(
+    BuildContext context,
+    UniversityRepo repo,
+    String universityId, {
+    ModeEntity? editing,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ModeFormDialog(
+        repo: repo,
+        universityId: universityId,
+        editing: editing,
+      ),
+    );
   }
-
 }
 
 /// ============================
@@ -405,13 +433,17 @@ class _ProfessionsTab extends ConsumerWidget {
                   title: 'Profesiones',
                   subtitle: '${selected.length} seleccionadas',
                   actionLabel: 'Seleccionar',
-                  onAction: () => _openPicker(context, ref, catalog, selectedMap),
+                  onAction: () =>
+                      _openPicker(context, ref, catalog, selectedMap),
                   icon: Icons.playlist_add_rounded,
                 ),
                 const SizedBox(height: 10),
 
                 if (selected.isEmpty)
-                  _EmptyCard(text: 'Aún no seleccionaste profesiones para esta universidad.'),
+                  _EmptyCard(
+                    text:
+                        'Aún no seleccionaste profesiones para esta universidad.',
+                  ),
 
                 ...selected.map((p) {
                   return Padding(
@@ -422,7 +454,8 @@ class _ProfessionsTab extends ConsumerWidget {
                       subtitle: p.acronym.isEmpty ? '—' : p.acronym,
                       rightPill: p.active ? 'Activa' : 'Inactiva',
                       rightPillTone: p.active ? _PillTone.good : _PillTone.bad,
-                      onEdit: () => _editInternalProfessionDialog(context, ref, p),
+                      onEdit: () =>
+                          _editInternalProfessionDialog(context, ref, p),
                       onDelete: () async {
                         final ok = await _confirmPro(
                           context,
@@ -484,7 +517,10 @@ class _ProfessionsTab extends ConsumerWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           'Editar (interno universidad)',
-          style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: AppTheme.ink.withOpacity(.92),
+            fontWeight: FontWeight.w900,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -492,7 +528,7 @@ class _ProfessionsTab extends ConsumerWidget {
             Text(
               'Esto NO cambia el catálogo global, solo la lista interna de la universidad.',
               style: TextStyle(
-                color: Colors.white.withOpacity(.70),
+                color: AppTheme.ink.withOpacity(.70),
                 fontWeight: FontWeight.w700,
                 height: 1.2,
               ),
@@ -506,7 +542,10 @@ class _ProfessionsTab extends ConsumerWidget {
               activeColor: AppTheme.accent,
               title: Text(
                 'Activa',
-                style: TextStyle(color: Colors.white.withOpacity(.90), fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: AppTheme.ink.withOpacity(.90),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -514,7 +553,10 @@ class _ProfessionsTab extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: Colors.white.withOpacity(.75))),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.ink.withOpacity(.75)),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -533,16 +575,20 @@ class _ProfessionsTab extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w900)),
+            child: const Text(
+              'Guardar',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),
     );
   }
 }
-
 
 /// ============================
 /// Picker con Search + Checkboxes
@@ -560,10 +606,12 @@ class _ProfessionPickerSheet extends ConsumerStatefulWidget {
   final Set<String> initiallySelected;
 
   @override
-  ConsumerState<_ProfessionPickerSheet> createState() => _ProfessionPickerSheetState();
+  ConsumerState<_ProfessionPickerSheet> createState() =>
+      _ProfessionPickerSheetState();
 }
 
-class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> {
+class _ProfessionPickerSheetState
+    extends ConsumerState<_ProfessionPickerSheet> {
   final _search = TextEditingController();
   String _q = '';
 
@@ -583,7 +631,8 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
         ? widget.all
         : widget.all.where((p) {
             final q = _q.toLowerCase();
-            return p.name.toLowerCase().contains(q) || p.acronym.toLowerCase().contains(q);
+            return p.name.toLowerCase().contains(q) ||
+                p.acronym.toLowerCase().contains(q);
           }).toList();
 
     return DraggableScrollableSheet(
@@ -596,7 +645,7 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
           decoration: BoxDecoration(
             color: AppTheme.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withOpacity(.08)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.26),
@@ -612,7 +661,7 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                 width: 52,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.20),
+                  color: AppTheme.ink.withOpacity(.20),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -624,12 +673,19 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                     Expanded(
                       child: Text(
                         'Seleccionar profesiones',
-                        style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900, fontSize: 16),
+                        style: TextStyle(
+                          color: AppTheme.ink.withOpacity(.92),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close_rounded, color: Colors.white.withOpacity(.85)),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.ink.withOpacity(.85),
+                      ),
                     ),
                   ],
                 ),
@@ -670,7 +726,10 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                           HapticFeedback.selectionClick();
                         },
                         child: Container(
-                          decoration: AppTheme.cardDeco(radius: 18, color: Colors.white.withOpacity(.03)),
+                          decoration: AppTheme.cardDeco(
+                            radius: 18,
+                            color: AppTheme.ink.withOpacity(.03),
+                          ),
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
@@ -680,12 +739,18 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: checked
-                                      ? Colors.white.withOpacity(.92)
-                                      : Colors.white.withOpacity(.10),
-                                  border: Border.all(color: Colors.white.withOpacity(.18)),
+                                      ? AppTheme.ink.withOpacity(.92)
+                                      : AppTheme.ink.withOpacity(.10),
+                                  border: Border.all(
+                                    color: AppTheme.ink.withOpacity(.18),
+                                  ),
                                 ),
                                 child: checked
-                                    ? Icon(Icons.check_rounded, size: 18, color: AppTheme.accent.withOpacity(.95))
+                                    ? Icon(
+                                        Icons.check_rounded,
+                                        size: 18,
+                                        color: AppTheme.accent.withOpacity(.95),
+                                      )
                                     : const SizedBox.shrink(),
                               ),
                               const SizedBox(width: 12),
@@ -698,7 +763,7 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: Colors.white.withOpacity(.92),
+                                        color: AppTheme.ink.withOpacity(.92),
                                         fontWeight: FontWeight.w900,
                                       ),
                                     ),
@@ -706,7 +771,7 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                                     Text(
                                       p.acronym.isEmpty ? '—' : p.acronym,
                                       style: TextStyle(
-                                        color: Colors.white.withOpacity(.70),
+                                        color: AppTheme.ink.withOpacity(.70),
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -731,37 +796,37 @@ class _ProfessionPickerSheetState extends ConsumerState<_ProfessionPickerSheet> 
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-onPressed: () async {
-  final uniRepo = ref.read(universityRepoProvider);
+                        onPressed: () async {
+                          final uniRepo = ref.read(universityRepoProvider);
 
-  final before = widget.initiallySelected;
-  final after = _selected;
+                          final before = widget.initiallySelected;
+                          final after = _selected;
 
-  final toAdd = after.difference(before);
-  final toRemove = before.difference(after);
+                          final toAdd = after.difference(before);
+                          final toRemove = before.difference(after);
 
-  // 🔥 Para agregar necesitamos el objeto completo (id, idDoc, name, acronym, active)
-  final byId = {for (final p in widget.all) p.id: p};
+                          // 🔥 Para agregar necesitamos el objeto completo (id, idDoc, name, acronym, active)
+                          final byId = {for (final p in widget.all) p.id: p};
 
-  for (final id in toAdd) {
-    final p = byId[id];
-    if (p == null) continue;
-    await uniRepo.addProfessionToUniversity(
-      universityId: widget.universityId,
-      profession: p,
-    );
-  }
+                          for (final id in toAdd) {
+                            final p = byId[id];
+                            if (p == null) continue;
+                            await uniRepo.addProfessionToUniversity(
+                              universityId: widget.universityId,
+                              profession: p,
+                            );
+                          }
 
-  for (final id in toRemove) {
-    await uniRepo.removeProfessionFromUniversity(
-      universityId: widget.universityId,
-      professionId: id,
-    );
-  }
+                          for (final id in toRemove) {
+                            await uniRepo.removeProfessionFromUniversity(
+                              universityId: widget.universityId,
+                              professionId: id,
+                            );
+                          }
 
-  if (!context.mounted) return;
-  Navigator.pop(context);
-},
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
+                        },
 
                         icon: const Icon(Icons.save_rounded, size: 18),
                         label: Text(
@@ -772,7 +837,9 @@ onPressed: () async {
                           backgroundColor: AppTheme.accent,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                         ),
                       ),
                     ),
@@ -809,7 +876,10 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: AppTheme.ink.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -819,12 +889,18 @@ class _SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: AppTheme.ink.withOpacity(.92),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   subtitle,
-                  style: TextStyle(color: Colors.white.withOpacity(.65), fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: AppTheme.ink.withOpacity(.65),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -860,7 +936,10 @@ class _RowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: AppTheme.ink.withOpacity(.03),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -869,11 +948,11 @@ class _RowCard extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.06),
+                color: AppTheme.ink.withOpacity(.06),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(.10)),
+                border: Border.all(color: AppTheme.ink.withOpacity(.10)),
               ),
-              child: Icon(icon, color: Colors.white.withOpacity(.92)),
+              child: Icon(icon, color: AppTheme.ink.withOpacity(.92)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -885,7 +964,7 @@ class _RowCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.92),
+                      color: AppTheme.ink.withOpacity(.92),
                       fontWeight: FontWeight.w900,
                       fontSize: 14.5,
                     ),
@@ -899,7 +978,7 @@ class _RowCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(.70),
+                            color: AppTheme.ink.withOpacity(.70),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -931,11 +1010,17 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.cardDeco(radius: 22, color: Colors.white.withOpacity(.03)),
+      decoration: AppTheme.cardDeco(
+        radius: 22,
+        color: AppTheme.ink.withOpacity(.03),
+      ),
       padding: const EdgeInsets.all(16),
       child: Text(
         text,
-        style: TextStyle(color: Colors.white.withOpacity(.75), fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: AppTheme.ink.withOpacity(.75),
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -950,18 +1035,24 @@ class _DialogTF extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: ctrl,
-      style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w800),
+      style: TextStyle(
+        color: AppTheme.ink.withOpacity(.92),
+        fontWeight: FontWeight.w800,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(.70)),
+        labelStyle: TextStyle(color: AppTheme.ink.withOpacity(.70)),
         filled: true,
-        fillColor: Colors.white.withOpacity(.05),
+        fillColor: AppTheme.ink.withOpacity(.05),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: Colors.white.withOpacity(.10)),
+          borderSide: BorderSide(color: AppTheme.ink.withOpacity(.10)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
@@ -990,16 +1081,19 @@ class _SearchBarPro extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Row(
         children: [
-          Icon(Icons.search_rounded, color: Colors.white.withOpacity(.78)),
+          Icon(Icons.search_rounded, color: AppTheme.ink.withOpacity(.78)),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: AppTheme.ink.withOpacity(.92),
+                fontWeight: FontWeight.w800,
+              ),
               decoration: InputDecoration(
                 hintText: 'Buscar profesión…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -1025,29 +1119,12 @@ class _GlassBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(.10),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.14)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white.withOpacity(.92), size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
-        ),
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }
@@ -1061,7 +1138,7 @@ class _IconMiniBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(.08),
+      color: AppTheme.ink.withOpacity(.08),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -1071,9 +1148,9 @@ class _IconMiniBtn extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.10)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.10)),
           ),
-          child: Icon(icon, color: Colors.white.withOpacity(.90), size: 18),
+          child: Icon(icon, color: AppTheme.ink.withOpacity(.90), size: 18),
         ),
       ),
     );
@@ -1098,8 +1175,8 @@ class _Pill extends StatelessWidget {
       bg = const Color(0xFFEF4444).withOpacity(.14);
       border = const Color(0xFFEF4444).withOpacity(.35);
     } else {
-      bg = Colors.white.withOpacity(.06);
-      border = Colors.white.withOpacity(.10);
+      bg = AppTheme.ink.withOpacity(.06);
+      border = AppTheme.ink.withOpacity(.10);
     }
 
     return Container(
@@ -1114,7 +1191,7 @@ class _Pill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: Colors.white.withOpacity(.90),
+          color: AppTheme.ink.withOpacity(.90),
           fontWeight: FontWeight.w900,
           fontSize: 12,
         ),
@@ -1142,18 +1219,24 @@ Future<bool> _confirmPro(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           title,
-          style: TextStyle(color: Colors.white.withOpacity(.92), fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: AppTheme.ink.withOpacity(.92),
+            fontWeight: FontWeight.w900,
+          ),
         ),
         content: Text(
           message,
-          style: TextStyle(color: Colors.white.withOpacity(.80), height: 1.25),
+          style: TextStyle(color: AppTheme.ink.withOpacity(.80), height: 1.25),
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext, rootNavigator: true).pop(false);
             },
-            child: Text('Cancelar', style: TextStyle(color: Colors.white.withOpacity(.78))),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.ink.withOpacity(.78)),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1162,9 +1245,14 @@ Future<bool> _confirmPro(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: Text(primary, style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              primary,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       );

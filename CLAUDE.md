@@ -48,5 +48,11 @@ Simulador: reglas por examen pasado en el campo `simulator` de `admissionExams` 
 
 El CLI `firebase` está instalado bajo el Node 20 de nvm: con Node 22 activo, añadir `C:\Users\USER\AppData\Local\nvm\v20.19.4` al final del PATH para emuladores y despliegues.
 
+## Diseño del admin (rediseño 2026-10)
+Lienzo aprobado: https://claude.ai/artifact/AzcWwYLE34iCdw4YJryZSC (v3.1). Tema claro en `lib/src/ui/theme/app_theme.dart` (tokens `ink`, `muted`, `line`, `brand`, `success/warn/error/info` + `*Soft`); fuente Plus Jakarta Sans en `assets/fonts/` (instancias estáticas 400–800 de la variable de Google Fonts, OFL). No usar `Colors.white` para texto (solo sobre fondos de marca). Piezas comunes: `lib/src/ui/widgets/admin_ui.dart` (`StatusPill`, `AdminPageHeader`, `SectionCard`, `KpiTile`, `InfoNote`, `EmptyState`). Menú por tareas y ayuda «?» de cada sección: `lib/src/ui/shell/admin_nav.dart` (agregar ahí cada sección nueva con su `help`); rutas: `lib/src/ui/admin_router.dart`.
+Toda pantalla **de la app** que se muestre en el admin (vista previa, miniaturas) debe ser idéntica a la app real: capturas reales o réplica fiel de sus widgets y colores (`iya-app/lib/config/theme/app_theme.dart`, tema oscuro).
+
+Capturas para revisar el diseño sin iniciar sesión: `flutter test test_shots --update-goldens` (o `--plain-name <prueba>`), salen en `test_shots/out/` (fuera del repo). Usan `FakeFirebaseFirestore` cargado con `test_shots/fixtures/test_sample.json`, una muestra de TEST leída con la cuenta de servicio (fuera del repo; si falta, base vacía). Requiere `FLUTTER_ROOT` para las fuentes de íconos.
+
 ## Documentación clave
 `docs/` — arquitectura de exámenes, contrato de callables, seguridad y costos del backend, banco de preguntas publicable, editor visual, runbook de promoción a test, reglas de logros de subtema y dominio.

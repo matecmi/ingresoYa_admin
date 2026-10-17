@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 class ExamQuestion extends StatelessWidget {
@@ -7,11 +8,7 @@ class ExamQuestion extends StatelessWidget {
   /// Si quieres, puedes activar esto cuando lo pongas dentro de una card
   final bool useCard;
 
-  const ExamQuestion({
-    super.key,
-    required this.raw,
-    this.useCard = false,
-  });
+  const ExamQuestion({super.key, required this.raw, this.useCard = false});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +19,8 @@ class ExamQuestion extends StatelessWidget {
       children: [
         for (int i = 0; i < lines.length; i++) ...[
           _LineBlock(line: lines[i]),
-          if (i != lines.length - 1) const SizedBox(height: 10), // 👈 orden visual
+          if (i != lines.length - 1)
+            const SizedBox(height: 10), // 👈 orden visual
         ],
       ],
     );
@@ -36,7 +34,7 @@ class ExamQuestion extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(.08)),
+        border: Border.all(color: AppTheme.ink.withOpacity(.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(.22),
@@ -79,31 +77,29 @@ class _LineBlock extends StatelessWidget {
           widgets.add(_TextSpan(content));
           break;
 
-case "MATH":
-  widgets.add(
-    LayoutBuilder(
-      builder: (context, c) {
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: c.maxWidth),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Math.tex(
-              content,
-              textStyle: TextStyle(
-                fontSize: 18,
-                color: Colors.white.withOpacity(.92),
-                fontWeight: FontWeight.w800,
-              ),
+        case "MATH":
+          widgets.add(
+            LayoutBuilder(
+              builder: (context, c) {
+                return ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: c.maxWidth),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Math.tex(
+                      content,
+                      textStyle: TextStyle(
+                        fontSize: 18,
+                        color: AppTheme.ink.withOpacity(.92),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
-        );
-      },
-    ),
-  );
-  break;
-
-
+          );
+          break;
 
         case "URL":
           widgets.add(_ImageSpan(content));
@@ -140,7 +136,7 @@ class _TextSpan extends StatelessWidget {
       style: TextStyle(
         fontSize: 15.5,
         height: 1.35,
-        color: Colors.white.withOpacity(.86),
+        color: AppTheme.ink.withOpacity(.86),
         fontWeight: FontWeight.w700,
       ),
       softWrap: true,
@@ -160,14 +156,14 @@ class _ImageSpan extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white.withOpacity(.08)),
+          border: Border.all(color: AppTheme.ink.withOpacity(.08)),
         ),
         child: Image.network(
           url,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Text(
             "Error cargando imagen",
-            style: TextStyle(color: Colors.white.withOpacity(.70)),
+            style: TextStyle(color: AppTheme.ink.withOpacity(.70)),
           ),
         ),
       ),

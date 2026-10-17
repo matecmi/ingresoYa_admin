@@ -1,0 +1,163 @@
+import 'package:flutter/material.dart';
+
+/// Menú del admin agrupado por tarea (tablero «7 · Inicio v2»).
+///
+/// Cada entrada lleva su ayuda («?» en la barra superior): para qué sirve la
+/// sección y los atajos más usados. La clave `permission` es la sección de
+/// permisos que la protege (docs/admin_staff_contract.md).
+class AdminNavItem {
+  const AdminNavItem({
+    required this.route,
+    required this.label,
+    required this.icon,
+    required this.group,
+    required this.permission,
+    required this.help,
+  });
+
+  final String route;
+  final String label;
+  final IconData icon;
+  final String group;
+  final String permission;
+  final AdminHelp help;
+
+  bool matches(String location) =>
+      route == '/' ? location == '/' : location.startsWith(route);
+}
+
+class AdminHelp {
+  const AdminHelp({
+    required this.purpose,
+    this.shortcuts = const [],
+    this.guideAnchor,
+  });
+
+  /// Dos o tres líneas: qué se hace aquí y qué cambia en la app.
+  final String purpose;
+
+  /// Atajos «Lo más usado»: (texto, ruta).
+  final List<(String, String)> shortcuts;
+
+  /// Ancla de la sección del admin en la Guía publicada.
+  final String? guideAnchor;
+}
+
+const adminGroups = ['', 'CONTENIDO', 'ALUMNOS', 'CALIDAD', 'AJUSTES'];
+
+const adminNav = <AdminNavItem>[
+  AdminNavItem(
+    route: '/',
+    label: 'Inicio',
+    icon: Icons.space_dashboard_outlined,
+    group: '',
+    permission: 'home',
+    help: AdminHelp(
+      purpose:
+          'El estado del contenido de un vistazo: lo que hoy bloquea al alumno, '
+          'lo que le resta calidad y los accesos a lo que más se usa.',
+      shortcuts: [
+        ('Cargar preguntas una tras otra', '/questions'),
+        ('Ver los cursos', '/courses'),
+      ],
+      guideAnchor: 'admin-inicio',
+    ),
+  ),
+  AdminNavItem(
+    route: '/courses',
+    label: 'Cursos',
+    icon: Icons.menu_book_outlined,
+    group: 'CONTENIDO',
+    permission: 'courses',
+    help: AdminHelp(
+      purpose:
+          'Cursos, temas, subtemas y partes de la Guía de estudio. Cada parte '
+          'tiene video, lección, ejemplos y su examen; si falta algo, el alumno '
+          'no puede completarla.',
+      shortcuts: [('Cargar preguntas para una parte', '/questions')],
+      guideAnchor: 'admin-cursos',
+    ),
+  ),
+  AdminNavItem(
+    route: '/questions',
+    label: 'Banco de preguntas',
+    icon: Icons.quiz_outlined,
+    group: 'CONTENIDO',
+    permission: 'questions',
+    help: AdminHelp(
+      purpose:
+          'Todas las preguntas que usa la app: exámenes de cada parte, '
+          'Simulador y reto del día. Puedes buscarlas, editarlas o cargar '
+          'nuevas.',
+      shortcuts: [
+        ('Cargar preguntas una tras otra', '/questions'),
+        ('Importar un examen completo', '/universities'),
+      ],
+      guideAnchor: 'admin-preguntas',
+    ),
+  ),
+  AdminNavItem(
+    route: '/exam-templates',
+    label: 'Plantillas de examen',
+    icon: Icons.assignment_outlined,
+    group: 'CONTENIDO',
+    permission: 'courses',
+    help: AdminHelp(
+      purpose:
+          'Cuántas preguntas tiene cada examen de parte o de dominio y con '
+          'qué nota se aprueba. Si una plantilla pide más preguntas de las que '
+          'hay publicadas, el alumno ve un error.',
+      guideAnchor: 'admin-plantillas',
+    ),
+  ),
+  AdminNavItem(
+    route: '/universities',
+    label: 'Universidades y exámenes',
+    icon: Icons.account_balance_outlined,
+    group: 'CONTENIDO',
+    permission: 'universities',
+    help: AdminHelp(
+      purpose:
+          'Universidades, sus modalidades y los exámenes de admisión pasados '
+          'que usa el Simulador. Un examen pasado solo aparece cuando está '
+          'completo.',
+      guideAnchor: 'admin-universidades',
+    ),
+  ),
+  AdminNavItem(
+    route: '/professions',
+    label: 'Carreras',
+    icon: Icons.work_outline,
+    group: 'CONTENIDO',
+    permission: 'universities',
+    help: AdminHelp(
+      purpose:
+          'Las carreras que el alumno elige en el registro. Se usan para su '
+          'plan de estudio y para la tabla «Mi carrera» del reto del día.',
+      guideAnchor: 'admin-carreras',
+    ),
+  ),
+  AdminNavItem(
+    route: '/settings',
+    label: 'Configuración',
+    icon: Icons.tune_outlined,
+    group: 'AJUSTES',
+    permission: 'settings',
+    help: AdminHelp(
+      purpose:
+          'Las reglas de la app: cómo gana XP el alumno, rankings y ligas, '
+          'reto del día, Simulador y Guía de estudio. Cada cambio dice qué '
+          'efecto tiene y se puede volver atrás.',
+      guideAnchor: 'admin-configuracion',
+    ),
+  ),
+];
+
+AdminNavItem? navItemFor(String location) {
+  AdminNavItem? best;
+  for (final item in adminNav) {
+    if (!item.matches(location)) continue;
+    if (best == null || item.route.length > best.route.length) best = item;
+  }
+  return best;
+}

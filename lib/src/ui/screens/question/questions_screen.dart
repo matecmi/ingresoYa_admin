@@ -111,7 +111,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   child: Text(
                     'Preguntas',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(.92),
+                      color: AppTheme.ink.withOpacity(.92),
                       fontWeight: FontWeight.w900,
                       fontSize: 18,
                     ),
@@ -171,7 +171,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
           child: Text(
             'No hay preguntas para estos filtros.',
             style: TextStyle(
-              color: Colors.white.withOpacity(.75),
+              color: AppTheme.ink.withOpacity(.75),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -326,20 +326,20 @@ class _QuestionCard extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.06),
+                    color: AppTheme.ink.withOpacity(.06),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(.10)),
+                    border: Border.all(color: AppTheme.ink.withOpacity(.10)),
                   ),
                   child: Center(
                     child: q.originalNumber == null
                         ? Icon(
                             Icons.quiz_outlined,
-                            color: Colors.white.withValues(alpha: .92),
+                            color: AppTheme.ink.withValues(alpha: .92),
                           )
                         : Text(
                             '${q.originalNumber}',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: .92),
+                              color: AppTheme.ink.withValues(alpha: .92),
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -355,7 +355,7 @@ class _QuestionCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(.92),
+                          color: AppTheme.ink.withOpacity(.92),
                           fontWeight: FontWeight.w900,
                           fontSize: 14.5,
                         ),
@@ -387,7 +387,7 @@ class _QuestionCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: .72),
+                          color: AppTheme.ink.withValues(alpha: .72),
                           fontSize: 12,
                         ),
                       ),
@@ -397,7 +397,7 @@ class _QuestionCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: .62),
+                          color: AppTheme.ink.withValues(alpha: .62),
                           fontSize: 12,
                         ),
                       ),
@@ -408,7 +408,7 @@ class _QuestionCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Color(0xFFFBBF24),
+                            color: AppTheme.warn,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -467,7 +467,7 @@ class _IconMiniBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(.08),
+      color: AppTheme.ink.withOpacity(.08),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -477,9 +477,9 @@ class _IconMiniBtn extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.10)),
+            border: Border.all(color: AppTheme.ink.withOpacity(.10)),
           ),
-          child: Icon(icon, color: Colors.white.withOpacity(.90), size: 18),
+          child: Icon(icon, color: AppTheme.ink.withOpacity(.90), size: 18),
         ),
       ),
     );
@@ -499,32 +499,12 @@ class _GlassBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(.10),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(.14)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white.withOpacity(.92), size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.92),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
     );
   }
@@ -548,19 +528,19 @@ class _SearchBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Row(
         children: [
-          Icon(Icons.search_rounded, color: Colors.white.withOpacity(.78)),
+          Icon(Icons.search_rounded, color: AppTheme.ink.withOpacity(.78)),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
               style: TextStyle(
-                color: Colors.white.withOpacity(.92),
+                color: AppTheme.ink.withOpacity(.92),
                 fontWeight: FontWeight.w800,
               ),
               decoration: InputDecoration(
                 hintText: 'Buscar por curso, tema, enunciado, número…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(.45)),
+                hintStyle: TextStyle(color: AppTheme.ink.withOpacity(.45)),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -591,8 +571,8 @@ class _Pill extends StatelessWidget {
       bg = const Color(0xFFEF4444).withOpacity(.14);
       border = const Color(0xFFEF4444).withOpacity(.35);
     } else {
-      bg = Colors.white.withOpacity(.06);
-      border = Colors.white.withOpacity(.10);
+      bg = AppTheme.ink.withOpacity(.06);
+      border = AppTheme.ink.withOpacity(.10);
     }
 
     return Container(
@@ -607,7 +587,7 @@ class _Pill extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: Colors.white.withOpacity(.90),
+          color: AppTheme.ink.withOpacity(.90),
           fontWeight: FontWeight.w900,
           fontSize: 12,
         ),
@@ -636,13 +616,13 @@ Future<bool> _confirmPro(
         title: Text(
           title,
           style: TextStyle(
-            color: Colors.white.withOpacity(.92),
+            color: AppTheme.ink.withOpacity(.92),
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
           message,
-          style: TextStyle(color: Colors.white.withOpacity(.80), height: 1.25),
+          style: TextStyle(color: AppTheme.ink.withOpacity(.80), height: 1.25),
         ),
         actions: [
           TextButton(
@@ -652,7 +632,7 @@ Future<bool> _confirmPro(
             },
             child: Text(
               'Cancelar',
-              style: TextStyle(color: Colors.white.withOpacity(.78)),
+              style: TextStyle(color: AppTheme.ink.withOpacity(.78)),
             ),
           ),
           ElevatedButton(

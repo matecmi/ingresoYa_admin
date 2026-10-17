@@ -30,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               'Configuración',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: .92),
+                color: AppTheme.ink.withValues(alpha: .92),
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
               ),
@@ -231,7 +231,7 @@ class _SyncSettingsCardState extends ConsumerState<SyncSettingsCard> {
   @override
   Widget build(BuildContext context) {
     final record = widget.record;
-    final muted = Colors.white.withValues(alpha: .6);
+    final muted = AppTheme.ink.withValues(alpha: .6);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: AppTheme.cardDeco(),

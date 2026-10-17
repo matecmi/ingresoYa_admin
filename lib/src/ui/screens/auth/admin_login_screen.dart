@@ -98,16 +98,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     'Ingresa con Google. Solo las cuentas autorizadas pueden acceder al panel.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: .65),
+                      color: AppTheme.ink.withValues(alpha: .65),
                     ),
                   ),
                   const SizedBox(height: 24),
                   if (_error.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    Text(
-                      _error,
-                      style: const TextStyle(color: Color(0xFFFCA5A5)),
-                    ),
+                    Text(_error, style: const TextStyle(color: AppTheme.error)),
                   ],
                   const SizedBox(height: 24),
                   if (kIsWeb) ...[
