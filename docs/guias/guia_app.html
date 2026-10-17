@@ -815,6 +815,26 @@ flowchart LR
   <tr><td class="msg">Inicio: «Por revisar · N» / «Mis envíos a revisión» con «Devuelta» y «En revisión»</td><td>Según puedas publicar o solo editar preguntas.</td><td>Abre la pregunta.</td></tr>
 </table></div>
 
+<h3 id="admin-carga-rapida">Carga rápida de preguntas</h3>
+<div class="wide-pair">
+  <figure class="wide-shot"><img src="img/adm-quick.jpg" alt="Carga rápida con una pregunta pegada y su vista previa"><figcaption>Banco de preguntas → «Carga rápida» (o Inicio → «Cargar preguntas»).</figcaption></figure>
+  <figure class="wide-shot" style="max-width:420px"><img src="img/adm-vs-telefono.jpg" alt="Vista previa del admin con la misma pregunta que la captura del teléfono"><figcaption>La vista previa usa el código de la app: compárala con la captura real de «Tu examen» en la sección del Simulador.</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Elemento</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Se queda fijo para las siguientes:» Curso · Tema · Subtema · Parte · «Dificultad: …»</td><td>Siempre, arriba. Se eligen una vez y valen para todas las preguntas de la sesión. Desde una parte se abre ya fijada.</td><td>Lista para elegir.</td></tr>
+  <tr><td class="msg">«Pega todo junto: enunciado y alternativas. Nosotros las separamos.»</td><td>Siempre.</td><td>Reconoce a) b) c), A. B. C., (a) (b), «Clave: B» / «Rpta: b» (marca la correcta), «Solución: …» (llena la explicación) y <code>$…$</code> como fórmula.</td></tr>
+  <tr><td class="msg">«ASÍ QUEDÓ · HAZ CLIC EN LA CORRECTA»</td><td>Al pegar texto.</td><td>Clic o Alt+1…5 marca la correcta.</td></tr>
+  <tr><td class="msg">«No encontramos alternativas. Escríbelas como a) … b) … o en líneas A. … B. …»</td><td>Si el texto no trae alternativas reconocibles.</td><td>—</td></tr>
+  <tr><td class="msg">«Parecida a «…» (ya existe en este subtema). ¿Es otra pregunta?»</td><td>Si el enunciado se parece en un 60 % o más a otro del mismo subtema.</td><td>—</td></tr>
+  <tr><td class="msg">«Guardar y siguiente» (Ctrl+Enter)</td><td>Siempre.</td><td>Guarda la pregunta como borrador con su clave y deja el cuadro listo para la siguiente. Si falta algo: «Elige curso, tema, subtema y parte arriba.», «Falta el enunciado.», «Marca la alternativa correcta.»…</td></tr>
+  <tr><td class="msg">«Así la ve el alumno · ● en vivo» con «Examen de la parte» / «Simulador»</td><td>Al pegar texto.</td><td>Cambia la cabecera y la pestaña como en la app.</td></tr>
+  <tr><td class="msg">«{parte}: N publicadas de M que pide su examen»</td><td>Con una parte elegida que tiene plantilla.</td><td>—</td></tr>
+  <tr><td class="msg">«Esta sesión · N guardadas», «sin explicación», «Editar»</td><td>Tras guardar.</td><td>«Editar» abre el formulario completo.</td></tr>
+  <tr><td class="msg">«Publicar las N» / «Enviar las N a revisión»</td><td>Con preguntas guardadas en la sesión, según el perfil.</td><td>Publica (o envía a revisión) todas; las que fallan quedan en la lista.</td></tr>
+  <tr><td class="msg">Formulario completo: «Ver como la ve el alumno»</td><td>Siempre.</td><td>Muestra el teléfono con la pregunta y «Esta pregunta puede aparecer en: Guía de estudio → … → Examen de la parte · Simulador → Arma tu práctica → … · Reto del día…».</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -857,6 +877,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 3: «Carga rápida» de preguntas (pegar y seguir, clave y solución reconocidas, aviso de repetidas, publicar o enviar a revisión en bloque) y «Así la ve el alumno», generada desde el código de la app.</li>
   <li><b>16-oct-2026</b> · Admin, fase 2: «Perfiles y permisos» (perfiles de fábrica, tabla de permisos, invitar, excepciones, alcance por curso, ver como perfil), menú según el perfil y «Enviar a revisión» con «Mi trabajo» en Inicio.</li>
   <li><b>16-oct-2026</b> · Admin, fase 1 del rediseño: tema claro, menú por tareas, aviso de entorno TEST y ayuda «?» por sección. Nueva sección «Panel de administración».</li>
   <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Probado en el teléfono (el reto trajo preguntas del examen UNPRG 2025 I); el resultado del reto oculta ese día lo que revela respuestas.</li>

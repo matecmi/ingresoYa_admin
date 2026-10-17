@@ -12,7 +12,10 @@ void main() {
   test('sin documento o con datos inválidos usa los valores de fábrica', () {
     final defaults = SimulatorSettings.fromMap(null);
     expect(defaults.practiceSizes.map((s) => s.questions), [10, 20, 40]);
-    expect(defaults.practiceSizes.singleWhere((s) => s.isDefault).key, 'normal');
+    expect(
+      defaults.practiceSizes.singleWhere((s) => s.isDefault).key,
+      'normal',
+    );
     expect(defaults.repeatWindowDays, 14);
 
     final partial = SimulatorSettings.fromMap({

@@ -84,6 +84,17 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-800.ttf
           weight: 800
+    # Fuente de la app (Android usa Roboto): solo para la vista previa.
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-400.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-500.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-700.ttf
+          weight: 700
+        - asset: assets/fonts/Roboto-900.ttf
+          weight: 900
 
   # To add assets to your application, add an assets section, like this:
   # assets:

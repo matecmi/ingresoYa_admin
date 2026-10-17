@@ -27,6 +27,35 @@ class QuestionRepo {
     });
   }
 
+  /// Una pregunta por id (sin alternativas), o `null` si no existe.
+  Future<QuestionEntity?> getQuestion(String id) async {
+    final doc = await _col.doc(id).get();
+    return doc.exists ? _toQuestion(doc) : null;
+  }
+
+  /// Preguntas de un subtema (para avisar de repetidas en la carga rápida).
+  Future<List<QuestionEntity>> questionsOfSubtopic(String subtopicId) async {
+    final snap = await _col
+        .where('subtopicId', isEqualTo: subtopicId)
+        .limit(500)
+        .get();
+    return snap.docs.map(_toQuestion).toList();
+  }
+
+  /// Cuántas preguntas publicadas y activas tiene una parte.
+  Future<int> publishedCountForPart(String partId) async {
+    final snap = await _col
+        .where('partIds', arrayContains: partId)
+        .limit(500)
+        .get();
+    return snap.docs
+        .where(
+          (d) =>
+              d.data()['status'] == 'published' && d.data()['active'] != 'N',
+        )
+        .length;
+  }
+
   /// Borradores esperando revisión (cola de quien puede publicar).
   Stream<List<QuestionEntity>> watchReviewQueue() {
     return _col

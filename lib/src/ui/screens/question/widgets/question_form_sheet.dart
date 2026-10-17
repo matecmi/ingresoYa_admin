@@ -11,6 +11,7 @@ import 'package:ingresoya_admin/src/domain/question_publication_validation.dart'
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/ui/widgets/admin_ui.dart';
+import 'package:ingresoya_admin/src/app_preview/app_exam_preview.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 // ✅ ajusta a tu ruta real
@@ -769,6 +770,15 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     }
     return Column(
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: _openStudentPreview,
+            icon: const Icon(Icons.smartphone_rounded, size: 18),
+            label: const Text('Ver como la ve el alumno'),
+          ),
+        ),
+        const SizedBox(height: 6),
         if (review != null && review.pending) ...[
           InfoNote(
             canPublish
@@ -892,6 +902,92 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openStudentPreview() async {
+    final alts = [
+      for (var i = 0; i < alternatives.length; i++)
+        QuestionAlternative.fromJson({
+          'id': alternatives[i].id,
+          'label': _alternativeLabel(i),
+          'content': alternatives[i].content.content.toJson(),
+        }),
+    ];
+    final source = admissionExam?.source;
+    final places = <String>[
+      if (partIds.isNotEmpty)
+        'Guía de estudio → ${courseName.text} → ${subtopicName.text} → '
+            '${partNames.values.join(', ')} → Examen de la parte',
+      'Simulador → Arma tu práctica → ${courseName.text.isEmpty ? 'su curso' : courseName.text}',
+      if (source != null) 'Simulador → Exámenes pasados (si el examen está completo)',
+      'Reto del día (si la eligen para la universidad del alumno)',
+    ];
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        var place = AppExamPlace.partExam;
+        return StatefulBuilder(
+          builder: (context, setLocal) => Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Así la ve el alumno',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    SegmentedButton<AppExamPlace>(
+                      segments: [
+                        for (final p in AppExamPlace.values)
+                          ButtonSegment(value: p, label: Text(p.label)),
+                      ],
+                      selected: {place},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (v) => setLocal(() => place = v.first),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: AppPhoneFrame(
+                        width: 330,
+                        child: AppExamQuestionScreen(
+                          statement: content.content,
+                          alternatives: alts,
+                          place: place,
+                          sourceLabel: source?.label ?? 'Pregunta de práctica IngresoYa',
+                          sourceType: source?.examType ?? 'original',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Esta pregunta puede aparecer en:',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    for (final p in places)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('• $p', style: const TextStyle(fontSize: 13)),
+                      ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cerrar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -584,13 +584,9 @@ class _PermissionMatrix extends StatelessWidget {
           ),
         );
       }
-      return Text(
-        on ? '✓' : '—',
-        style: TextStyle(
-          color: on ? AppTheme.success : AppTheme.faint,
-          fontWeight: FontWeight.w800,
-        ),
-      );
+      return on
+          ? const Icon(Icons.check_rounded, color: AppTheme.success, size: 20)
+          : const Text('—', style: TextStyle(color: AppTheme.faint));
     }
     return Column(
       mainAxisSize: MainAxisSize.min,

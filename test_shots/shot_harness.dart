@@ -35,7 +35,7 @@ Future<void> loadShotFonts() async {
     '$flutterRoot/bin/cache/artifacts/material_fonts/materialicons-regular.otf',
   ]);
   await family('Roboto', [
-    '$flutterRoot/bin/cache/artifacts/material_fonts/roboto-regular.ttf',
+    for (final w in [400, 500, 700, 900]) 'assets/fonts/Roboto-$w.ttf',
   ]);
 }
 
@@ -139,3 +139,27 @@ AdminSession editorSession() => AdminSession(
   roleId: 'editor',
   perms: builtinStaffRoles.firstWhere((r) => r.id == 'editor').perms,
 );
+
+/// Captura de un widget suelto (sin el marco del admin).
+Future<void> shotWidget(
+  WidgetTester tester, {
+  required String name,
+  required Widget child,
+  Size size = const Size(420, 880),
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      home: Scaffold(body: Center(child: child)),
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 300));
+  await expectLater(
+    find.byType(MaterialApp),
+    matchesGoldenFile('out/$name.png'),
+  );
+}

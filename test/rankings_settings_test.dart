@@ -184,9 +184,7 @@ void main() {
     },
   );
 
-  testWidgets('the card turns rankings on and saves the rules', (
-    tester,
-  ) async {
+  testWidgets('the card turns rankings on and saves the rules', (tester) async {
     final db = FakeFirebaseFirestore();
     tester.view.physicalSize = const Size(1200, 5000);
     tester.view.devicePixelRatio = 1;

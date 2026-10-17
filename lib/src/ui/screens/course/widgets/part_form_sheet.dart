@@ -1083,7 +1083,7 @@ class _MobilePartPreview extends StatelessWidget {
             '',
             details: [
               for (var i = 0; i < options.length; i++)
-                '${i == correct ? '✓' : '○'} ${options[i]}',
+                '${options[i]}${i == correct ? '  (correcta)' : ''}',
               if ((item['explanation'] ?? '').toString().isNotEmpty)
                 'Explicación: ${item['explanation']}',
             ],

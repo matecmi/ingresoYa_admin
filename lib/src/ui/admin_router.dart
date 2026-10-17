@@ -6,6 +6,7 @@ import 'screens/dashboard_shell.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/professions/professions_screen.dart';
 import 'screens/question/questions_screen.dart';
+import 'screens/question/quick_load_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/staff/staff_screen.dart';
 import 'screens/templates/exam_templates_screen.dart';
@@ -39,6 +40,17 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/questions',
             pageBuilder: (_, _) => _page(const QuestionsScreen()),
+          ),
+          GoRoute(
+            path: '/questions/quick',
+            pageBuilder: (_, state) => _page(
+              QuickLoadScreen(
+                initialCourseId: state.uri.queryParameters['course'],
+                initialTopicId: state.uri.queryParameters['topic'],
+                initialSubtopicId: state.uri.queryParameters['subtopic'],
+                initialPartId: state.uri.queryParameters['part'],
+              ),
+            ),
           ),
           GoRoute(
             path: '/exam-templates',

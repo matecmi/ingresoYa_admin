@@ -124,7 +124,7 @@ class RowCard extends StatelessWidget {
                             const SizedBox(height: 8),
 
                             PillPro(
-                              text: selected ? '✓ Seleccionado' : rightPill,
+                              text: selected ? 'Seleccionado' : rightPill,
                               tone: selected ? PillTone.good : rightPillTone,
                             ),
                           ],

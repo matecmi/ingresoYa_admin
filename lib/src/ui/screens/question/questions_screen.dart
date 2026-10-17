@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -121,6 +122,12 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   icon: Icons.filter_alt_rounded,
                   label: 'Filtros',
                   onTap: () => _openFilters(context),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => context.go('/questions/quick'),
+                  icon: const Icon(Icons.bolt_rounded, size: 18),
+                  label: const Text('Carga rápida'),
                 ),
                 const SizedBox(width: 8),
                 _GlassBtn(
