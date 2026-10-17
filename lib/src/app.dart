@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ingresoya_admin/src/domain/staff.dart';
+import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/auth/admin_login_screen.dart';
 
 import 'ui/admin_router.dart';
@@ -21,30 +24,64 @@ class AdminApp extends StatelessWidget {
   }
 }
 
-class _AdminAccessGate extends StatelessWidget {
+class _AdminAccessGate extends ConsumerStatefulWidget {
   const _AdminAccessGate();
+
+  @override
+  ConsumerState<_AdminAccessGate> createState() => _AdminAccessGateState();
+}
+
+class _AdminAccessGateState extends ConsumerState<_AdminAccessGate> {
+  String? _uid;
+  Future<AdminSession?>? _access;
+
+  /// Pide al servidor los permisos (activa una invitación pendiente o crea la
+  /// ficha de un admin anterior a los perfiles) y lee los claims del token.
+  Future<AdminSession?> _resolve(User user) async {
+    try {
+      final changed = await ref.read(staffRepoProvider).syncAccess();
+      if (changed) await user.getIdToken(true);
+    } catch (_) {
+      // Sin la callable (p. ej. aún no desplegada) se usan los claims actuales.
+    }
+    final token = await user.getIdTokenResult(true);
+    if (token.claims?['admin'] != true) return null;
+    final session = AdminSession.fromClaims(
+      uid: user.uid,
+      email: user.email ?? '',
+      claims: token.claims,
+    );
+    ref.read(adminSessionProvider.notifier).set(session);
+    return session;
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.idTokenChanges(),
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _LoadingScreen();
         }
 
         final user = snapshot.data;
-        if (user == null) return const AdminLoginScreen();
+        if (user == null) {
+          _uid = null;
+          _access = null;
+          return const AdminLoginScreen();
+        }
+        if (_uid != user.uid || _access == null) {
+          _uid = user.uid;
+          _access = _resolve(user);
+        }
 
-        return FutureBuilder<IdTokenResult>(
-          future: user.getIdTokenResult(true),
-          builder: (context, tokenSnapshot) {
-            if (tokenSnapshot.connectionState != ConnectionState.done) {
+        return FutureBuilder<AdminSession?>(
+          future: _access,
+          builder: (context, access) {
+            if (access.connectionState != ConnectionState.done) {
               return const _LoadingScreen();
             }
-
-            final isAdmin = tokenSnapshot.data?.claims?['admin'] == true;
-            if (!isAdmin) {
+            if (access.data == null) {
               return _AccessDeniedScreen(email: user.email ?? user.uid);
             }
             return const _AdminRouter();
@@ -120,7 +157,8 @@ class _AccessDeniedScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '$email inició sesión, pero no tiene el permiso de administrador.',
+                    '$email inició sesión, pero no tiene acceso al admin. '
+                    'Pide a un Dueño que te invite con este correo.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppTheme.ink.withValues(alpha: .7)),
                   ),

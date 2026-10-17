@@ -24,6 +24,7 @@
         <li><a href="#c-xp">Ganar XP y subir de rango</a></li>
         <li><a href="#c-top">Liga semanal y reto del día</a></li>
         <li><a href="#c-admin">El admin cambia contenido</a></li>
+        <li><a href="#c-perfiles">Quién puede hacer qué en el admin</a></li>
       </ol></li>
     <li><a href="#quepasasi">¿Qué pasa si…?</a></li>
     <li><a href="#riesgos">Riesgos antes de publicar</a></li>
@@ -70,6 +71,7 @@ flowchart LR
 <div class="table-wrap"><table>
   <tr><th>Información</th><th>Quién la escribe</th><th>Quién la usa</th></tr>
   <tr><td class="msg">Universidades, carreras y exámenes pasados</td><td>Panel admin</td><td>App y servidor</td></tr>
+  <tr><td class="msg">Personal del admin, perfiles e invitaciones</td><td>Servidor (pedido desde «Perfiles y permisos»)</td><td>Admin y reglas de seguridad</td></tr>
   <tr><td class="msg">Cursos, temas, subtemas y partes (videos, lecciones, ejemplos…)</td><td>Panel admin</td><td>App y servidor</td></tr>
   <tr><td class="msg">Preguntas y sus respuestas correctas</td><td>Panel admin</td><td>Solo el servidor (la app nunca ve las correctas antes de entregar)</td></tr>
   <tr><td class="msg">Configuración (tiempos, tamaños, reglas del plan)</td><td>Panel admin</td><td>App y servidor</td></tr>
@@ -269,6 +271,25 @@ sequenceDiagram
   <li><b>Cambiar la configuración</b> (tiempos, tamaños, reglas del plan) se aplica la próxima vez que la app la lee, normalmente al abrirla.</li>
 </ul>
 
+<h3 id="c-perfiles">Quién puede hacer qué en el admin</h3>
+<p>Cada persona del admin tiene un <b>perfil</b> (Dueño, Editor de contenido, Revisor, Soporte a alumnos, Solo lectura o uno propio) con permisos por sección: ver, crear y editar, publicar, archivar. Se le pueden sumar excepciones o limitarla a ciertos cursos.</p>
+<ul>
+  <li><b>Al entrar</b>, el admin llama a <code>syncAdminAccess</code>: si había una invitación para ese correo, crea su ficha; si ya era admin antes de los perfiles, queda como Dueño. El servidor copia los permisos al token de la sesión.</li>
+  <li><b>Las reglas de Firestore</b> leen esos permisos del token: un Editor puede crear y editar borradores, pero no publicar, retirar ni borrar; quien tiene un alcance por curso no puede tocar otros cursos.</li>
+  <li><b>Sin permiso de publicar</b>, «Publicar» se convierte en «Enviar a revisión»: la pregunta queda en borrador con <code>review.status = "pending"</code>; un Revisor la publica o la devuelve con un comentario.</li>
+  <li><b>Cambiar perfiles, invitar o quitar acceso</b> solo lo hace el servidor (<code>manageAdminStaff</code>), que revisa la ficha de quien lo pide. Debe quedar siempre al menos un Dueño.</li>
+</ul>
+<pre class="mermaid">
+flowchart LR
+  A[Kevin invita · correo + perfil] --> B[manageAdminStaff]
+  B --> C[(iya-admin-invites)]
+  D[La persona entra con Google] --> E[syncAdminAccess]
+  C --> E
+  E --> F[(iya-admin-staff · su ficha)]
+  E --> G[Permisos en el token · admin, role, p, cs]
+  G --> H[Reglas de Firestore deciden cada escritura]
+</pre>
+
 <h2 id="quepasasi">¿Qué pasa si…?</h2>
 <div class="table-wrap"><table>
   <tr><th>Si…</th><th>Entonces…</th></tr>
@@ -323,8 +344,8 @@ sequenceDiagram
 </details>
 
 <details>
-<summary>Las 9 Cloud Functions (callables)</summary>
-<p>Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
+<summary>Las 11 Cloud Functions (callables)</summary>
+<p>Las dos del admin no exigen App Check (el admin web no tiene proveedor); se protegen con la sesión y la ficha del personal. Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
 <div class="table-wrap"><table>
   <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Idempotencia</th></tr>
   <tr><td class="msg"><code>createExamAttempt</code></td><td><code>requestId</code>, <code>purpose</code> y datos según el tipo</td><td>Valida catálogo y plantilla, elige y congela preguntas, crea <code>attempts/{id}</code>. Simulador vía <code>SimulatorService</code>.</td><td><code>examRequestKeys/{requestId}</code> (TTL 30 d); «Hoy te toca» además <code>open_plan_{día}</code>: mientras la sesión del día siga abierta, se devuelve esa</td></tr>
@@ -336,6 +357,8 @@ sequenceDiagram
   <tr><td class="msg"><code>getAchievementSummary</code></td><td>—</td><td>Resumen de medallas (lo reconstruye una vez si está dañado).</td><td>Lectura</td></tr>
   <tr><td class="msg"><code>reconcileSubtopicAchievement</code></td><td>curso, tema, subtema</td><td>Otorga plata si el subtema ya está completo.</td><td>ID de medalla fijo</td></tr>
   <tr><td class="msg"><code>updateRankingProfile</code></td><td><code>alias?</code>, <code>hidden?</code></td><td>Valida y reserva el nombre de usuario (<code>alias_length|characters|banned|personal|taken</code>; también contra el nombre y correo de la cuenta), o genera uno al azar si no tiene; guarda <code>ranking/current</code> y reescribe la ficha y el asiento de la semana.</td><td>Transacción</td></tr>
+  <tr><td class="msg"><code>syncAdminAccess</code> (admin)</td><td>—</td><td>Al entrar al admin: activa una invitación pendiente (correo verificado), crea la ficha de Dueño si el token ya era <code>admin</code>, siembra los perfiles de fábrica y recalcula los claims <code>{admin, role, p, cs?, us?}</code>. Responde <code>{active, roleId, changed}</code>.</td><td>Solo cambia claims si difieren</td></tr>
+  <tr><td class="msg"><code>manageAdminStaff</code> (admin)</td><td><code>action</code>: <code>invite</code>, <code>update</code>, <code>revoke</code>, <code>cancelInvite</code>, <code>saveRole</code>, <code>deleteRole</code></td><td>Exige <code>staff:e</code> verificado contra la ficha. Errores: <code>not_staff</code>, <code>staff_forbidden</code>, <code>owner_only</code>, <code>last_owner</code>, <code>self_revoke</code>, <code>role_not_found</code>, <code>role_in_use</code>, <code>builtin_role</code>, <code>invalid_permissions</code>, <code>invalid_scope</code>, <code>invalid_email</code>, <code>invalid_role</code>. Quitar acceso cierra sus sesiones.</td><td>Escrituras completas</td></tr>
   <tr><td class="msg"><code>closeLeagueWeek</code> (tarea programada)</td><td>—</td><td>Lunes 00:10 (Lima): cierra la semana anterior si la liga corrió; escribe <code>stage</code> y <code>lastResult</code> en <code>ranking/current</code>.</td><td>Marca <code>{semana}_closed</code></td></tr>
 </table></div>
 <div class="table-wrap"><table>
@@ -460,6 +483,7 @@ sequenceDiagram
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Perfiles y permisos del admin (rediseño, fase 2): callables <code>syncAdminAccess</code> y <code>manageAdminStaff</code>, colecciones <code>iya-admin-staff</code>, <code>iya-admin-roles</code> e <code>iya-admin-invites</code>, claims <code>{admin, role, p, cs, us}</code>, reglas por sección (<code>can(sección, letra)</code>) y revisión de preguntas (<code>review</code>). Contrato <code>docs/admin_staff_contract.md</code>.</li>
   <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos, liga semanal con cierre automático, reto del día por universidad; se retira el top 100. Flujo, datos, ventanillas y detalle técnico.</li>
   <li><b>15-oct-2026</b> · App Check activado en la app (falta exigirlo en Firebase); «Hoy te toca» sin duplicados (<code>examRequestKeys/open_plan_{día}</code>); retomar exámenes del Simulador; un solo % del curso.</li>
   <li><b>15-oct-2026</b> · XP fase 2: flujo «Aparecer en Los más dedicados», quién guarda el alias y el top, <code>updateRankingProfile</code> y detalle técnico.</li>

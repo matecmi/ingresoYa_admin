@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/staff.dart';
 import '../../env/app_env.dart';
+import '../../providers/providers.dart';
 import '../shell/admin_nav.dart';
 import '../shell/help_panel.dart';
 import '../shell/nav_badges.dart';
 import '../theme/app_theme.dart';
+import '../widgets/admin_ui.dart';
 
 /// Marco del admin: aviso de entorno, menú por tareas y barra superior con
 /// la ayuda de la sección (tableros 7 y 22 del lienzo).
@@ -24,11 +27,36 @@ class DashboardShell extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final current = navItemFor(location);
     final badges = ref.watch(navBadgesProvider);
+    final session = ref.watch(effectiveSessionProvider);
+    final preview = ref.watch(staffPreviewProvider);
+    final items = [
+      for (final item in adminNav)
+        if (session.perms.canKey(item.permission, StaffAction.view)) item,
+    ];
+    final allowed =
+        current == null ||
+        session.perms.canKey(current.permission, StaffAction.view);
+    final readOnly =
+        allowed &&
+        current != null &&
+        current.permission != 'home' &&
+        !session.perms.canKey(current.permission, StaffAction.edit);
+    Widget content = allowed
+        ? child
+        : const Center(
+            child: EmptyState(
+              icon: Icons.lock_outline_rounded,
+              title: 'Tu perfil no tiene acceso a esta sección',
+              message: 'Pide a un Dueño que te dé permiso para verla.',
+            ),
+          );
+    if (preview != null) content = IgnorePointer(child: content);
 
     return LayoutBuilder(
       builder: (context, c) {
         final wide = c.maxWidth >= 1000;
         final menu = _SideMenu(
+          items: items,
           location: location,
           badges: badges,
           userLabel: userLabel,
@@ -42,6 +70,14 @@ class DashboardShell extends ConsumerWidget {
           drawer: wide ? null : Drawer(width: 260, child: menu),
           body: Column(
             children: [
+              if (preview != null)
+                _PreviewBanner(
+                  roleName: preview.name,
+                  onExit: () {
+                    ref.read(staffPreviewProvider.notifier).preview(null);
+                    context.go('/staff');
+                  },
+                ),
               const EnvBanner(),
               Expanded(
                 child: Row(
@@ -51,7 +87,8 @@ class DashboardShell extends ConsumerWidget {
                       child: Column(
                         children: [
                           _TopBar(current: current, showMenuButton: !wide),
-                          Expanded(child: child),
+                          if (readOnly) const _ReadOnlyStrip(),
+                          Expanded(child: content),
                         ],
                       ),
                     ),
@@ -99,6 +136,61 @@ class EnvBanner extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewBanner extends StatelessWidget {
+  const _PreviewBanner({required this.roleName, required this.onExit});
+
+  final String roleName;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 4, 12, 4),
+      decoration: const BoxDecoration(
+        color: AppTheme.infoSoft,
+        border: Border(bottom: BorderSide(color: Color(0xFFC7D7FE))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Estás viendo el admin como «$roleName». Puedes moverte por el '
+              'menú; nada de lo que veas se puede tocar ni se guarda.',
+              style: const TextStyle(
+                color: AppTheme.infoInk,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onExit,
+            child: const Text('Salir de la vista previa'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadOnlyStrip extends StatelessWidget {
+  const _ReadOnlyStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      color: const Color(0xFFF2F4F7),
+      child: const Text(
+        'Solo lectura: tu perfil puede ver esta sección, pero no cambiarla.',
+        style: TextStyle(color: AppTheme.body, fontSize: 13),
       ),
     );
   }
@@ -188,12 +280,14 @@ class _TopBar extends StatelessWidget {
 
 class _SideMenu extends StatelessWidget {
   const _SideMenu({
+    required this.items,
     required this.location,
     required this.badges,
     required this.onNavigate,
     this.userLabel,
   });
 
+  final List<AdminNavItem> items;
   final String location;
   final Map<String, NavBadge> badges;
   final ValueChanged<String> onNavigate;
@@ -209,8 +303,8 @@ class _SideMenu extends StatelessWidget {
       ),
     ];
     for (final group in adminGroups) {
-      final items = adminNav.where((i) => i.group == group).toList();
-      if (items.isEmpty) continue;
+      final inGroup = items.where((i) => i.group == group).toList();
+      if (inGroup.isEmpty) continue;
       if (group.isNotEmpty) {
         children.add(
           Padding(
@@ -227,7 +321,7 @@ class _SideMenu extends StatelessWidget {
           ),
         );
       }
-      for (final item in items) {
+      for (final item in inGroup) {
         children.add(
           _MenuItem(
             item: item,

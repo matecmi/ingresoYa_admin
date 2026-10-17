@@ -23,6 +23,10 @@ export interface BackendCollections {
   dailyChallenges: string;
   /** Daily challenge results `{day}_{uid}` (public to students). */
   challengeEntries: string;
+  /** Admin staff, roles and pending invites (docs/admin_staff_contract.md). */
+  staff: string;
+  staffRoles: string;
+  staffInvites: string;
 }
 
 export interface BackendConfig {
@@ -58,7 +62,10 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     leagueMembers: "iya-league-members-test",
     leagueGroups: "iya-league-groups-test",
     dailyChallenges: "iya-daily-challenges-test",
-    challengeEntries: "iya-challenge-entries-test"
+    challengeEntries: "iya-challenge-entries-test",
+    staff: "iya-admin-staff-test",
+    staffRoles: "iya-admin-roles-test",
+    staffInvites: "iya-admin-invites-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -74,7 +81,10 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     leagueMembers: "iya-league-members-staging",
     leagueGroups: "iya-league-groups-staging",
     dailyChallenges: "iya-daily-challenges-staging",
-    challengeEntries: "iya-challenge-entries-staging"
+    challengeEntries: "iya-challenge-entries-staging",
+    staff: "iya-admin-staff-staging",
+    staffRoles: "iya-admin-roles-staging",
+    staffInvites: "iya-admin-invites-staging"
   },
   production: {
     questions: "iya-questions",
@@ -90,7 +100,10 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     leagueMembers: "iya-league-members",
     leagueGroups: "iya-league-groups",
     dailyChallenges: "iya-daily-challenges",
-    challengeEntries: "iya-challenge-entries"
+    challengeEntries: "iya-challenge-entries",
+    staff: "iya-admin-staff",
+    staffRoles: "iya-admin-roles",
+    staffInvites: "iya-admin-invites"
   }
 };
 

@@ -788,6 +788,33 @@ flowchart LR
   <tr><td class="msg">Inicio: «Cargar preguntas», «Armar un curso», «Exámenes pasados»</td><td>Siempre.</td><td>Abren el Banco de preguntas, Cursos y Universidades.</td></tr>
   <tr><td class="msg">Correo y «Cerrar sesión»</td><td>Pie del menú.</td><td>Cierra la sesión.</td></tr>
 </table></div>
+<h3 id="admin-perfiles">Perfiles y permisos</h3>
+<div class="wide-pair">
+  <figure class="wide-shot"><img src="img/adm-perfiles.jpg" alt="Perfiles y permisos con la matriz del Editor de contenido"><figcaption>Ajustes → Perfiles y permisos: perfiles a la izquierda, qué puede hacer cada uno a la derecha.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-inicio-editor.jpg" alt="Inicio de un Editor con Mis envíos a revisión"><figcaption>Inicio de un Editor: «Mis envíos a revisión» (devueltas primero).</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Elemento</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">Perfiles de fábrica: Dueño, Editor de contenido, Revisor, Soporte a alumnos, Solo lectura</td><td>Siempre; «N personas» cuenta las activas con ese perfil.</td><td>Muestra su tabla de permisos.</td></tr>
+  <tr><td class="msg">Tabla «Ver · Crear y editar · Publicar · Archivar / borrar» por sección</td><td>Con permiso de editar perfiles, las casillas se pueden marcar (el Dueño no se edita). «pide revisión» bajo Publicar cuando el perfil edita pero no publica.</td><td>Al cambiar algo aparece «Cambios sin guardar en este perfil · Descartar · Guardar perfil».</td></tr>
+  <tr><td class="msg">«Ver el admin como este perfil →»</td><td>Siempre.</td><td>Abre el admin con el menú de ese perfil y la franja azul «Estás viendo el admin como «…». Puedes moverte por el menú; nada de lo que veas se puede tocar ni se guarda.» · «Salir de la vista previa».</td></tr>
+  <tr><td class="msg">«Invitar persona»</td><td>Con permiso de editar perfiles.</td><td>Correo de Google, perfil, «Limitar a ciertos cursos» y «Excepciones para esta persona». Si la cuenta ya existe, queda activa; si no, «Invitación lista» (vence en 14 días).</td></tr>
+  <tr><td class="msg">«Personas con acceso»: perfil, «Solo N curso(s)», excepciones, «activo hoy / ayer / hace N días», «aún no entra», «acceso quitado»</td><td>Siempre.</td><td>«Cambiar», «Quitar acceso» (cierra su sesión; no a ti mismo ni al último Dueño), «Devolver acceso»; invitaciones: «vence en N días» · «Cancelar».</td></tr>
+  <tr><td class="msg">«Solo lectura: tu perfil puede ver esta sección, pero no cambiarla.»</td><td>En una sección que tu perfil ve pero no edita.</td><td>—</td></tr>
+  <tr><td class="msg">«Tu perfil no tiene acceso a esta sección»</td><td>Si se abre la dirección de una sección sin permiso de ver (el menú ya no la muestra).</td><td>—</td></tr>
+  <tr><td class="msg">«…no tiene acceso al admin. Pide a un Dueño que te invite con este correo.»</td><td>Al entrar con una cuenta sin ficha ni invitación.</td><td>«Cerrar sesión».</td></tr>
+</table></div>
+<h4>Enviar a revisión</h4>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Enviar a revisión» (en lugar de «Publicar»)</td><td>Formulario de pregunta, si tu perfil no puede publicar.</td><td>Valida, guarda el borrador y lo deja «En revisión». «Enviada a revisión. Te avisaremos en «Mi trabajo» si la devuelven.»</td></tr>
+  <tr><td class="msg">«En revisión: espera a que alguien con permiso de publicar la revise.»</td><td>Al abrir tu pregunta enviada.</td><td>—</td></tr>
+  <tr><td class="msg">«Enviada a revisión por {correo}. Revísala y publícala, o devuélvela con un comentario.» · «Devolver con comentario»</td><td>Al abrirla quien puede publicar.</td><td>«Publicar» la publica y cierra la revisión; «Devolver» pide el comentario.</td></tr>
+  <tr><td class="msg">«Devuelta por {correo}: «{comentario}». Corrígela y vuelve a enviarla.»</td><td>Al abrir una pregunta devuelta.</td><td>—</td></tr>
+  <tr><td class="msg">«Esta pregunta está publicada. Para cambiarla hace falta permiso de publicar…»</td><td>Pregunta publicada y tu perfil no publica.</td><td>Sin botones de guardar.</td></tr>
+  <tr><td class="msg">Inicio: «Por revisar · N» / «Mis envíos a revisión» con «Devuelta» y «En revisión»</td><td>Según puedas publicar o solo editar preguntas.</td><td>Abre la pregunta.</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -830,6 +857,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 2: «Perfiles y permisos» (perfiles de fábrica, tabla de permisos, invitar, excepciones, alcance por curso, ver como perfil), menú según el perfil y «Enviar a revisión» con «Mi trabajo» en Inicio.</li>
   <li><b>16-oct-2026</b> · Admin, fase 1 del rediseño: tema claro, menú por tareas, aviso de entorno TEST y ayuda «?» por sección. Nueva sección «Panel de administración».</li>
   <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos (onboarding, Perfil, «Ocultarme de los rankings»), «Rankings» con «Mi liga» (etapas Aspirante → Ingresante, grupos semanales, «Esta semana» por universidad y carrera) y «Reto del día»; se retira el top 100 de la fase 2. Admin «Rankings» y «Nombres de usuario y reto de hoy». Probado en el teléfono (el reto trajo preguntas del examen UNPRG 2025 I); el resultado del reto oculta ese día lo que revela respuestas.</li>
   <li><b>15-oct-2026</b> · Pendientes antes de Play Console: un solo % del curso, «Tienes un examen sin terminar · Retomar» en el Simulador, «Hoy te toca» sin duplicados y botón «Continuar examen». Observaciones 1, 9 (en parte) y 11 corregidas.</li>

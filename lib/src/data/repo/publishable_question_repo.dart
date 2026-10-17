@@ -254,6 +254,8 @@ class PublishableQuestionRepo {
         ...fields,
         'updatedAt': FieldValue.serverTimestamp(),
         'publishedAt': FieldValue.serverTimestamp(),
+        // Publicar cierra la revisión que hubiera.
+        'review': FieldValue.delete(),
       }, SetOptions(merge: true));
     });
   }

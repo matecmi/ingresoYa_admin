@@ -22,6 +22,20 @@ function firestoreFor(uid?: string, admin = false) {
   return context.firestore();
 }
 
+function staffFor(uid: string, claims: Record<string, unknown>) {
+  return testEnv.authenticatedContext(uid, { admin: true, ...claims }).firestore();
+}
+
+const EDITOR = {
+  role: "editor",
+  p: { questions: "ve", courses: "ve", universities: "ve", settings: "v", history: "v" }
+};
+const REVIEWER = {
+  role: "reviewer",
+  p: { questions: "vep", courses: "vep", universities: "vep", settings: "v", history: "v" }
+};
+const SUPPORT = { role: "support", p: { students: "ve", questions: "v", courses: "v", history: "v" } };
+
 function storageFor(uid?: string, admin = false) {
   const context = uid === undefined
     ? testEnv.unauthenticatedContext()
@@ -298,6 +312,81 @@ test("Storage permits only valid admin uploads and authenticated public reads", 
     adminStorage.ref(privatePath).put(pngBytes, { contentType: "image/png" }).then(() => undefined)
   );
   await assertFails(learnerStorage.ref(privatePath).getDownloadURL());
+});
+
+test("an editor works on drafts but cannot publish, retire or delete", async () => {
+  const editor = staffFor("editor-2", EDITOR);
+  await assertSucceeds(editor.doc("iya-questions-test/new-draft").set({
+    questionId: "new-draft", version: 1, status: "draft", courseId: "course-1"
+  }));
+  await assertSucceeds(editor.doc("iya-questions-test/draft").update({
+    review: { status: "pending", requestedBy: "editor-2" }
+  }));
+  await assertFails(editor.doc("iya-questions-test/draft").update({ status: "published" }));
+  await assertFails(editor.doc("iya-questions-test/published").update({ status: "draft", version: 2 }));
+  await assertFails(editor.doc("iya-questions-test/draft/versions/1").set({ status: "published" }));
+  await assertFails(editor.doc("iya-questions-test/draft").delete());
+  await assertSucceeds(editor.doc("iya-questions-test/published").get());
+  await assertSucceeds(editor.doc("iya-courses-test/course-1").update({ name: "Física" }));
+  await assertFails(editor.doc("iya-config-test/xp").set({ dailyCap: 1 }));
+  await assertSucceeds(editor.doc("iya-config-test/xp").get());
+  await assertFails(editor.doc("iya-profile-test/student-1").get());
+});
+
+test("a reviewer publishes; only archive permission retires or deletes", async () => {
+  const reviewer = staffFor("reviewer-1", REVIEWER);
+  await assertSucceeds(reviewer.doc("iya-questions-test/draft").update({ status: "published" }));
+  await assertSucceeds(reviewer.doc("iya-questions-test/draft/versions/1").set({ status: "published" }));
+  await assertFails(reviewer.doc("iya-questions-test/published").update({ status: "retired" }));
+  const owner = staffFor("owner-1", { role: "owner", p: {} });
+  await assertSucceeds(owner.doc("iya-questions-test/published").update({ status: "retired" }));
+});
+
+test("course scope limits which courses and questions an editor can change", async () => {
+  const scoped = staffFor("editor-3", { ...EDITOR, cs: ["course-1"] });
+  await assertSucceeds(scoped.doc("iya-courses-test/course-1/topics/t1").set({ name: "Cinemática" }));
+  await assertFails(scoped.doc("iya-courses-test/course-2").set({ name: "Química" }));
+  await assertSucceeds(scoped.doc("iya-questions-test/q-in").set({
+    questionId: "q-in", version: 1, status: "draft", courseId: "course-1"
+  }));
+  await assertFails(scoped.doc("iya-questions-test/q-out").set({
+    questionId: "q-out", version: 1, status: "draft", courseId: "course-2"
+  }));
+});
+
+test("support sees students and fixes XP but cannot edit content", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc("iya-profile-test/student-1/xp/current").set({ total: 10 });
+  });
+  const support = staffFor("support-1", SUPPORT);
+  await assertSucceeds(support.doc("iya-profile-test/student-1").get());
+  await assertSucceeds(support.doc("iya-profile-test/student-1/xp/current").update({ total: 5 }));
+  await assertFails(support.doc("iya-questions-test/draft").update({ review: null }));
+  await assertFails(support.doc("iya-courses-test/course-1").update({ name: "X" }));
+});
+
+test("a legacy admin token without role still works as owner", async () => {
+  const legacy = firestoreFor("admin-legacy", true);
+  await assertSucceeds(legacy.doc("iya-config-test/xp").set({ dailyCap: 300 }));
+  await assertSucceeds(legacy.doc("iya-questions-test/draft").update({ status: "published" }));
+});
+
+test("staff records are readable as described and written only by Functions", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("iya-admin-staff-test/editor-2").set({ roleId: "editor", status: "active" });
+    await db.doc("iya-admin-staff-test/owner-1").set({ roleId: "owner", status: "active" });
+    await db.doc("iya-admin-roles-test/editor").set({ name: "Editor de contenido" });
+  });
+  const editor = staffFor("editor-2", EDITOR);
+  const owner = staffFor("owner-1", { role: "owner", p: {} });
+  await assertSucceeds(editor.doc("iya-admin-staff-test/editor-2").get());
+  await assertFails(editor.doc("iya-admin-staff-test/owner-1").get());
+  await assertSucceeds(editor.doc("iya-admin-roles-test/editor").get());
+  await assertSucceeds(owner.collection("iya-admin-staff-test").get());
+  await assertFails(owner.doc("iya-admin-staff-test/editor-2").update({ roleId: "owner" }));
+  await assertFails(editor.doc("iya-admin-staff-test/editor-2").update({ roleId: "owner" }));
+  await assertFails(firestoreFor("student-1").doc("iya-admin-roles-test/editor").get());
 });
 
 test("rule test environment is initialized", () => {

@@ -38,6 +38,15 @@ class AppEnv {
   static const String dailyChallengesCollection = 'iya-daily-challenges-test';
   static const String challengeEntriesCollection = 'iya-challenge-entries-test';
   static const String rankingsSettingsDocument = 'rankings';
+
+  /// Perfiles y permisos del admin (docs/admin_staff_contract.md). Solo las
+  /// Functions escriben aquí.
+  static const String staffCollection = 'iya-admin-staff-test';
+  static const String staffRolesCollection = 'iya-admin-roles-test';
+  static const String staffInvitesCollection = 'iya-admin-invites-test';
+
+  /// Región de las Functions (callables del admin).
+  static const String functionsRegion = 'southamerica-east1';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =
