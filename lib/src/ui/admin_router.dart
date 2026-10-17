@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/course/course_structure_screen.dart';
 import 'screens/course/courses_screen.dart';
+import 'screens/course/part_editor_screen.dart';
 import 'screens/dashboard_shell.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/professions/professions_screen.dart';
@@ -32,6 +34,25 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/courses',
             pageBuilder: (_, _) => _page(const CoursesScreen()),
+          ),
+          GoRoute(
+            path: '/courses/:courseId',
+            pageBuilder: (_, state) => _page(
+              CourseStructureScreen(
+                courseId: state.pathParameters['courseId']!,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/courses/:courseId/part/:partId',
+            pageBuilder: (_, state) => _page(
+              PartEditorScreen(
+                courseId: state.pathParameters['courseId']!,
+                partId: state.pathParameters['partId']!,
+                topicId: state.uri.queryParameters['topic'] ?? '',
+                subtopicId: state.uri.queryParameters['subtopic'] ?? '',
+              ),
+            ),
           ),
           GoRoute(
             path: '/professions',

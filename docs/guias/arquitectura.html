@@ -271,6 +271,10 @@ sequenceDiagram
   <li><b>Cambiar la configuración</b> (tiempos, tamaños, reglas del plan) se aplica la próxima vez que la app la lee, normalmente al abrirla.</li>
 </ul>
 
+<h3 id="c-salud">Salud del contenido</h3>
+<p>El admin revisa cada parte activa de los cursos activos: tiene que tener una plantilla de examen de parte publicada y, en el banco, al menos tantas preguntas <b>publicadas y activas</b> con esa parte como pide la plantilla. Si no, el alumno no puede aprobarla (bloquea). Video, lección y ejemplos faltantes solo restan calidad. Lo calcula el propio admin leyendo cursos, temas, subtemas, plantillas y todas las preguntas publicadas (≈1.000 lecturas por revisión, al entrar y con «Revisar ahora»). Cada curso guarda <code>partDefaults.examTemplateId</code>: la plantilla que reciben sus partes nuevas.</p>
+<p><b>Ojo:</b> la app oculta las partes y cursos inactivos, pero no los temas ni subtemas inactivos; por eso el admin solo ofrece «Ocultar a los alumnos» en partes.</p>
+
 <h3 id="c-perfiles">Quién puede hacer qué en el admin</h3>
 <p>Cada persona del admin tiene un <b>perfil</b> (Dueño, Editor de contenido, Revisor, Soporte a alumnos, Solo lectura o uno propio) con permisos por sección: ver, crear y editar, publicar, archivar. Se le pueden sumar excepciones o limitarla a ciertos cursos.</p>
 <ul>
@@ -483,6 +487,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Salud del contenido calculada en el admin y campo <code>partDefaults.examTemplateId</code> del curso (rediseño del admin, fase 4).</li>
   <li><b>16-oct-2026</b> · Perfiles y permisos del admin (rediseño, fase 2): callables <code>syncAdminAccess</code> y <code>manageAdminStaff</code>, colecciones <code>iya-admin-staff</code>, <code>iya-admin-roles</code> e <code>iya-admin-invites</code>, claims <code>{admin, role, p, cs, us}</code>, reglas por sección (<code>can(sección, letra)</code>) y revisión de preguntas (<code>review</code>). Contrato <code>docs/admin_staff_contract.md</code>.</li>
   <li><b>16-oct-2026</b> · XP fase 3: nombre de usuario para todos, liga semanal con cierre automático, reto del día por universidad; se retira el top 100. Flujo, datos, ventanillas y detalle técnico.</li>
   <li><b>15-oct-2026</b> · App Check activado en la app (falta exigirlo en Firebase); «Hoy te toca» sin duplicados (<code>examRequestKeys/open_plan_{día}</code>); retomar exámenes del Simulador; un solo % del curso.</li>

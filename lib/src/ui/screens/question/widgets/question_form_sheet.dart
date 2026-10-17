@@ -920,7 +920,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         'Guía de estudio → ${courseName.text} → ${subtopicName.text} → '
             '${partNames.values.join(', ')} → Examen de la parte',
       'Simulador → Arma tu práctica → ${courseName.text.isEmpty ? 'su curso' : courseName.text}',
-      if (source != null) 'Simulador → Exámenes pasados (si el examen está completo)',
+      if (source != null)
+        'Simulador → Exámenes pasados (si el examen está completo)',
       'Reto del día (si la eligen para la universidad del alumno)',
     ];
     await showDialog<void>(
@@ -938,7 +939,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                   children: [
                     const Text(
                       'Así la ve el alumno',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     SegmentedButton<AppExamPlace>(
@@ -948,7 +952,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                       ],
                       selected: {place},
                       showSelectedIcon: false,
-                      onSelectionChanged: (v) => setLocal(() => place = v.first),
+                      onSelectionChanged: (v) =>
+                          setLocal(() => place = v.first),
                     ),
                     const SizedBox(height: 12),
                     Center(
@@ -958,7 +963,8 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                           statement: content.content,
                           alternatives: alts,
                           place: place,
-                          sourceLabel: source?.label ?? 'Pregunta de práctica IngresoYa',
+                          sourceLabel:
+                              source?.label ?? 'Pregunta de práctica IngresoYa',
                           sourceType: source?.examType ?? 'original',
                         ),
                       ),
@@ -971,7 +977,10 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
                     for (final p in places)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text('• $p', style: const TextStyle(fontSize: 13)),
+                        child: Text(
+                          '• $p',
+                          style: const TextStyle(fontSize: 13),
+                        ),
                       ),
                     const SizedBox(height: 12),
                     Align(
@@ -1025,16 +1034,20 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     if (text == null || text.isEmpty || widget.question == null) return;
     setState(() => saving = true);
     try {
-      await ref.read(questionRepoProvider).returnForChanges(
-        widget.question!.id,
-        note: text,
-        reviewerEmail: ref.read(adminSessionProvider).email,
-      );
+      await ref
+          .read(questionRepoProvider)
+          .returnForChanges(
+            widget.question!.id,
+            note: text,
+            reviewerEmail: ref.read(adminSessionProvider).email,
+          );
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo devolver. Vuelve a intentarlo.')),
+          const SnackBar(
+            content: Text('No se pudo devolver. Vuelve a intentarlo.'),
+          ),
         );
       }
     } finally {
