@@ -27,6 +27,9 @@ export interface BackendCollections {
   staff: string;
   staffRoles: string;
   staffInvites: string;
+  /** Historial de cambios del admin (docs/admin_audit_contract.md). */
+  audit: string;
+  professions: string;
 }
 
 export interface BackendConfig {
@@ -65,7 +68,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     challengeEntries: "iya-challenge-entries-test",
     staff: "iya-admin-staff-test",
     staffRoles: "iya-admin-roles-test",
-    staffInvites: "iya-admin-invites-test"
+    staffInvites: "iya-admin-invites-test",
+    audit: "iya-admin-audit-test",
+    professions: "iya-professions-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -84,7 +89,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     challengeEntries: "iya-challenge-entries-staging",
     staff: "iya-admin-staff-staging",
     staffRoles: "iya-admin-roles-staging",
-    staffInvites: "iya-admin-invites-staging"
+    staffInvites: "iya-admin-invites-staging",
+    audit: "iya-admin-audit-staging",
+    professions: "iya-professions-staging"
   },
   production: {
     questions: "iya-questions",
@@ -103,7 +110,9 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     challengeEntries: "iya-challenge-entries",
     staff: "iya-admin-staff",
     staffRoles: "iya-admin-roles",
-    staffInvites: "iya-admin-invites"
+    staffInvites: "iya-admin-invites",
+    audit: "iya-admin-audit",
+    professions: "iya-professions"
   }
 };
 

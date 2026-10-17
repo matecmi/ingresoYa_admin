@@ -5,6 +5,7 @@ import 'screens/course/course_structure_screen.dart';
 import 'screens/course/courses_screen.dart';
 import 'screens/course/part_editor_screen.dart';
 import 'screens/dashboard_shell.dart';
+import 'screens/history/history_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/professions/professions_screen.dart';
 import 'screens/question/questions_screen.dart';
@@ -80,6 +81,10 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/settings',
             pageBuilder: (_, _) => _page(const SettingsScreen()),
+          ),
+          GoRoute(
+            path: '/history',
+            pageBuilder: (_, _) => _page(const HistoryScreen()),
           ),
           GoRoute(
             path: '/staff',

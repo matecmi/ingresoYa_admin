@@ -389,6 +389,16 @@ test("staff records are readable as described and written only by Functions", as
   await assertFails(firestoreFor("student-1").doc("iya-admin-roles-test/editor").get());
 });
 
+test("the change history is read with history:v and written only by the server", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc("iya-admin-audit-test/e1").set({ kind: "update" });
+  });
+  await assertSucceeds(staffFor("editor-2", EDITOR).doc("iya-admin-audit-test/e1").get());
+  await assertFails(staffFor("x", { role: "custom", p: { questions: "v" } }).doc("iya-admin-audit-test/e1").get());
+  await assertFails(firestoreFor("student-1").doc("iya-admin-audit-test/e1").get());
+  await assertFails(firestoreFor("admin-1", true).doc("iya-admin-audit-test/e2").set({ kind: "fake" }));
+});
+
 test("rule test environment is initialized", () => {
   assert.ok(testEnv);
 });

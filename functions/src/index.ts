@@ -1,6 +1,7 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentWrittenWithAuthContext } from "firebase-functions/v2/firestore";
 import { config as loadDotenv } from "dotenv";
 
 import "./admin";
@@ -8,6 +9,7 @@ import { readBackendConfig } from "./config";
 import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
 import { createStaffHandlers } from "./staff";
+import { createAuditHandlers, recordWrite } from "./audit";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
 // environment variables. Loading the ignored local .env lets that discovery
@@ -52,6 +54,43 @@ export const reconcileSubtopicAchievement = onCall(
 const adminCallableOptions = { enforceAppCheck: false };
 export const syncAdminAccess = onCall(adminCallableOptions, staffHandlers.syncAdminAccess);
 export const manageAdminStaff = onCall(adminCallableOptions, staffHandlers.manageAdminStaff);
+const auditHandlers = createAuditHandlers(config);
+export const restoreAuditEntry = onCall(adminCallableOptions, auditHandlers.restoreAuditEntry);
+
+// Historial de cambios del admin (docs/admin_audit_contract.md). La base de
+// Firestore está en nam5, así que los disparadores van en us-central1.
+const col = config.collections;
+function auditTrigger(document: string, kindKey: string) {
+  return onDocumentWrittenWithAuthContext(
+    { document, region: "us-central1", timeoutSeconds: 30, memory: "256MiB" },
+    async (event) => {
+      const before = event.data?.before;
+      const after = event.data?.after;
+      const docId = (after?.id ?? before?.id) ?? "";
+      const path = (after?.ref.path ?? before?.ref.path) ?? "";
+      await recordWrite(config, {
+        path,
+        docId,
+        kindKey,
+        before: before?.exists ? (before.data() as Record<string, unknown>) : null,
+        after: after?.exists ? (after.data() as Record<string, unknown>) : null,
+        authType: event.authType,
+        authId: event.authId
+      });
+    }
+  );
+}
+export const auditQuestions = auditTrigger(`${col.questions}/{id}`, "questions");
+export const auditCourses = auditTrigger(`${col.courses}/{id}`, "courses");
+export const auditTopics = auditTrigger(`${col.courses}/{c}/topics/{id}`, "topics");
+export const auditSubtopics = auditTrigger(`${col.courses}/{c}/topics/{t}/subtopics/{id}`, "subtopics");
+export const auditTemplates = auditTrigger(`${col.templates}/{id}`, "templates");
+export const auditUniversities = auditTrigger(`${col.universities}/{id}`, "universities");
+export const auditUniversityChildren = auditTrigger(`${col.universities}/{u}/{sub}/{id}`, "universityChild");
+export const auditProfessions = auditTrigger(`${col.professions}/{id}`, "professions");
+export const auditConfig = auditTrigger(`${col.config}/{id}`, "config");
+export const auditStaff = auditTrigger(`${col.staff}/{id}`, "staff");
+export const auditStaffRoles = auditTrigger(`${col.staffRoles}/{id}`, "staffRoles");
 
 /**
  * Weekly league close (docs/rankings_contract.md §5): Monday 00:10 in Lima,

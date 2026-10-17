@@ -348,6 +348,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Historial de cambios del admin (docs/admin_audit_contract.md): lo
+    // escriben solo los disparadores; se lee con history:v.
+    match /{collectionName}/{entryId} {
+      allow read: if collectionName in [
+          'iya-admin-audit-test', 'iya-admin-audit-staging', 'iya-admin-audit'
+        ] && can('history', 'v');
+      allow write: if false;
+    }
+
     // These records are server-owned: request IDs provide idempotency and
     // recent-question history affects unbiased selection.
     match /{profiles}/{userId}/examRequestKeys/{requestId} {

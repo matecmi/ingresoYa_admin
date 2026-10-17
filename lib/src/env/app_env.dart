@@ -45,6 +45,9 @@ class AppEnv {
   static const String staffRolesCollection = 'iya-admin-roles-test';
   static const String staffInvitesCollection = 'iya-admin-invites-test';
 
+  /// Historial de cambios del admin (lo escriben disparadores del servidor).
+  static const String auditCollection = 'iya-admin-audit-test';
+
   /// Región de las Functions (callables del admin).
   static const String functionsRegion = 'southamerica-east1';
   // Migration runs are admin-only audit records. Like every other collection,

@@ -294,6 +294,18 @@ flowchart LR
   G --> H[Reglas de Firestore deciden cada escritura]
 </pre>
 
+<h3 id="c-historial">Historial de cambios y restaurar</h3>
+<p>Cada escritura en las colecciones del admin dispara una función (región us-central1, junto a la base en nam5) que guarda en <code>iya-admin-audit</code> quién la hizo, qué campos cambiaron y una copia de antes y después. Desde el admin, «Restaurar» llama a <code>restoreAuditEntry</code>, que vuelve el documento a como estaba (o recupera lo eliminado o una pregunta archivada) y marca la escritura para que el historial la anote como restauración de esa persona. Las preguntas publicadas no se restauran así: se publica una versión nueva. Contrato: <code>docs/admin_audit_contract.md</code>.</p>
+<pre class="mermaid">
+flowchart LR
+  A[Admin guarda un cambio] --> B[(Colección del admin)]
+  B --> C[Disparador audit*]
+  C --> D[(iya-admin-audit · antes, después, quién)]
+  E[Historial · Restaurar] --> F[restoreAuditEntry]
+  D --> F
+  F --> B
+</pre>
+
 <h2 id="quepasasi">¿Qué pasa si…?</h2>
 <div class="table-wrap"><table>
   <tr><th>Si…</th><th>Entonces…</th></tr>
@@ -348,7 +360,7 @@ flowchart LR
 </details>
 
 <details>
-<summary>Las 11 Cloud Functions (callables)</summary>
+<summary>Las 12 Cloud Functions (callables) y los disparadores</summary>
 <p>Las dos del admin no exigen App Check (el admin web no tiene proveedor); se protegen con la sesión y la ficha del personal. Todas exigen sesión, rechazan campos extra (<code>invalid_request</code>) y devuelven errores como <code>HttpsError(code, msg, {reason})</code>.</p>
 <div class="table-wrap"><table>
   <tr><th>Función</th><th>Recibe</th><th>Hace</th><th>Idempotencia</th></tr>
@@ -363,6 +375,8 @@ flowchart LR
   <tr><td class="msg"><code>updateRankingProfile</code></td><td><code>alias?</code>, <code>hidden?</code></td><td>Valida y reserva el nombre de usuario (<code>alias_length|characters|banned|personal|taken</code>; también contra el nombre y correo de la cuenta), o genera uno al azar si no tiene; guarda <code>ranking/current</code> y reescribe la ficha y el asiento de la semana.</td><td>Transacción</td></tr>
   <tr><td class="msg"><code>syncAdminAccess</code> (admin)</td><td>—</td><td>Al entrar al admin: activa una invitación pendiente (correo verificado), crea la ficha de Dueño si el token ya era <code>admin</code>, siembra los perfiles de fábrica y recalcula los claims <code>{admin, role, p, cs?, us?}</code>. Responde <code>{active, roleId, changed}</code>.</td><td>Solo cambia claims si difieren</td></tr>
   <tr><td class="msg"><code>manageAdminStaff</code> (admin)</td><td><code>action</code>: <code>invite</code>, <code>update</code>, <code>revoke</code>, <code>cancelInvite</code>, <code>saveRole</code>, <code>deleteRole</code></td><td>Exige <code>staff:e</code> verificado contra la ficha. Errores: <code>not_staff</code>, <code>staff_forbidden</code>, <code>owner_only</code>, <code>last_owner</code>, <code>self_revoke</code>, <code>role_not_found</code>, <code>role_in_use</code>, <code>builtin_role</code>, <code>invalid_permissions</code>, <code>invalid_scope</code>, <code>invalid_email</code>, <code>invalid_role</code>. Quitar acceso cierra sus sesiones.</td><td>Escrituras completas</td></tr>
+  <tr><td class="msg"><code>restoreAuditEntry</code> (admin)</td><td><code>entryId</code>, <code>force?</code></td><td>Deshace una entrada del historial (ver «Historial de cambios»). Errores: <code>entry_not_found</code>, <code>staff_forbidden</code>, <code>changed_since</code>, <code>creation_restore_unsupported</code>, <code>question_restore_unsupported</code>, <code>too_large</code>.</td><td>La restauración también queda anotada</td></tr>
+  <tr><td class="msg"><code>audit*</code> (11 disparadores, us-central1)</td><td>Escrituras en preguntas, cursos/temas/subtemas, plantillas, universidades y sus subcolecciones, carreras, configuración y personal</td><td>Agregan una entrada en <code>iya-admin-audit</code> (no anotan cambios solo de fechas o tokens).</td><td>Una entrada por escritura</td></tr>
   <tr><td class="msg"><code>closeLeagueWeek</code> (tarea programada)</td><td>—</td><td>Lunes 00:10 (Lima): cierra la semana anterior si la liga corrió; escribe <code>stage</code> y <code>lastResult</code> en <code>ranking/current</code>.</td><td>Marca <code>{semana}_closed</code></td></tr>
 </table></div>
 <div class="table-wrap"><table>
@@ -487,6 +501,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Historial de cambios del admin: 11 disparadores <code>audit*</code> (us-central1), colección <code>iya-admin-audit</code> (lectura con <code>history:v</code>), callable <code>restoreAuditEntry</code> e índice <code>section + at</code>.</li>
   <li><b>16-oct-2026</b> · Configuración del admin rehecha (fase 5): escribe los mismos documentos <code>{config}/rankings|xp|simulator|study|sync</code> con la misma validación; sin cambios en servidor.</li>
   <li><b>16-oct-2026</b> · Salud del contenido calculada en el admin y campo <code>partDefaults.examTemplateId</code> del curso (rediseño del admin, fase 4).</li>
   <li><b>16-oct-2026</b> · Perfiles y permisos del admin (rediseño, fase 2): callables <code>syncAdminAccess</code> y <code>manageAdminStaff</code>, colecciones <code>iya-admin-staff</code>, <code>iya-admin-roles</code> e <code>iya-admin-invites</code>, claims <code>{admin, role, p, cs, us}</code>, reglas por sección (<code>can(sección, letra)</code>) y revisión de preguntas (<code>review</code>). Contrato <code>docs/admin_staff_contract.md</code>.</li>
