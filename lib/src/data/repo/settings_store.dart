@@ -35,9 +35,7 @@ class SettingsStore {
     SettingsDoc.sync => _config.watchSyncSettings().map(
       (r) => r.settings.toMap(),
     ),
-    SettingsDoc.quality => _config.watchQualitySettings().map(
-      (s) => s.toMap(),
-    ),
+    SettingsDoc.quality => _config.watchQualitySettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.

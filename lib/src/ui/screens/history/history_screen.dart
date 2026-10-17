@@ -142,7 +142,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       child: Text(
                         _dayLabel(e.at),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.muted,
@@ -355,7 +355,7 @@ class _EntryRow extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             border: Border(
-              top: const BorderSide(color: Color(0xFFF0F2F5)),
+              top: BorderSide(color: AppTheme.rowLine),
               left: BorderSide(
                 color: selected ? AppTheme.brand : Colors.transparent,
                 width: 3,
@@ -370,7 +370,7 @@ class _EntryRow extends StatelessWidget {
                 width: 48,
                 child: Text(
                   _time(e.at),
-                  style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                  style: TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
               ),
               Expanded(
@@ -396,7 +396,7 @@ class _EntryRow extends StatelessWidget {
                               text:
                                   ' · ${humanField(e, first.$1)}: ${humanValue(first.$2)} → ${humanValue(first.$3)}'
                                   '${e.changes.length > 1 ? ' (+${e.changes.length - 1})' : ''}',
-                              style: const TextStyle(color: AppTheme.body),
+                              style: TextStyle(color: AppTheme.body),
                             ),
                         ],
                       ),
@@ -405,10 +405,7 @@ class _EntryRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _sectionLabel[e.section] ?? e.section,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.muted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: AppTheme.muted),
                     ),
                   ],
                 ),
@@ -458,7 +455,7 @@ class _Detail extends StatelessWidget {
         children: [
           Text(
             '${_time(e.at)} · ${e.actorLabel}',
-            style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+            style: TextStyle(fontSize: 12, color: AppTheme.muted),
           ),
           const SizedBox(height: 2),
           Text(
@@ -471,7 +468,7 @@ class _Detail extends StatelessWidget {
               'create' => 'Se creó este elemento.',
               'delete' => 'Se eliminó este elemento.',
               _ => 'Sin cambios visibles.',
-            }, style: const TextStyle(color: AppTheme.body))
+            }, style: TextStyle(color: AppTheme.body))
           else
             Container(
               decoration: BoxDecoration(
@@ -487,7 +484,7 @@ class _Detail extends StatelessWidget {
                 },
                 children: [
                   TableRow(
-                    decoration: const BoxDecoration(color: AppTheme.subtle),
+                    decoration: BoxDecoration(color: AppTheme.subtle),
                     children: [
                       for (final h in ['Campo', 'Antes', 'Ahora'])
                         Padding(
@@ -498,9 +495,9 @@ class _Detail extends StatelessWidget {
                   ),
                   for (final (field, before, after) in e.changes)
                     TableRow(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         border: Border(
-                          top: BorderSide(color: Color(0xFFF0F2F5)),
+                          top: BorderSide(color: AppTheme.rowLine),
                         ),
                       ),
                       children: [
@@ -516,7 +513,7 @@ class _Detail extends StatelessWidget {
                           padding: const EdgeInsets.all(10),
                           child: Text(
                             humanValue(before),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               color: AppTheme.error,
                               decoration: TextDecoration.lineThrough,
@@ -528,7 +525,7 @@ class _Detail extends StatelessWidget {
                           padding: const EdgeInsets.all(10),
                           child: Text(
                             humanValue(after),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               color: AppTheme.success,
                               fontWeight: FontWeight.w700,
@@ -574,10 +571,10 @@ class _Detail extends StatelessWidget {
                         ? 'Este cambio es demasiado grande para restaurarlo aquí.'
                         : 'Una pregunta publicada no se restaura así: edítala y '
                               'publica una versión nueva.'),
-              style: const TextStyle(fontSize: 12.5, color: AppTheme.muted),
+              style: TextStyle(fontSize: 12.5, color: AppTheme.muted),
             ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Restaurar también queda registrado aquí, así que se puede volver a '
             'deshacer.',
             style: TextStyle(fontSize: 12, color: AppTheme.muted),

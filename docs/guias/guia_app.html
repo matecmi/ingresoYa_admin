@@ -778,12 +778,14 @@ flowchart LR
 <div class="wide-pair">
   <figure class="wide-shot"><img src="img/adm-inicio.jpg" alt="Inicio del admin con el menú agrupado por tareas"><figcaption>Inicio: aviso de entorno, menú por tareas y accesos rápidos.</figcaption></figure>
   <figure class="wide-shot"><img src="img/adm-ayuda.jpg" alt="Ayuda de la sección Banco de preguntas"><figcaption>«?» en la barra superior: para qué sirve la sección.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-oscuro.jpg" alt="Inicio del admin con el tema oscuro"><figcaption>El admin con el tema oscuro.</figcaption></figure>
 </div>
 <div class="table-wrap"><table>
   <tr><th>Elemento</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
   <tr><td class="msg">«Estás en PRUEBAS (TEST): los cambios solo los ven las cuentas de prueba.»</td><td>Siempre, arriba de todo, mientras el admin apunte a las colecciones <code>-test</code>. En producción dirá «Estás en PRODUCCIÓN: lo que cambies lo ven todos los alumnos.» en rojo.</td><td>Nada.</td></tr>
   <tr><td class="msg">Menú: Inicio · CONTENIDO (Cursos, Banco de preguntas, Plantillas de examen, Universidades y exámenes, Carreras) · AJUSTES (Configuración)</td><td>Siempre en pantallas anchas (desde 1000 px); en angostas se abre con ☰.</td><td>Va a la sección.</td></tr>
   <tr><td class="msg">«Contenido / Banco de preguntas»</td><td>Barra superior: grupo y sección actual.</td><td>Nada.</td></tr>
+  <tr><td class="msg">Luna / sol (tema)</td><td>Siempre en la barra superior, a la derecha del «?».</td><td>«Automático (como el sistema)», «Claro» u «Oscuro». Se recuerda en ese navegador; el cambio es inmediato y no se pierde lo que se estaba escribiendo. La vista previa «Así la ve el alumno» no cambia: siempre se ve como la app.</td></tr>
   <tr><td class="msg">«?»</td><td>Siempre en la barra superior.</td><td>Abre «¿Para qué sirve esta sección?», con «Lo más usado» y «Abrir la guía completa» (esta guía, en la parte del admin).</td></tr>
   <tr><td class="msg">Inicio: «Cargar preguntas», «Armar un curso», «Exámenes pasados»</td><td>Siempre.</td><td>Abren el Banco de preguntas, Cursos y Universidades.</td></tr>
   <tr><td class="msg">Correo y «Cerrar sesión»</td><td>Pie del menú.</td><td>Cierra la sesión.</td></tr>
@@ -967,6 +969,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin: tema oscuro (selector Automático / Claro / Oscuro en la barra superior).</li>
   <li><b>16-oct-2026</b> · Admin, fase 7: «Preguntas a revisar» (señales según las respuestas, umbrales en Configuración), «Ficha del alumno» (avance, exámenes, XP con revertir, retirar nombre de usuario) e «Importar examen pasado» (pegar, revisar, clasificar con sugerencias, publicar).</li>
   <li><b>16-oct-2026</b> · Admin, fase 6: «Historial de cambios» con antes/después, filtros, «Restaurar valor anterior» y «Recuperar» (preguntas archivadas y elementos eliminados).</li>
   <li><b>16-oct-2026</b> · Admin, fase 5: Configuración en lenguaje simple (preguntas, «En la práctica», valor guardado y de fábrica, buscador, preajustes, barra única de guardado) con capturas reales de la app y la zona que cambia cada ajuste.</li>

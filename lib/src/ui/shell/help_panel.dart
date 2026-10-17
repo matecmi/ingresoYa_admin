@@ -47,7 +47,7 @@ class HelpPanel extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: AppTheme.brand,
@@ -69,7 +69,7 @@ class HelpPanel extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 help.purpose,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.body,
                   height: 1.6,

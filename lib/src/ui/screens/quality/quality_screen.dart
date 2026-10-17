@@ -174,7 +174,7 @@ class _QualityScreenState extends ConsumerState<QualityScreen> {
           updated == null
               ? 'Aún no se sumaron respuestas. Se suman cada noche o con «Actualizar ahora».'
               : 'Respuestas sumadas hasta ${_date(updated)} · se actualiza cada noche.',
-          style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+          style: TextStyle(color: AppTheme.muted, fontSize: 13),
         ),
         const SizedBox(height: 14),
         Wrap(
@@ -279,7 +279,7 @@ class _StatCard extends ConsumerWidget {
               children: [
                 Text(
                   info?.where ?? '',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                  style: TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -302,7 +302,7 @@ class _StatCard extends ConsumerWidget {
                   const SizedBox(height: 6),
                 ],
                 if (oldVersion)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(bottom: 6),
                     child: Text(
                       'Ya se publicó una versión nueva de esta pregunta: estos '
@@ -313,10 +313,7 @@ class _StatCard extends ConsumerWidget {
                 if (reviewed && stat.reviewedBy != null)
                   Text(
                     'Revisada por ${stat.reviewedBy} con ${stat.reviewedAnswered} respuestas.',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppTheme.muted,
-                    ),
+                    style: TextStyle(fontSize: 12.5, color: AppTheme.muted),
                   ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -331,7 +328,7 @@ class _StatCard extends ConsumerWidget {
                         foregroundColor: wrongKey ? Colors.white : AppTheme.ink,
                         side: wrongKey
                             ? null
-                            : const BorderSide(color: AppTheme.lineStrong),
+                            : BorderSide(color: AppTheme.lineStrong),
                       ),
                       onPressed: () async {
                         final q = await ref
@@ -391,7 +388,7 @@ class _StatCard extends ConsumerWidget {
                           ),
                         ),
                         if (id == stat.correctAlternativeId)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(right: 4),
                             child: Icon(
                               Icons.check_circle_rounded,
@@ -410,7 +407,7 @@ class _StatCard extends ConsumerWidget {
                                   : (wrongKey && stat.percentOf(id) >= 50
                                         ? AppTheme.error
                                         : AppTheme.faint),
-                              backgroundColor: const Color(0xFFF2F4F7),
+                              backgroundColor: AppTheme.neutralSoft,
                             ),
                           ),
                         ),

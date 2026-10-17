@@ -228,7 +228,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
     final header = Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.card,
         border: Border(bottom: BorderSide(color: AppTheme.line)),
       ),
@@ -248,7 +248,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
             children: [
               Text(
                 '${topic?.name ?? ''} · ${subtopic.name}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                style: TextStyle(fontSize: 12, color: AppTheme.muted),
               ),
               Text(
                 part.name,
@@ -294,7 +294,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
     final nav = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'LO QUE VE EL ALUMNO, EN ORDEN',
           style: TextStyle(
             fontSize: 12,
@@ -618,7 +618,7 @@ class _ElementDetail extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.muted,

@@ -24,8 +24,11 @@ class ClassTarget {
 
   String get key => '$subtopicId|$partId';
 
-  String get label =>
-      [courseName, subtopicName, partName].where((s) => s.isNotEmpty).join(' · ');
+  String get label => [
+    courseName,
+    subtopicName,
+    partName,
+  ].where((s) => s.isNotEmpty).join(' · ');
 }
 
 /// Sugiere curso, tema, subtema y parte comparando las palabras de la

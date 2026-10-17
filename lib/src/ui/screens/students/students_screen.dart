@@ -264,7 +264,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
               WidgetSpan(
                 child: InkWell(
                   onTap: () => context.go('/students'),
-                  child: const Text(
+                  child: Text(
                     'Alumnos',
                     style: TextStyle(color: AppTheme.brand, fontSize: 13),
                   ),
@@ -273,7 +273,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
               TextSpan(text: ' / ${p.displayName}'),
             ],
           ),
-          style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+          style: TextStyle(color: AppTheme.muted, fontSize: 13),
         ),
         const SizedBox(height: 10),
         SectionCard(
@@ -287,7 +287,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                 backgroundColor: AppTheme.brandSoft,
                 child: Text(
                   p.displayName[0].toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppTheme.brandInk,
                     fontWeight: FontWeight.w800,
                     fontSize: 22,
@@ -312,10 +312,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                         p.university,
                         p.career,
                       ].where((s) => s.isNotEmpty).join(' · '),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.muted,
-                      ),
+                      style: TextStyle(fontSize: 13, color: AppTheme.muted),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -344,10 +341,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'Nombre retirado: «${ranking.moderatedReason}»',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: AppTheme.warn,
-                        ),
+                        style: TextStyle(fontSize: 12.5, color: AppTheme.warn),
                       ),
                     ],
                   ],
@@ -450,9 +444,9 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                     children: [
                       for (final r in results)
                         Container(
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             border: Border(
-                              top: BorderSide(color: Color(0xFFF0F2F5)),
+                              top: BorderSide(color: AppTheme.rowLine),
                             ),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -462,7 +456,7 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                                 width: 110,
                                 child: Text(
                                   _ago(r.atMs),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppTheme.muted,
                                     fontSize: 13,
                                   ),
@@ -535,8 +529,8 @@ class _LedgerCard extends StatelessWidget {
               children: [
                 for (final e in events)
                   Container(
-                    decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: Color(0xFFF0F2F5))),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: AppTheme.rowLine)),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -545,7 +539,7 @@ class _LedgerCard extends StatelessWidget {
                           width: 110,
                           child: Text(
                             _ago(e.atMs),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.muted,
                               fontSize: 13,
                             ),

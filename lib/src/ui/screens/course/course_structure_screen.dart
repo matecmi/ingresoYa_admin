@@ -226,7 +226,7 @@ class _CourseStructureScreenState extends ConsumerState<CourseStructureScreen> {
                   ),
                 ),
               const Divider(height: 18),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Wrap(
                   spacing: 16,
@@ -681,7 +681,7 @@ class _CourseStructureScreenState extends ConsumerState<CourseStructureScreen> {
       builder: (context) => SimpleDialog(
         title: const Text('Copiar la estructura de…'),
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: Text(
               'Se copian los nombres de temas, subtemas y partes (sin '
@@ -719,13 +719,13 @@ class _HeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = TextStyle(
+    final style = TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w800,
       color: AppTheme.muted,
       letterSpacing: .4,
     );
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
@@ -786,7 +786,7 @@ class _NodeRow extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: indent == 0
-            ? const Border(top: BorderSide(color: Color(0xFFF0F2F5)))
+            ? Border(top: BorderSide(color: AppTheme.rowLine))
             : null,
       ),
       padding: EdgeInsets.fromLTRB(8 + indent * 24.0, 4, 16, 4),
@@ -817,7 +817,7 @@ class _NodeRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   kind,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.muted,
@@ -932,7 +932,7 @@ class _PartRow extends StatelessWidget {
                 ),
               ),
               if (!part.active)
-                const SizedBox(
+                SizedBox(
                   width: 312,
                   child: Center(
                     child: Text(
@@ -1074,7 +1074,7 @@ class _Legend extends StatelessWidget {
     children: [
       Icon(Icons.circle, size: 10, color: color),
       const SizedBox(width: 4),
-      Text(text, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
+      Text(text, style: TextStyle(fontSize: 12, color: AppTheme.muted)),
     ],
   );
 }
@@ -1128,7 +1128,7 @@ class _PartTemplateBar extends StatelessWidget {
                     child: Text('${t.title} · ${t.questionCount} preguntas'),
                   ),
               ],
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: Text(
                   'Cambiar',
@@ -1173,7 +1173,7 @@ class _SyllabusDialogState extends State<_SyllabusDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Copias el índice del sílabo y se arma solo. La sangría (o la '
               'numeración 1. / 1.1 / 1.1.1) define el nivel: tema, subtema y '
               'parte.',
