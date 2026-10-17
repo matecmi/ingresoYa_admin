@@ -49,6 +49,10 @@ class AppEnv {
   static const String questionStatsCollection = 'iya-question-stats-test';
   static const String qualitySettingsDocument = 'quality';
 
+  /// Noticias del alumno (docs/news_contract.md) y su configuración.
+  static const String newsCollection = 'iya-news-test';
+  static const String newsSettingsDocument = 'news';
+
   /// Historial de cambios del admin (lo escriben disparadores del servidor).
   static const String auditCollection = 'iya-admin-audit-test';
 

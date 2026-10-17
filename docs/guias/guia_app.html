@@ -45,6 +45,7 @@
     <li><a href="#panel-admin">Panel de administración</a></li>
     <li><a href="#admin">Lo que se cambia en el admin</a></li>
     <li><a href="#observaciones">Observaciones abiertas</a></li>
+    <li><a href="#noticias">Noticias</a></li>
     <li><a href="#cambios">Historial de cambios</a></li>
   </ol>
 </nav>
@@ -66,40 +67,57 @@
 
 <!-- ============================================================ INICIO -->
 <h2 id="inicio">Inicio</h2>
-<p>Es la primera pestaña. Saluda al alumno, resume su avance en la guía y lo lleva a lo último que estudió.</p>
+<p>Es la primera pestaña (lienzo «Inicio final»). Muestra lo que el alumno tiene pendiente, cuánto lleva de su guía, cuánto falta para su examen y lo lleva a los demás apartados.</p>
+<div class="note"><p><b>Captura pendiente.</b> El Inicio cambió el 17-oct-2026; las capturas se reemplazan en cuanto haya un teléfono conectado.</p></div>
 
-<div class="screen two" id="inicio-cabecera">
-  <figure><img src="img/est-inicio.jpg" alt="Inicio de un alumno nuevo"><figcaption>Alumno nuevo: 0 %.</figcaption></figure>
-  <figure><img src="img/est-inicio-despues.jpg" alt="Inicio con avance"><figcaption>Con avance y «Continúa donde lo dejaste».</figcaption></figure>
-  <div class="body">
-    <h3>Cabecera</h3>
-    <div class="table-wrap"><table>
-      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
-      <tr><td class="msg">«UNPRG · Ingeniería Civil»</td><td>Chip con universidad y carrera del perfil.</td><td>Nada.</td></tr>
-      <tr><td class="msg">«Hola, {nombre}»</td><td>Siempre. Usa el nombre del perfil o de la cuenta de Google; si no hay, «estudiante».</td><td>Nada.</td></tr>
-      <tr><td class="msg">«Llevas {percent}% de tu guía de estudio.»</td><td>Cuando ya cargaron los cursos y hay subtemas. El % cuenta <b>partes aprobadas</b> (examen de la parte aprobado) sobre todas las partes activas de todos tus cursos.</td><td>Nada.</td></tr>
-      <tr><td class="msg">«Tu panel de estudio y progreso»</td><td>Mientras cargan los cursos, o si no hay cursos ni subtemas.</td><td>Nada.</td></tr>
-      <tr><td class="msg">Búho (avatar)</td><td>Siempre.</td><td>Nada.</td></tr>
-    </table></div>
-    <h4>La tarjeta «Continúa donde lo dejaste»</h4>
-    <div class="table-wrap"><table>
-      <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
-      <tr><td class="msg">«Continúa donde lo dejaste» · «{curso} · {subtema} · Parte {n}»</td><td>Si ya abriste algún subtema con esta cuenta en este teléfono. Se guarda cada vez que se muestra una parte. Si el dato está dañado o no hay sesión, la tarjeta no sale.</td><td>Abre ese subtema. Ahí se restaura la última parte que tocaste, según tu progreso sincronizado.</td></tr>
-    </table></div>
-    <p>Lo último estudiado se guarda <b>por cuenta y en ese teléfono</b>; no viaja a otros teléfonos. Si después el subtema se borra, al tocar sale «Este subtema ya no está disponible.» con el botón «Volver al curso».</p>
-  </div>
-</div>
-
-<h3 id="inicio-resto">Novedades y accesos rápidos</h3>
+<h3 id="inicio-cabecera">Cabecera</h3>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
-  <tr><td class="msg">«Novedades» y carrusel de tarjetas con «Leer →»</td><td>Si el perfil tiene universidad. Hoy son <b>5 noticias fijas en el código</b>, no vienen del admin. El carrusel avanza solo cada 4 s.</td><td>Nada (el «Leer» todavía no abre nada).</td></tr>
-  <tr><td class="msg">«No hay noticias por ahora. Vuelve más tarde.»</td><td>Sin noticias (por ejemplo, perfil sin universidad).</td><td>—</td></tr>
-  <tr><td class="msg">«Guía de estudio · Temas y subtemas» con dona {percent}%</td><td>Siempre. Es el mismo % de la cabecera. Muestra «…» mientras carga. Rojo bajo 35 %, amarillo bajo 55 %, verde desde 55 %.</td><td>Abre la Guía de estudio.</td></tr>
-  <tr><td class="msg">«Mi progreso · Avance general»</td><td>Siempre.</td><td>Abre Stats.</td></tr>
-  <tr><td class="msg">«Favoritos · Marca lo importante»</td><td>Siempre.</td><td>Abre las <b>preguntas guardadas</b>, no las partes favoritas de la guía.</td></tr>
-  <tr><td class="msg">«Tu progreso esta semana» 42 %</td><td>Siempre. <b>Es un valor fijo</b> de ejemplo, no se calcula.</td><td>Nada.</td></tr>
+  <tr><td class="msg">«UNPRG · Ingeniería Civil»</td><td>Chip con universidad y carrera del perfil.</td><td>Nada.</td></tr>
+  <tr><td class="msg">«Hola, {nombre}» y el búho feliz</td><td>Siempre. Nombre del perfil o de la cuenta de Google; si no hay, «estudiante».</td><td>Nada.</td></tr>
+  <tr><td class="msg">«Tu examen · {n} días» · «{dom 30 nov · 08:00}»</td><td>Si la universidad del alumno tiene <b>Próximo examen de admisión</b> en el admin <span class="chip info">ADMIN</span>. El día del examen: «¡Hoy!». Sin fecha, o si ya pasó: «Sin fecha · Ver exámenes pasados».</td><td>Abre Exámenes pasados (Simulador).</td></tr>
+  <tr><td class="msg">«Guía de estudio · {percent}%» con barra</td><td>Siempre; «—» mientras cargan los cursos. El % cuenta <b>partes aprobadas</b> sobre todas las partes activas de tus cursos.</td><td>Abre la Guía de estudio.</td></tr>
+  <tr><td class="msg">«Con {n} partes al día terminas tu guía antes del examen.»</td><td>Con fecha de examen: partes que faltan ÷ días que faltan, redondeado hacia arriba.</td><td>Nada.</td></tr>
+  <tr><td class="msg">«Avanza un poco cada día: cada parte suma a tu guía.»</td><td>Sin fecha de examen (o ya pasó).</td><td>Nada.</td></tr>
+  <tr><td class="msg">«¡Terminaste tu guía! Repasa con el Simulador.»</td><td>Todas las partes aprobadas.</td><td>Nada.</td></tr>
 </table></div>
+
+<h3 id="inicio-resto">Aviso fijado, pendientes, historias y atajos</h3>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">Franja roja «AVISO UNPRG · {título}»</td><td>Si hay una noticia urgente o fijada vigente para tu universidad (o general). Solo una: la urgente más reciente; si no, la fijada más reciente. Ver <a href="#noticias">Noticias</a>.</td><td>Abre el detalle.</td></tr>
+  <tr><td class="msg">«TIENES PENDIENTE» · «Rinde el examen de «{subtema} · parte {n}»» · «Rendir»</td><td>La última parte que abriste ya tiene revisadas todas sus secciones y su examen sin aprobar.</td><td>Abre esa parte (ahí está «Rendir examen»).</td></tr>
+  <tr><td class="msg">«Sigue con «{subtema} · parte {n}»» · «Seguir»</td><td>La última parte que abriste todavía no está completa.</td><td>Abre esa parte.</td></tr>
+  <tr><td class="msg">«Termina tu examen del Simulador» · «{examen} · {n} respuestas guardadas» · «Retomar»</td><td>Hay un examen del Simulador sin entregar guardado en el teléfono.</td><td>Lo retoma.</td></tr>
+  <tr><td class="msg">«Sesión de hoy: {tema}» / «Simulacro de esta semana» / «Haz tu diagnóstico» · «Unos {m} minutos» · «Empezar»</td><td>Según tu plan de entrenamiento (sesión de hoy sin hacer, día de simulacro o diagnóstico pendiente). <span class="chip info">ADMIN</span> minutos de la sesión: 15.</td><td>Empieza la sesión, abre Exámenes pasados o el diagnóstico.</td></tr>
+  <tr><td class="msg">«Ver los {n} ›»</td><td>Con más de un pendiente.</td><td>Abre «Tus pendientes» con todos.</td></tr>
+  <tr><td class="msg">«¡Estás al día!» · «Sigue con tu guía o practica en el Simulador.» · «Ir a la guía»</td><td>Sin pendientes.</td><td>Abre la Guía de estudio.</td></tr>
+  <tr><td class="msg">Círculos de historias (anillo de color) y «Ver todas»</td><td>Si hay noticias marcadas como historia, vigentes y de los últimos {días} <span class="chip info">ADMIN</span> 7, máximo 5. El anillo se vuelve gris cuando ya la viste.</td><td>Abre el visor de historias; «Ver todas», la lista de Noticias.</td></tr>
+  <tr><td class="msg">Atajos «Noticias» (con contador de no leídas), «Rankings», «Mis errores», «Favoritos»</td><td>Siempre.</td><td>Abren cada apartado. «Favoritos» abre las preguntas guardadas.</td></tr>
+</table></div>
+<p><b>Tus pendientes</b> (desde «Ver los {n}»): la misma lista, cada uno con su etiqueta («EXAMEN DE PARTE», «CONTINUAR ESTUDIANDO», «SIMULADOR», «PLAN DE ENTRENAMIENTO») y su botón. Lo último estudiado se guarda por cuenta y en ese teléfono.</p>
+
+<!-- ============================================================ NOTICIAS -->
+<h2 id="noticias"><span class="chip info">NOTICIAS</span><br>Noticias</h2>
+<p>Las publica el admin. La app decide dónde se ve cada una según su prioridad y la universidad del perfil del alumno (contrato <code>docs/news_contract.md</code>).</p>
+<div class="table-wrap"><table>
+  <tr><th>Noticia</th><th>Ventana al abrir</th><th>Fijada en el Inicio</th><th>Historias</th><th>Lista</th><th>Notificación</th></tr>
+  <tr><td class="msg">Urgente para tu universidad (o general)</td><td>Sí, una sola vez</td><td>Sí, hasta vencer</td><td>Si se marcó</td><td>Arriba, «FIJADO»</td><td>Si se marcó</td></tr>
+  <tr><td class="msg">Fijada para tu universidad (o general)</td><td>No</td><td>Sí, hasta vencer</td><td>Si se marcó</td><td>Arriba, «FIJADO»</td><td>Si se marcó</td></tr>
+  <tr><td class="msg">Normal</td><td>No</td><td>No</td><td>Si se marcó</td><td>Por fecha</td><td>Si se marcó</td></tr>
+  <tr><td class="msg">De otra universidad</td><td>Nunca</td><td>Nunca</td><td>Nunca</td><td>Solo en «Otras universidades», con «Solo UNPRG»</td><td>Nunca</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">Ventana «AVISO IMPORTANTE · UNPRG» con búho, título, texto, «{n} días para el cierre · {evento} · {fecha}», «Ver detalles», «Entendido», «Queda fijado en tu Inicio.»</td><td>Al abrir el Inicio, si hay una urgente vigente que no viste. Con imagen (un comunicado), la imagen ocupa la ventana con «Toca para ampliar» y una X.</td><td>«Ver detalles» abre el detalle; la imagen, el visor; «Entendido» la cierra (no vuelve a salir).</td></tr>
+  <tr><td class="msg">Lista «Noticias» · «{n} sin leer · tu universidad: UNPRG» · filtros «Para ti», «Avisos», «Novedades», «Consejos», «Otras universidades» · secciones «FIJADO», «ESTA SEMANA», «ANTERIORES»</td><td>Desde «Ver todas», el atajo o «Todas las noticias». Punto azul en las no abiertas. En «Otras universidades»: «Solo {siglas}» y «no es de tu universidad».</td><td>Abre el detalle.</td></tr>
+  <tr><td class="msg">«Aún no hay noticias» · «Aquí verás los avisos de tu universidad y las novedades de la app.»</td><td>Sin noticias en el filtro («No hay noticias de otras universidades.» en ese filtro).</td><td>—</td></tr>
+  <tr><td class="msg">Detalle: imagen o color de la categoría, «Publicado hace…», «Para todos los alumnos» / «Para alumnos que postulan a UNPRG», «Faltan {n} días · {evento} · {fecha}», texto, «Fechas clave», botón de acción, «Ver todas las noticias», «Compartir»</td><td>Siempre que la noticia siga publicada; si no, «Esta noticia ya no está disponible.».</td><td>El botón abre la web o la sección de la app que eligió el admin («No se pudo abrir el enlace.» si falla).</td></tr>
+  <tr><td class="msg">Visor de imagen: «Pellizca para acercar · desliza hacia abajo para cerrar», «Compartir»</td><td>Al tocar la imagen.</td><td>—</td></tr>
+  <tr><td class="msg">Visor de historias: «IngresoYa · {categoría} · {hace…}», título, texto, «Ver noticia completa», botón de acción, «Todas las noticias», «Toca a los lados para pasar»</td><td>Al tocar un círculo. Cada historia dura 7 s; mantener presionado pausa; deslizar hacia abajo cierra y hacia arriba abre el detalle.</td><td>—</td></tr>
+  <tr><td class="msg">Notificación «Aviso UNPRG: {título}» · {texto}</td><td>Si el admin marcó «Enviar notificación»: llega una sola vez al publicarse (las programadas, a su hora) y solo a los alumnos de la audiencia. Android 13+ pide permiso al entrar.</td><td>Abre el detalle.</td></tr>
+</table></div>
+<p>Lo leído (ventanas, historias, noticias abiertas) se guarda en el teléfono por cuenta.</p>
 
 <!-- ============================================================ GUÍA DE ESTUDIO -->
 <h2 id="estudio"><span class="chip study">GUÍA DE ESTUDIO</span><br>Guía de estudio</h2>
@@ -927,6 +945,21 @@ flowchart LR
   <tr><td class="msg">5 · Publicar</td><td>«Crear las {n} preguntas»: las que tienen clave, explicación y parte se publican (o se envían a revisión); las demás quedan en borrador. Resumen: «Se crearon {n} pregunta(s): {p} publicadas, {d} en borrador…».</td></tr>
 </table></div>
 
+<h3 id="admin-noticias">Noticias</h3>
+<div class="table-wrap"><table>
+  <tr><th>Parte</th><th>Qué hace</th></tr>
+  <tr><td class="msg">Alumnos → Noticias</td><td>Lista con «Todas / Publicadas / Programadas / Borradores / Vencidas / Archivadas» y «Nueva noticia».</td></tr>
+  <tr><td class="msg">Contenido</td><td>Categoría (Aviso, Examen de admisión, Novedad de la app, Consejo), título (4–90) y texto.</td></tr>
+  <tr><td class="msg">Imagen (opcional)</td><td>PNG/JPG/WebP hasta 2 MB, mejor vertical 4:5; «Describe la imagen (obligatorio)»; «Solo imagen» para comunicados (el texto queda opcional).</td></tr>
+  <tr><td class="msg">Prioridad</td><td>Normal · Fijada · Urgente. Fijada y urgente piden vencimiento. Urgentes: máximo {n} por semana para la misma audiencia (Configuración → Noticias, fábrica 1).</td></tr>
+  <tr><td class="msg">¿A quién va dirigida?</td><td>General (todos) o Por universidad (una o varias). Explica que los demás solo la ven en «Otras universidades».</td></tr>
+  <tr><td class="msg">Fechas</td><td>Publicar ahora o programar; vencimiento; cuenta regresiva (fecha y «¿Qué pasa ese día?»); fechas clave.</td></tr>
+  <tr><td class="msg">Historia, botón y notificación</td><td>«Mostrar también como historia» (color si no hay imagen); botón «Abrir una web» o «Abrir una sección de la app»; «Enviar notificación al teléfono» (una sola vez).</td></tr>
+  <tr><td class="msg">«Así la ve el alumno»</td><td>Vista previa con las piezas reales de la app: Ventana, Inicio y Lista (con lo que ven los de otras universidades).</td></tr>
+  <tr><td class="msg">Botones</td><td>«Publicar ahora» / «Programar» / «Guardar cambios» (permiso de publicar), «Guardar borrador», «Archivar», «Eliminar» (permiso de borrar). Sin permiso de publicar: «Guárdala como borrador y pide a alguien con permiso de publicar que la revise.».</td></tr>
+  <tr><td class="msg">Universidades → ficha → «Próximo examen de admisión»</td><td>Nombre, fecha y hora del examen: la cuenta regresiva del Inicio. Avisa «ya pasó: actualiza la fecha».</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -942,9 +975,12 @@ flowchart LR
   <tr><td class="msg">Configuración → Rankings</td><td>Interruptor general (con «Alumnos que ganaron XP esta semana» para decidir); etapas, alumnos por grupo, % que sube y baja, mínimo para bajar, grupos por universidad, «Esta semana» y su mínimo por carrera; reto: activo, preguntas, minutos, bono, preguntas de exámenes pasados propios, días sin repetir, mínimo de la pestaña de carrera; palabras prohibidas.</td><td>Apagado · Aspirante…Ingresante · 30 · 15 % / 15 % · 5 · no · sí · 5 · sí · 10 · 15 · 20 · 6 · 30 · 5</td></tr>
   <tr><td class="msg">Configuración → Nombres de usuario y reto de hoy</td><td>Buscar un nombre de usuario o uid y retirarlo con motivo (la app le asigna otro al azar y le explica por qué); ver quiénes se ocultaron; ver el reto de hoy de cada universidad y cambiar una pregunta si nadie lo entregó aún.</td><td>—</td></tr>
   <tr><td class="msg">Configuración → XP de un alumno</td><td>Buscar por correo o uid, ver su XP, rango, semana y libro de movimientos, y revertir un evento con motivo (no se vuelve a otorgar).</td><td>—</td></tr>
+  <tr><td class="msg">Configuración → Noticias</td><td>Avisos urgentes por semana (0 los desactiva), días que una historia queda en el Inicio y cuántas caben.</td><td>1 · 7 · 5</td></tr>
+  <tr><td class="msg">Alumnos → Noticias</td><td>Las noticias, su audiencia, prioridad, fechas, imagen, historia, botón y notificación.</td><td>—</td></tr>
+  <tr><td class="msg">Universidades → ficha → Próximo examen de admisión</td><td>Fecha de la cuenta regresiva del Inicio.</td><td>Sin fecha</td></tr>
   <tr><td class="msg">Universidades → Exámenes de origen → Reglas del Simulador</td><td>Preguntas, duración, puntaje máximo, puntos por correcta/incorrecta/blanco, orden, disponible y mínimos de ingreso por carrera. «Visible en el Simulador» por universidad.</td><td>—</td></tr>
 </table></div>
-<p>Están fijos en el código y convendría pasarlos al admin: las noticias, la tarjeta «Tu progreso esta semana» del Inicio (42 %; distinta del «Esta semana ganaste» del Perfil, que sí es real), la pausa de 24 h de la invitación al dominio, los 30 min de vigencia del contenido guardado y los colores de la dona del Inicio.</p>
+<p>Están fijos en el código y convendría pasarlos al admin: la pausa de 24 h de la invitación al dominio y los 30 min de vigencia del contenido guardado.</p>
 
 <!-- ============================================================ OBSERVACIONES -->
 <h2 id="observaciones">Observaciones abiertas</h2>
@@ -952,11 +988,11 @@ flowchart LR
 <div class="table-wrap"><table>
   <tr><th>#</th><th>Observación</th><th>Dónde</th></tr>
   <tr><td class="num">1</td><td><s>El % no coincide entre pantallas: el Inicio y la tarjeta del curso cuentan partes; el detalle del curso, el Temario y Mis logros cuentan subtemas.</s> Corregido: un solo %.</td><td>Guía</td></tr>
-  <tr><td class="num">2</td><td>«Continúa donde lo dejaste» puede abrir otra parte que la anunciada si la abriste desde el Temario sin tocar nada.</td><td>Inicio</td></tr>
+  <tr><td class="num">2</td><td><s>«Continúa donde lo dejaste» puede abrir otra parte que la anunciada.</s> Corregido: el pendiente del Inicio abre la parte exacta.</td><td>Inicio</td></tr>
   <tr><td class="num">3</td><td>El puntaje del Repaso relámpago puede pasar a la siguiente parte que también tenga quiz.</td><td>Guía</td></tr>
   <tr><td class="num">4</td><td>El aviso «Dedica al menos N segundos…» sale aunque la sección ya estuviera revisada.</td><td>Guía</td></tr>
   <tr><td class="num">5</td><td>Un enlace de video que no es de YouTube cuenta como requisito pero no aparece en la ruta: la parte nunca se completa.</td><td>Guía</td></tr>
-  <tr><td class="num">6</td><td>«Leer» de Novedades no hace nada; el acceso «Favoritos» del Inicio abre preguntas guardadas; «Tu progreso esta semana» es fijo.</td><td>Inicio</td></tr>
+  <tr><td class="num">6</td><td><s>«Leer» de Novedades no hace nada; «Tu progreso esta semana» es fijo.</s> Corregido con el nuevo Inicio y las noticias del admin. El atajo «Favoritos» sigue abriendo las preguntas guardadas.</td><td>Inicio</td></tr>
   <tr><td class="num">7</td><td>El diagnóstico anuncia «30' aprox.» y «0 penalidad», pero no tiene reloj y la penalidad depende del admin.</td><td>Simulador</td></tr>
   <tr><td class="num">8</td><td>Sin mínimo de ingreso cargado, el resultado de un examen pasado no explica nada sobre el ingreso.</td><td>Simulador</td></tr>
   <tr><td class="num">9</td><td>Las marcas y la pizarra se pierden al pausar. <s>Un examen del Simulador no se puede retomar después de cerrar la app.</s> Corregido: «Tienes un examen sin terminar · Retomar».</td><td>Simulador</td></tr>
@@ -969,6 +1005,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>17-oct-2026</b> · Noticias del admin (ventana del aviso urgente por universidad, fijada, historias, lista con «Otras universidades», detalle, imagen a pantalla completa y notificación) y nuevo Inicio (días al examen, % de la guía con ritmo, pendientes, historias y atajos). Admin: Alumnos → Noticias, Configuración → Noticias y «Próximo examen de admisión».</li>
   <li><b>16-oct-2026</b> · Admin: tema oscuro (selector Automático / Claro / Oscuro en la barra superior).</li>
   <li><b>16-oct-2026</b> · Admin, fase 7: «Preguntas a revisar» (señales según las respuestas, umbrales en Configuración), «Ficha del alumno» (avance, exámenes, XP con revertir, retirar nombre de usuario) e «Importar examen pasado» (pegar, revisar, clasificar con sugerencias, publicar).</li>
   <li><b>16-oct-2026</b> · Admin, fase 6: «Historial de cambios» con antes/después, filtros, «Restaurar valor anterior» y «Recuperar» (preguntas archivadas y elementos eliminados).</li>

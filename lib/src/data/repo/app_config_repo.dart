@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/news.dart';
 import 'package:ingresoya_admin/src/domain/quality_settings.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
 import 'package:ingresoya_admin/src/domain/plan_settings.dart';
@@ -133,6 +134,26 @@ class AppConfigRepo {
     final problem = settings.validate();
     if (problem != null) throw StateError(problem);
     await _quality.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  DocumentReference<Map<String, dynamic>> get _news => db
+      .collection(AppEnv.configCollection)
+      .doc(AppEnv.newsSettingsDocument);
+
+  Stream<NewsSettings> watchNewsSettings() =>
+      _news.snapshots().map((s) => NewsSettings.fromMap(s.data()));
+
+  Future<void> saveNewsSettings(
+    NewsSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _news.set({
       ...settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,

@@ -166,6 +166,22 @@ const adminNav = <AdminNavItem>[
     ),
   ),
   AdminNavItem(
+    route: '/news',
+    label: 'Noticias',
+    icon: Icons.campaign_outlined,
+    group: 'ALUMNOS',
+    permission: 'news',
+    help: AdminHelp(
+      purpose:
+          'Avisos, novedades y consejos para los alumnos, con imagen si hace '
+          'falta. Elige si es para todos o solo para algunas universidades y '
+          'su prioridad: urgente (ventana al abrir), fijada (arriba del '
+          'Inicio) o normal; también puede salir como historia.',
+      shortcuts: [('Publicar una noticia', '/news/new')],
+      guideAnchor: 'admin-noticias',
+    ),
+  ),
+  AdminNavItem(
     route: '/quality',
     label: 'Preguntas a revisar',
     icon: Icons.fact_check_outlined,

@@ -44,6 +44,7 @@ void main() {
       'questions': 've',
       'courses': 've',
       'universities': 've',
+      'news': 've',
       'settings': 'v',
       'history': 'v',
     });

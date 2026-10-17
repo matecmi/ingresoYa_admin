@@ -19,6 +19,7 @@ const _filters = <(String?, String)>[
   ('questions', 'Preguntas'),
   ('courses', 'Cursos'),
   ('universities', 'Universidades'),
+  ('news', 'Noticias'),
   ('staff', 'Personal'),
 ];
 
@@ -329,6 +330,7 @@ const _sectionLabel = {
   'questions': 'Banco de preguntas',
   'courses': 'Cursos',
   'universities': 'Universidades',
+  'news': 'Noticias',
   'settings': 'Configuración',
   'staff': 'Personal',
 };

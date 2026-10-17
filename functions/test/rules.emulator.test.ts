@@ -28,11 +28,11 @@ function staffFor(uid: string, claims: Record<string, unknown>) {
 
 const EDITOR = {
   role: "editor",
-  p: { questions: "ve", courses: "ve", universities: "ve", settings: "v", history: "v" }
+  p: { questions: "ve", courses: "ve", universities: "ve", news: "ve", settings: "v", history: "v" }
 };
 const REVIEWER = {
   role: "reviewer",
-  p: { questions: "vep", courses: "vep", universities: "vep", settings: "v", history: "v" }
+  p: { questions: "vep", courses: "vep", universities: "vep", news: "vep", settings: "v", history: "v" }
 };
 const SUPPORT = { role: "support", p: { students: "ve", questions: "v", courses: "v", history: "v" } };
 
@@ -415,6 +415,50 @@ test("support reads a student's study data; question stats only mark review", as
   await assertSucceeds(editor.doc("iya-question-stats-test/q1_1").update({ review: { ok: true } }));
   await assertFails(editor.doc("iya-question-stats-test/q1_1").update({ answered: 999 }));
   await assertFails(support.doc("iya-question-stats-test/q1_1").update({ review: { ok: true } }));
+});
+
+test("students read only published news; publishing needs news:p and pushSentAt is server-only", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("iya-news-test/live").set({ status: "published", title: "Aviso", pushSentAt: null });
+    await db.doc("iya-news-test/draft").set({ status: "draft", title: "Borrador" });
+  });
+  const student = firestoreFor("student-1");
+  await assertSucceeds(student.doc("iya-news-test/live").get());
+  await assertFails(student.doc("iya-news-test/draft").get());
+  await assertSucceeds(student.collection("iya-news-test").where("status", "==", "published").get());
+  await assertFails(student.collection("iya-news-test").get());
+  await assertFails(student.doc("iya-news-test/mine").set({ status: "draft" }));
+
+  const editor = staffFor("editor-2", EDITOR);
+  await assertSucceeds(editor.doc("iya-news-test/draft").get());
+  await assertSucceeds(editor.doc("iya-news-test/new").set({ status: "draft", title: "Nuevo" }));
+  await assertFails(editor.doc("iya-news-test/draft").update({ status: "published" }));
+  await assertFails(editor.doc("iya-news-test/live").update({ title: "Cambio" }));
+  await assertFails(editor.doc("iya-news-test/draft").delete());
+
+  const reviewer = staffFor("reviewer-1", REVIEWER);
+  await assertSucceeds(reviewer.doc("iya-news-test/draft").update({ status: "published" }));
+  await assertSucceeds(reviewer.doc("iya-news-test/live").update({ title: "Cambio" }));
+  await assertFails(reviewer.doc("iya-news-test/live").update({ pushSentAt: new Date() }));
+  await assertFails(reviewer.doc("iya-news-test/live").delete());
+  // «draft» ya la publicó el revisor; «new» sigue en borrador.
+  await assertFails(staffFor("support-1", SUPPORT).doc("iya-news-test/new").get());
+});
+
+test("news images: admins upload small images, students read them", async () => {
+  const image = new Uint8Array([137, 80, 78, 71]);
+  const path = `news-public/${Date.now()}.png`;
+  await assertSucceeds(
+    storageFor("admin-1", true).ref(path).put(image, { contentType: "image/png" }).then(() => undefined)
+  );
+  await assertSucceeds(storageFor("student-1").ref(path).getDownloadURL());
+  await assertFails(
+    storageFor("student-1").ref(`${path}.2.png`).put(image, { contentType: "image/png" }).then(() => undefined)
+  );
+  await assertFails(
+    storageFor("admin-1", true).ref("news-public/c.pdf").put(image, { contentType: "application/pdf" }).then(() => undefined)
+  );
 });
 
 test("rule test environment is initialized", () => {
