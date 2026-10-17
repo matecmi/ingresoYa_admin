@@ -44,6 +44,8 @@ class NewsRepo {
       'updatedBy': editor,
       if (isNew) 'createdAt': FieldValue.serverTimestamp(),
       if (isNew) 'createdBy': editor,
+      // El servidor la busca con `pushSentAt == null` para enviarla.
+      if (isNew) 'pushSentAt': null,
     }, SetOptions(merge: true));
   }
 
