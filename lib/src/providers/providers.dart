@@ -8,6 +8,7 @@ import 'package:ingresoya_admin/src/data/repo/staff_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/content_health_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/course_structure_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/settings_store.dart';
+import 'package:ingresoya_admin/src/data/repo/audit_repo.dart';
 import 'package:ingresoya_admin/src/domain/content_health.dart';
 import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -140,4 +141,9 @@ final settingsStoreProvider = Provider<SettingsStore>(
     ref.watch(xpRepoProvider),
     ref.watch(rankingsRepoProvider),
   ),
+);
+
+final auditRepoProvider = Provider<AuditRepo>(
+  (ref) =>
+      AuditRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
 );

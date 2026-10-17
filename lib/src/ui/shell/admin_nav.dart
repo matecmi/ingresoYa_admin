@@ -152,6 +152,20 @@ const adminNav = <AdminNavItem>[
     ),
   ),
   AdminNavItem(
+    route: '/history',
+    label: 'Historial de cambios',
+    icon: Icons.history_rounded,
+    group: 'AJUSTES',
+    permission: 'history',
+    help: AdminHelp(
+      purpose:
+          'Quién cambió qué y cuándo, con el valor anterior y el nuevo. Puedes '
+          'restaurar un cambio o recuperar algo archivado o eliminado; '
+          'restaurar también queda anotado.',
+      guideAnchor: 'admin-historial',
+    ),
+  ),
+  AdminNavItem(
     route: '/staff',
     label: 'Perfiles y permisos',
     icon: Icons.admin_panel_settings_outlined,
