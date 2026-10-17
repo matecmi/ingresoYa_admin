@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:ingresoya_admin/src/domain/entities/university_entities.dart';
 import 'package:ingresoya_admin/src/domain/entities/profession_entity.dart';
+import 'package:ingresoya_admin/src/domain/university_profile.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 
 class UniversityRepo {
@@ -160,6 +161,71 @@ class UniversityRepo {
             : {'name': (name ?? '').trim(), 'at': Timestamp.fromDate(at)},
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+  /// Ficha para el alumno (docs/universities_contract.md).
+  Stream<UniversityStudentData> watchStudentData(String id) => _col
+      .doc(id)
+      .snapshots()
+      .map((s) => UniversityStudentData.fromDoc(s.id, s.data()));
+
+  Future<void> saveProfile(String id, UniversityProfile profile) async {
+    final problem = profile.validate();
+    if (problem != null) throw StateError(problem);
+    await _col.doc(id).update({
+      'profile': profile.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> setFaculties(String id, List<Faculty> faculties) async {
+    for (final f in faculties) {
+      final problem = f.validate();
+      if (problem != null) throw StateError(problem);
+    }
+    final acronyms = faculties
+        .map((f) => f.acronym.trim().toUpperCase())
+        .where((a) => a.isNotEmpty)
+        .toList();
+    if (acronyms.toSet().length != acronyms.length) {
+      throw StateError('Hay dos facultades con la misma sigla.');
+    }
+    await _col.doc(id).update({
+      'faculties': [for (final f in faculties) f.toMap()],
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Quita una facultad y la desvincula de sus carreras.
+  Future<void> deleteFaculty(
+    String id,
+    UniversityStudentData data,
+    String facultyId,
+  ) async {
+    await _col.doc(id).update({
+      'faculties': [
+        for (final f in data.faculties)
+          if (f.id != facultyId) f.toMap(),
+      ],
+      for (final e in data.careerDetails.entries)
+        if (e.value.facultyId == facultyId) 'careerDetails.${e.key}.facultyId': '',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> setCareerDetails(
+    String id,
+    String careerId,
+    CareerDetails details,
+  ) async {
+    final problem = details.validate();
+    if (problem != null) throw StateError(problem);
+    await _col.doc(id).update({
+      'careerDetails.$careerId': details.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  String newFacultyId() => _uuid.v4();
 
   /// ============================================================
   /// DELETE UNIVERSITY
