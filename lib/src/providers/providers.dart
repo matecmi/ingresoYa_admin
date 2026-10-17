@@ -5,6 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:ingresoya_admin/src/data/repo/staff_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/content_health_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/course_structure_repo.dart';
+import 'package:ingresoya_admin/src/domain/content_health.dart';
 import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
 import '../data/repo/admission_exam_repo.dart';
@@ -113,3 +116,17 @@ final effectiveSessionProvider = Provider<AdminSession>((ref) {
     perms: preview.perms,
   );
 });
+
+final contentHealthRepoProvider = Provider<ContentHealthRepo>(
+  (ref) => ContentHealthRepo(ref.watch(firestoreProvider)),
+);
+
+/// Salud del contenido (se calcula al entrar y con «Revisar ahora»:
+/// `ref.invalidate(contentHealthProvider)`).
+final contentHealthProvider = FutureProvider<ContentHealthReport>(
+  (ref) => ref.watch(contentHealthRepoProvider).load(),
+);
+
+final courseStructureRepoProvider = Provider<CourseStructureRepo>(
+  (ref) => CourseStructureRepo(ref.watch(firestoreProvider)),
+);

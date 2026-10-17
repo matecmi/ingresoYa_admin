@@ -835,6 +835,32 @@ flowchart LR
   <tr><td class="msg">Formulario completo: «Ver como la ve el alumno»</td><td>Siempre.</td><td>Muestra el teléfono con la pregunta y «Esta pregunta puede aparecer en: Guía de estudio → … → Examen de la parte · Simulador → Arma tu práctica → … · Reto del día…».</td></tr>
 </table></div>
 
+<h3 id="admin-salud">Salud del contenido, cursos y partes</h3>
+<div class="wide-pair">
+  <figure class="wide-shot"><img src="img/adm-f4-inicio.jpg" alt="Inicio con la salud del contenido"><figcaption>Inicio → «Salud del contenido» (datos de muestra de TEST).</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-f4-estructura-rm.jpg" alt="Estructura de un curso con el estado de cada parte"><figcaption>Cursos → un curso: temas, subtemas y partes con su estado.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-f4-parte.jpg" alt="Editor de una parte"><figcaption>Una parte: sus elementos en el orden del alumno y qué falta.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-f4-temario.jpg" alt="Pegar un temario"><figcaption>«Pegar un temario»: la sangría define tema, subtema y parte.</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Bloquean al alumno» · «Le restan calidad» · «Partes listas {n} de {total}»</td><td>Inicio, si el perfil ve Cursos. Se calcula al entrar y con «Revisar ahora» (lee cursos, partes, plantillas y preguntas publicadas). Revisa todas las partes activas de cursos activos.</td><td>—</td></tr>
+  <tr><td class="msg">««{subtema} · {parte}» no tiene examen» — «La parte nunca se completa…»</td><td>Parte activa sin plantilla de examen.</td><td>«Resolver →» abre la parte.</td></tr>
+  <tr><td class="msg">«El examen de «…» pide {N} preguntas y el banco tiene {M}» — «…verá un error y no podrá aprobarla. Faltan {N−M}.»</td><td>La plantilla pide más preguntas publicadas de las que hay para esa parte.</td><td>Abre la parte («Cargar {N−M} preguntas aquí»).</td></tr>
+  <tr><td class="msg">«…usa una plantilla que no existe o no está publicada»</td><td>Plantilla borrada, inactiva o no publicada.</td><td>Abre la parte.</td></tr>
+  <tr><td class="msg">««…» sin video, lección, ejemplos» — «Funciona, pero el alumno tiene menos con qué estudiar…»</td><td>Falta el enlace del video, la lección (contenido/resumen/puntos clave) o los ejemplos.</td><td>Abre la parte.</td></tr>
+  <tr><td class="msg">««{subtema}» no tiene examen de dominio»</td><td>Subtema con partes y sin plantilla de dominio.</td><td>Abre el curso.</td></tr>
+  <tr><td class="msg">Menú: «Cursos {N}» en rojo (o ámbar)</td><td>Hay problemas que bloquean (o solo de calidad).</td><td>—</td></tr>
+  <tr><td class="msg">Curso: «{x} de {y} partes listas · {z} con problemas», columnas Video · Lección · Ejemplos · Examen ({publicadas}/{pide}) · Estado (lista, mejorable, bloquea, oculta)</td><td>Al abrir un curso desde Cursos.</td><td>Clic en la parte abre su editor; «…» renombra, duplica, sube/baja, oculta a los alumnos o elimina.</td></tr>
+  <tr><td class="msg">«+ Tema», «+ Subtema», «+ Parte»</td><td>Con permiso de editar cursos.</td><td>Escribes el nombre y Enter; el cuadro sigue abierto para el siguiente (Esc o × para terminar). Las partes nuevas nacen con la plantilla del curso.</td></tr>
+  <tr><td class="msg">«Plantilla de parte del curso: …» · «Cambiar»</td><td>Siempre.</td><td>Elige la plantilla que reciben las partes nuevas.</td></tr>
+  <tr><td class="msg">«Pegar un temario» — «Se crearán N tema(s), M subtema(s) y K parte(s)»</td><td>Con permiso de editar.</td><td>Crea la estructura (sin contenido). También acepta 1. / 1.1 / 1.1.1 y viñetas.</td></tr>
+  <tr><td class="msg">«Copiar estructura de otro curso»</td><td>Con permiso de editar.</td><td>Copia nombres de temas, subtemas y partes al final del curso.</td></tr>
+  <tr><td class="msg">Parte: «LO QUE VE EL ALUMNO, EN ORDEN» (Video, Lección, Ejemplos, Repasar, Recursos, Repaso relámpago, Examen de la parte)</td><td>Al abrir una parte.</td><td>Muestra el elemento; «Editar» abre el editor completo de la parte.</td></tr>
+  <tr><td class="msg">«Para publicar falta» / «Para mejorarla» · «Cargar N preguntas aquí»</td><td>Si la parte tiene problemas.</td><td>Abre la carga rápida fijada en esa parte.</td></tr>
+  <tr><td class="msg">«Publicar · faltan N cosas» / «Publicar» / «Ocultar a los alumnos»</td><td>Con permiso de publicar cursos. Publicar = la parte vuelve a estar visible para los alumnos.</td><td>Muestra u oculta la parte.</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -877,6 +903,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 4: «Salud del contenido» en Inicio y contador en el menú; un curso como árbol con el estado de cada parte, alta en línea, pegar temario, copiar estructura y plantilla de parte; editor de parte con lo que falta y «Cargar N preguntas aquí».</li>
   <li><b>16-oct-2026</b> · Admin, fase 3: «Carga rápida» de preguntas (pegar y seguir, clave y solución reconocidas, aviso de repetidas, publicar o enviar a revisión en bloque) y «Así la ve el alumno», generada desde el código de la app.</li>
   <li><b>16-oct-2026</b> · Admin, fase 2: «Perfiles y permisos» (perfiles de fábrica, tabla de permisos, invitar, excepciones, alcance por curso, ver como perfil), menú según el perfil y «Enviar a revisión» con «Mi trabajo» en Inicio.</li>
   <li><b>16-oct-2026</b> · Admin, fase 1 del rediseño: tema claro, menú por tareas, aviso de entorno TEST y ayuda «?» por sección. Nueva sección «Panel de administración».</li>

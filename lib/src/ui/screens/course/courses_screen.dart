@@ -1,9 +1,9 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/domain/entities/course_entity.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_card.dart';
-import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_details_sheet.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/course_form_sheet.dart';
 import 'package:ingresoya_admin/src/ui/screens/course/widgets/search_bar.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
@@ -116,7 +116,7 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
                     final c = filtered[i];
                     return CourseCard(
                       course: c,
-                      onOpen: () => _openCourseDetails(context, c),
+                      onOpen: () => context.go('/courses/${c.id}'),
                       onEdit: () => _openCourseForm(context, c: c),
                       onDelete: () => _deleteCourse(context, c),
                     );
@@ -162,16 +162,6 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
       backgroundColor: Colors.transparent,
       useSafeArea: true,
       builder: (_) => CourseFormSheet(course: c),
-    );
-  }
-
-  Future<void> _openCourseDetails(BuildContext context, CourseEntity c) async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      useSafeArea: true,
-      builder: (_) => CourseDetailsSheet(course: c),
     );
   }
 }
