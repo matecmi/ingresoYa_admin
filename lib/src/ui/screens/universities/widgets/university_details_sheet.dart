@@ -1,5 +1,6 @@
 import 'university_next_exam_card.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'admission_exams_tab.dart';
 import 'mode_form_dialog.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +34,22 @@ class UniversityDetailsSheet extends ConsumerWidget {
               children: [
                 const SizedBox(height: 10),
                 _TopBar(title: u.name),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        GoRouter.of(context).go('/universities/${u.id}/ficha');
+                      },
+                      icon: const Icon(Icons.badge_outlined, size: 18),
+                      label: const Text(
+                        'Ficha para el alumno: facultades, carreras y admisión',
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
