@@ -31,10 +31,6 @@ class QuestionImageStore {
       'question-public/drafts/${const Uuid().v4()}.$ext',
     );
     await ref.putData(bytes, SettableMetadata(contentType: mime));
-    return {
-      'storagePath': ref.fullPath,
-      'width': width,
-      'height': height,
-    };
+    return {'storagePath': ref.fullPath, 'width': width, 'height': height};
   }
 }

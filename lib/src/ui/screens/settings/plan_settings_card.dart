@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/domain/plan_settings.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
-import 'package:ingresoya_admin/src/ui/screens/settings/settings_screen.dart';
+import 'package:ingresoya_admin/src/ui/screens/settings/settings_widgets.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 /// Watches the `plan` of `{config}/simulator` and shows its editor.

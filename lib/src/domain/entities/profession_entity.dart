@@ -1,5 +1,4 @@
 class ProfessionEntity {
-
   final String id;
   final String idDoc;
   final String name;
@@ -23,7 +22,6 @@ class ProfessionEntity {
   };
 
   static ProfessionEntity fromJson(Map<String, dynamic> json) {
-
     return ProfessionEntity(
       id: json['id'],
       idDoc: json['idDoc'],

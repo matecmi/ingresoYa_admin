@@ -71,6 +71,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Capturas reales de la app (Configuración → «Dónde lo ve el alumno»).
+  assets:
+    - assets/app_screens/
+
   fonts:
     - family: PlusJakartaSans
       fonts:

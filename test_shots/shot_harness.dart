@@ -84,10 +84,23 @@ Future<void> shot(
       await tester.pump(const Duration(milliseconds: 200));
     }
   }
+  await _precacheImages(tester);
   await expectLater(
     find.byType(MaterialApp),
     matchesGoldenFile('out/$name.png'),
   );
+}
+
+/// Las imágenes de assets se decodifican fuera del reloj falso del test.
+Future<void> _precacheImages(WidgetTester tester) async {
+  final elements = find.byType(Image).evaluate().toList();
+  if (elements.isEmpty) return;
+  await tester.runAsync(() async {
+    for (final el in elements) {
+      await precacheImage((el.widget as Image).image, el);
+    }
+  });
+  await tester.pump(const Duration(milliseconds: 100));
 }
 
 Object? _decode(Object? v, FakeFirebaseFirestore db) {

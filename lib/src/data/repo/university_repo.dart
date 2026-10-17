@@ -323,8 +323,10 @@ class UniversityRepo {
     return [];
   }
 
-    /// ✅ Lee professions[] del doc y lo convierte a List<ProfessionEntity>
-  Future<List<ProfessionEntity>> _getUniversityProfessions(String universityId) async {
+  /// ✅ Lee professions[] del doc y lo convierte a List<ProfessionEntity>
+  Future<List<ProfessionEntity>> _getUniversityProfessions(
+    String universityId,
+  ) async {
     final snap = await _col.doc(universityId).get();
     final data = snap.data() ?? <String, dynamic>{};
     return _toProfessions(data['professions']);
@@ -396,71 +398,77 @@ class UniversityRepo {
       professions: list,
     );
   }
-Stream<List<ProfessionEntity>> watchUniversityProfessions(String universityId) {
-  return _col.doc(universityId).snapshots().map((doc) {
-    final data = doc.data() ?? <String, dynamic>{};
-    return _toProfessions(data['professions']);
-  });
-}
 
-Stream<List<ModeEntity>> watchModes(String universityId) {
-  final ref = _col.doc(universityId).collection(AppEnv.modesSubcollection);
-  return ref.orderBy('name').snapshots().map((snap) {
-    return snap.docs.map((d) {
-      final x = d.data();
-      return ModeEntity(
-        id: d.id,
-        name: (x['name'] ?? '').toString(),
-        acronym: (x['acronym'] ?? '').toString(),
-        active: (x['active'] ?? true) == true,
-        universityId: universityId,
-      );
-    }).toList();
-  });
-}
-
-Future<String> upsertMode({
-  required String universityId,
-  String? modeId,
-  required String name,
-  required String acronym,
-  required bool active,
-}) async {
-  if (universityId.trim().isEmpty || name.trim().isEmpty) {
-    throw ArgumentError('Universidad y nombre de modalidad son obligatorios.');
+  Stream<List<ProfessionEntity>> watchUniversityProfessions(
+    String universityId,
+  ) {
+    return _col.doc(universityId).snapshots().map((doc) {
+      final data = doc.data() ?? <String, dynamic>{};
+      return _toProfessions(data['professions']);
+    });
   }
-  final id = modeId ?? _uuid.v4();
-  final university = _col.doc(universityId);
-  final target = university.collection(AppEnv.modesSubcollection).doc(id);
-  await db.runTransaction((transaction) async {
-    final parent = await transaction.get(university);
-    final current = await transaction.get(target);
-    if (!parent.exists) throw StateError('La universidad ya no existe.');
-    final data = <String, dynamic>{
-      'id': id, 'universityId': universityId,
-      'name': name.trim(), 'acronym': acronym.trim(), 'active': active,
-      if (!current.exists) 'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-    if (current.exists) {
-      transaction.update(target, data);
-    } else {
-      transaction.set(target, data);
+
+  Stream<List<ModeEntity>> watchModes(String universityId) {
+    final ref = _col.doc(universityId).collection(AppEnv.modesSubcollection);
+    return ref.orderBy('name').snapshots().map((snap) {
+      return snap.docs.map((d) {
+        final x = d.data();
+        return ModeEntity(
+          id: d.id,
+          name: (x['name'] ?? '').toString(),
+          acronym: (x['acronym'] ?? '').toString(),
+          active: (x['active'] ?? true) == true,
+          universityId: universityId,
+        );
+      }).toList();
+    });
+  }
+
+  Future<String> upsertMode({
+    required String universityId,
+    String? modeId,
+    required String name,
+    required String acronym,
+    required bool active,
+  }) async {
+    if (universityId.trim().isEmpty || name.trim().isEmpty) {
+      throw ArgumentError(
+        'Universidad y nombre de modalidad son obligatorios.',
+      );
     }
-  });
-  return id;
-}
+    final id = modeId ?? _uuid.v4();
+    final university = _col.doc(universityId);
+    final target = university.collection(AppEnv.modesSubcollection).doc(id);
+    await db.runTransaction((transaction) async {
+      final parent = await transaction.get(university);
+      final current = await transaction.get(target);
+      if (!parent.exists) throw StateError('La universidad ya no existe.');
+      final data = <String, dynamic>{
+        'id': id,
+        'universityId': universityId,
+        'name': name.trim(),
+        'acronym': acronym.trim(),
+        'active': active,
+        if (!current.exists) 'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (current.exists) {
+        transaction.update(target, data);
+      } else {
+        transaction.set(target, data);
+      }
+    });
+    return id;
+  }
 
-Future<void> deleteMode({
-  required String universityId,
-  required String modeId,
-}) async {
-  await _col
-      .doc(universityId)
-      .collection(AppEnv.modesSubcollection)
-      .doc(modeId)
-      .delete();
-}
-
-
+  Future<void> deleteMode({
+    required String universityId,
+    required String modeId,
+  }) async {
+    await _col
+        .doc(universityId)
+        .collection(AppEnv.modesSubcollection)
+        .doc(modeId)
+        .delete();
+  }
 }

@@ -17,7 +17,10 @@ class SyllabusCounts {
       'Se crearán $topics tema(s), $subtopics subtema(s) y $parts parte(s)';
 }
 
-final _bullet = RegExp(r'^(?:[-*•·]|\d+[.)]|[a-z][.)])\s+', caseSensitive: false);
+final _bullet = RegExp(
+  r'^(?:[-*•·]|\d+[.)]|[a-z][.)])\s+',
+  caseSensitive: false,
+);
 
 /// Lee un índice copiado del sílabo. Cuenta como nivel la sangría (tab = 4
 /// espacios); también vale numerar «1.», «1.1», «1.1.1».
@@ -49,8 +52,9 @@ List<SyllabusNode> parseSyllabus(String text) {
   if (lines.isEmpty) return const [];
 
   // Sangrías: convertir los anchos distintos en niveles 0, 1, 2.
-  final indents = lines.where((l) => l.$1 < 0).map((l) => -l.$1 - 1).toSet().toList()
-    ..sort();
+  final indents =
+      lines.where((l) => l.$1 < 0).map((l) => -l.$1 - 1).toSet().toList()
+        ..sort();
   int levelOf((int, String) l) {
     if (l.$1 >= 0) return l.$1.clamp(0, 2);
     return indents.indexOf(-l.$1 - 1).clamp(0, 2);
