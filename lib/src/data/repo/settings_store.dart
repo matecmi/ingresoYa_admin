@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../domain/plan_settings.dart';
+import '../../domain/quality_settings.dart';
 import '../../domain/rankings_settings.dart';
 import '../../domain/settings_catalog.dart';
 import '../../domain/simulator_settings.dart';
@@ -33,6 +34,9 @@ class SettingsStore {
     ),
     SettingsDoc.sync => _config.watchSyncSettings().map(
       (r) => r.settings.toMap(),
+    ),
+    SettingsDoc.quality => _config.watchQualitySettings().map(
+      (s) => s.toMap(),
     ),
   };
 
@@ -87,6 +91,10 @@ class SettingsStore {
     ),
     SettingsDoc.sync => _config.saveSyncSettings(
       SyncSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.quality => _config.saveQualitySettings(
+      QualitySettings.fromMap(map),
       editor: editor,
     ),
   };

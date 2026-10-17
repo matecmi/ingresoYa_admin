@@ -30,6 +30,8 @@ export interface BackendCollections {
   /** Historial de cambios del admin (docs/admin_audit_contract.md). */
   audit: string;
   professions: string;
+  /** Estadísticas por pregunta (docs/question_stats_contract.md). */
+  questionStats: string;
 }
 
 export interface BackendConfig {
@@ -70,7 +72,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffRoles: "iya-admin-roles-test",
     staffInvites: "iya-admin-invites-test",
     audit: "iya-admin-audit-test",
-    professions: "iya-professions-test"
+    professions: "iya-professions-test",
+    questionStats: "iya-question-stats-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -91,7 +94,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffRoles: "iya-admin-roles-staging",
     staffInvites: "iya-admin-invites-staging",
     audit: "iya-admin-audit-staging",
-    professions: "iya-professions-staging"
+    professions: "iya-professions-staging",
+    questionStats: "iya-question-stats-staging"
   },
   production: {
     questions: "iya-questions",
@@ -112,7 +116,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffRoles: "iya-admin-roles",
     staffInvites: "iya-admin-invites",
     audit: "iya-admin-audit",
-    professions: "iya-professions"
+    professions: "iya-professions",
+    questionStats: "iya-question-stats"
   }
 };
 

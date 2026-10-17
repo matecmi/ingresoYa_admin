@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'plan_settings.dart';
+import 'quality_settings.dart';
 import 'rankings_settings.dart';
 import 'simulator_settings.dart';
 import 'study_review_rules.dart';
@@ -16,7 +17,7 @@ import 'xp_settings.dart';
 /// real de la app donde lo ve el alumno.
 
 /// Documentos de `{config}` que edita esta pantalla.
-enum SettingsDoc { rankings, xp, simulator, plan, study, sync }
+enum SettingsDoc { rankings, xp, simulator, plan, study, sync, quality }
 
 enum SettingKind { integer, toggle, choice, time }
 
@@ -953,6 +954,63 @@ final List<SettingsTopic> settingsTopics = [
       ),
     ],
   ),
+  SettingsTopic(
+    id: 'quality',
+    label: 'Preguntas a revisar',
+    icon: Icons.fact_check_outlined,
+    intro:
+        'Cuándo una pregunta aparece en Calidad → «Preguntas a revisar», '
+        'según lo que respondieron los alumnos. Solo lo usa el admin.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.quality,
+        path: const ['minAnswers'],
+        question: '¿Cuántas respuestas hacen falta para opinar sobre una pregunta?',
+        label: 'Respuestas mínimas',
+        min: 5,
+        max: 500,
+        unit: 'respuestas',
+        help: 'Con menos, no se saca ninguna conclusión.',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.quality,
+        path: const ['failPercent'],
+        question: '¿Desde qué porcentaje de error «casi todos fallan»?',
+        label: '«Casi todos fallan»',
+        min: 50,
+        max: 100,
+        unit: '%',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.quality,
+        path: const ['dominantWrongPercent'],
+        question: '¿Qué parte de las respuestas debe llevarse una alternativa incorrecta para sospechar de la clave?',
+        label: 'Alternativa que atrae',
+        min: 20,
+        max: 100,
+        unit: '%',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.quality,
+        path: const ['easyPercent'],
+        question: '¿Desde qué porcentaje de acierto es «demasiado fácil»?',
+        label: '«Demasiado fácil»',
+        min: 50,
+        max: 100,
+        unit: '%',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.quality,
+        path: const ['deadAlternativeAnswers'],
+        question: '¿Con cuántas respuestas se avisa de una alternativa que nadie elige?',
+        label: '«Nadie la elige»',
+        min: 10,
+        max: 1000,
+        unit: 'respuestas',
+        advanced: true,
+      ),
+    ],
+  ),
 ];
 
 List<SettingSpec> get allSettingSpecs => [
@@ -997,6 +1055,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.plan => PlanSettings.defaults.toMap(),
   SettingsDoc.study => StudyReviewRules.defaults.toMap(),
   SettingsDoc.sync => SyncSettings.defaults.toMap(),
+  SettingsDoc.quality => QualitySettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1008,6 +1067,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.plan => PlanSettings.fromMap(map).validate(),
   SettingsDoc.study => StudyReviewRules.fromMap(map).validate(),
   SettingsDoc.sync => SyncSettings.fromMap(map).validate(),
+  SettingsDoc.quality => QualitySettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1022,4 +1082,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.plan => PlanSettings.fromMap(map).toMap(),
   SettingsDoc.study => StudyReviewRules.fromMap(map).toMap(),
   SettingsDoc.sync => SyncSettings.fromMap(map).toMap(),
+  SettingsDoc.quality => QualitySettings.fromMap(map).toMap(),
 };

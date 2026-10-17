@@ -307,7 +307,8 @@ service cloud.firestore {
 
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && can('students', 'v')
-        && subcollection in ['xp', 'xpEvents', 'ranking'];
+        && subcollection in ['xp', 'xpEvents', 'ranking', 'simulatorResults',
+          'pastExamBest', 'simulatorTopicStats', 'learningEvents'];
       allow update: if isProfileCollection(profiles) && can('students', 'e')
         && subcollection in ['xp', 'xpEvents', 'ranking'];
     }
@@ -348,6 +349,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Estadísticas por pregunta (docs/question_stats_contract.md): las
+    // escribe el servidor; el admin solo marca «Está bien así» (`review`).
+    match /{collectionName}/{statsId} {
+      allow read: if collectionName in [
+          'iya-question-stats-test', 'iya-question-stats-staging', 'iya-question-stats'
+        ] && can('questions', 'v');
+      allow update: if collectionName in [
+          'iya-question-stats-test', 'iya-question-stats-staging', 'iya-question-stats'
+        ] && can('questions', 'e')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['review']);
+    }
+
     // Historial de cambios del admin (docs/admin_audit_contract.md): lo
     // escriben solo los disparadores; se lee con history:v.
     match /{collectionName}/{entryId} {
@@ -377,7 +390,8 @@ service cloud.firestore {
     // reinstalled device restores its verified parts. Awards and the summary
     // stay behind the callables.
     match /{profiles}/{userId}/learningProgress/current {
-      allow get: if isProfileCollection(profiles) && isOwner(userId);
+      allow get: if isProfileCollection(profiles)
+        && (isOwner(userId) || can('students', 'v'));
     }
   }
 }

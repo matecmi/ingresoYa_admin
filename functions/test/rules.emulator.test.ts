@@ -399,6 +399,24 @@ test("the change history is read with history:v and written only by the server",
   await assertFails(firestoreFor("admin-1", true).doc("iya-admin-audit-test/e2").set({ kind: "fake" }));
 });
 
+test("support reads a student's study data; question stats only mark review", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("iya-profile-test/student-1/simulatorResults/r1").set({ percent: 40 });
+    await db.doc("iya-profile-test/student-1/learningProgress/current").set({ partProgress: {} });
+    await db.doc("iya-question-stats-test/q1_1").set({ answered: 30, correct: 2 });
+  });
+  const support = staffFor("support-1", SUPPORT);
+  await assertSucceeds(support.doc("iya-profile-test/student-1/simulatorResults/r1").get());
+  await assertSucceeds(support.doc("iya-profile-test/student-1/learningProgress/current").get());
+  await assertFails(staffFor("editor-2", EDITOR).doc("iya-profile-test/student-1/simulatorResults/r1").get());
+  const editor = staffFor("editor-2", EDITOR);
+  await assertSucceeds(editor.doc("iya-question-stats-test/q1_1").get());
+  await assertSucceeds(editor.doc("iya-question-stats-test/q1_1").update({ review: { ok: true } }));
+  await assertFails(editor.doc("iya-question-stats-test/q1_1").update({ answered: 999 }));
+  await assertFails(support.doc("iya-question-stats-test/q1_1").update({ review: { ok: true } }));
+});
+
 test("rule test environment is initialized", () => {
   assert.ok(testEnv);
 });

@@ -49,9 +49,9 @@ class HomeScreen extends ConsumerWidget {
               if (can(StaffSection.universities))
                 _QuickCard(
                   title: 'Exámenes pasados',
-                  text: 'Universidades y exámenes del Simulador',
+                  text: 'Importa un examen completo pegando su texto',
                   icon: Icons.account_balance_outlined,
-                  onTap: () => context.go('/universities'),
+                  onTap: () => context.go('/import-exam'),
                 ),
             ];
             if (cards.isEmpty) return const SizedBox.shrink();

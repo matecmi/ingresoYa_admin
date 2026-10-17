@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/quality_settings.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
 import 'package:ingresoya_admin/src/domain/plan_settings.dart';
 import 'package:ingresoya_admin/src/domain/study_review_rules.dart';
@@ -114,5 +115,27 @@ class AppConfigRepo {
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
     }, SetOptions(merge: true));
+  }
+
+  DocumentReference<Map<String, dynamic>> get _quality => db
+      .collection(AppEnv.configCollection)
+      .doc(AppEnv.qualitySettingsDocument);
+
+  /// Umbrales de «Preguntas a revisar» (`{config}/quality`).
+  Stream<QualitySettings> watchQualitySettings() => _quality.snapshots().map(
+    (snapshot) => QualitySettings.fromMap(snapshot.data()),
+  );
+
+  Future<void> saveQualitySettings(
+    QualitySettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _quality.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
   }
 }
