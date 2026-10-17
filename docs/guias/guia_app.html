@@ -893,6 +893,38 @@ flowchart LR
   <tr><td class="msg">«Para deshacer una creación, elimínalo desde su sección.» · «Una pregunta publicada no se restaura así: edítala y publica una versión nueva.» · «Este cambio es demasiado grande…»</td><td>Cuando no se puede restaurar desde aquí.</td><td>—</td></tr>
 </table></div>
 
+<h3 id="admin-calidad">Preguntas a revisar</h3>
+<figure class="wide-shot"><img src="img/adm-f7-calidad.jpg" alt="Preguntas a revisar con una clave sospechosa"><figcaption>Calidad → Preguntas a revisar (ejemplo con datos ficticios).</figcaption></figure>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Detectadas con las respuestas de los alumnos. Solo cuentan las preguntas respondidas al menos {N} veces…» · «Respuestas sumadas hasta {fecha} · se actualiza cada noche.»</td><td>Siempre. N y los demás umbrales se cambian en Configuración → Preguntas a revisar.</td><td>«Actualizar ahora» suma los exámenes entregados desde la última vez.</td></tr>
+  <tr><td class="msg">«El {x} % la falla y el {y} % elige {C}. Es probable que la clave marcada ({A}) esté mal.»</td><td>Error ≥ 90 % y una incorrecta se lleva ≥ 50 %.</td><td>«Abrir y corregir» abre la pregunta.</td></tr>
+  <tr><td class="msg">«El {x} % la falla, pero las respuestas se reparten: parece difícil…» · «El {x} % acierta: es muy fácil…» · «Nadie elige {D}: esa alternativa no distrae.»</td><td>Según las reglas de la tabla del contrato.</td><td>«Abrir la pregunta».</td></tr>
+  <tr><td class="msg">«Qué eligieron ({n} respuestas, {b} en blanco)» con barras por alternativa (la correcta en verde)</td><td>En cada pregunta.</td><td>—</td></tr>
+  <tr><td class="msg">«Está bien así»</td><td>Con permiso de editar preguntas.</td><td>La pasa a «Revisadas» hasta que tenga un 50 % más de respuestas.</td></tr>
+</table></div>
+
+<h3 id="admin-alumnos">Ficha del alumno</h3>
+<figure class="wide-shot"><img src="img/adm-f7-ficha.jpg" alt="Ficha del alumno"><figcaption>Alumnos → Buscar alumno → su ficha (datos ficticios).</figcaption></figure>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">«Correo, nombre de usuario o uid»</td><td>Buscar alumno.</td><td>Con un solo resultado abre su ficha; si no, la lista. «No encontramos a nadie…»</td></tr>
+  <tr><td class="msg">Cabecera: nombre, correo · universidad · carrera, «Nombre de usuario: …», «Oculto en los rankings», «{rango} · {XP} XP», «Liga: {etapa}»</td><td>Siempre.</td><td>«Retirar nombre de usuario» pide motivo; la app le asigna otro y le muestra el motivo.</td></tr>
+  <tr><td class="msg">Resumen: «Guía de estudio · {n} partes aprobadas», «Simulador · {n} exámenes · {x} % de acierto promedio», «Esta semana · {xp} XP», «Última actividad»</td><td>Pestaña Resumen.</td><td>—</td></tr>
+  <tr><td class="msg">«Exámenes · {n}» y «Libro de XP» con «Revertir»</td><td>Pestañas.</td><td>«Revertir» pide motivo: el alumno pierde esos XP y el evento no se vuelve a otorgar.</td></tr>
+</table></div>
+
+<h3 id="admin-importar">Importar examen pasado</h3>
+<figure class="wide-shot"><img src="img/adm-f7-importar.jpg" alt="Importar examen pasado: revisar"><figcaption>Contenido → Importar examen pasado, paso «Revisar».</figcaption></figure>
+<div class="table-wrap"><table>
+  <tr><th>Paso</th><th>Qué pasa</th></tr>
+  <tr><td class="msg">1 · Elegir examen</td><td>Universidad y examen de origen (si no existe, se crea en Universidades).</td></tr>
+  <tr><td class="msg">2 · Pegar</td><td>Se pega el texto del PDF: preguntas numeradas, alternativas y, al final, «CLAVES 25. C 26. B …».</td></tr>
+  <tr><td class="msg">3 · Revisar</td><td>«{n} preguntas detectadas (n.º x a y) · {listas} · {por revisar} · Clave encontrada al final del documento: sí/no». Avisos por pregunta: «Solo se detectaron 4 alternativas (falta la E).», «Tiene una figura: súbela con el editor completo después de importar.», «Falta la clave: márcala aquí.». Se marca la clave tocando la alternativa, se escribe la explicación y «Así está bien» acepta los demás avisos.</td></tr>
+  <tr><td class="msg">4 · Clasificar</td><td>Curso · subtema · parte sugeridos comparando con las preguntas ya clasificadas; dificultad común (fácil / media / difícil).</td></tr>
+  <tr><td class="msg">5 · Publicar</td><td>«Crear las {n} preguntas»: las que tienen clave, explicación y parte se publican (o se envían a revisión); las demás quedan en borrador. Resumen: «Se crearon {n} pregunta(s): {p} publicadas, {d} en borrador…».</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -935,6 +967,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 7: «Preguntas a revisar» (señales según las respuestas, umbrales en Configuración), «Ficha del alumno» (avance, exámenes, XP con revertir, retirar nombre de usuario) e «Importar examen pasado» (pegar, revisar, clasificar con sugerencias, publicar).</li>
   <li><b>16-oct-2026</b> · Admin, fase 6: «Historial de cambios» con antes/después, filtros, «Restaurar valor anterior» y «Recuperar» (preguntas archivadas y elementos eliminados).</li>
   <li><b>16-oct-2026</b> · Admin, fase 5: Configuración en lenguaje simple (preguntas, «En la práctica», valor guardado y de fábrica, buscador, preajustes, barra única de guardado) con capturas reales de la app y la zona que cambia cada ajuste.</li>
   <li><b>16-oct-2026</b> · Admin, fase 4: «Salud del contenido» en Inicio y contador en el menú; un curso como árbol con el estado de cada parte, alta en línea, pegar temario, copiar estructura y plantilla de parte; editor de parte con lo que falta y «Cargar N preguntas aquí».</li>

@@ -306,6 +306,9 @@ flowchart LR
   F --> B
 </pre>
 
+<h3 id="c-calidad">Preguntas a revisar</h3>
+<p>Cada noche (y con «Actualizar ahora») el servidor suma, por versión de pregunta, cuántos la respondieron, cuántos acertaron y cuántos eligieron cada alternativa, leyendo los exámenes entregados desde la última vez (<code>iya-question-stats</code>, con un cursor para no contar dos veces). El admin compara esos números con los umbrales de <code>{config}/quality</code> y muestra las preguntas sospechosas. Contrato: <code>docs/question_stats_contract.md</code>.</p>
+
 <h2 id="quepasasi">¿Qué pasa si…?</h2>
 <div class="table-wrap"><table>
   <tr><th>Si…</th><th>Entonces…</th></tr>
@@ -376,6 +379,7 @@ flowchart LR
   <tr><td class="msg"><code>syncAdminAccess</code> (admin)</td><td>—</td><td>Al entrar al admin: activa una invitación pendiente (correo verificado), crea la ficha de Dueño si el token ya era <code>admin</code>, siembra los perfiles de fábrica y recalcula los claims <code>{admin, role, p, cs?, us?}</code>. Responde <code>{active, roleId, changed}</code>.</td><td>Solo cambia claims si difieren</td></tr>
   <tr><td class="msg"><code>manageAdminStaff</code> (admin)</td><td><code>action</code>: <code>invite</code>, <code>update</code>, <code>revoke</code>, <code>cancelInvite</code>, <code>saveRole</code>, <code>deleteRole</code></td><td>Exige <code>staff:e</code> verificado contra la ficha. Errores: <code>not_staff</code>, <code>staff_forbidden</code>, <code>owner_only</code>, <code>last_owner</code>, <code>self_revoke</code>, <code>role_not_found</code>, <code>role_in_use</code>, <code>builtin_role</code>, <code>invalid_permissions</code>, <code>invalid_scope</code>, <code>invalid_email</code>, <code>invalid_role</code>. Quitar acceso cierra sus sesiones.</td><td>Escrituras completas</td></tr>
   <tr><td class="msg"><code>restoreAuditEntry</code> (admin)</td><td><code>entryId</code>, <code>force?</code></td><td>Deshace una entrada del historial (ver «Historial de cambios»). Errores: <code>entry_not_found</code>, <code>staff_forbidden</code>, <code>changed_since</code>, <code>creation_restore_unsupported</code>, <code>question_restore_unsupported</code>, <code>too_large</code>.</td><td>La restauración también queda anotada</td></tr>
+  <tr><td class="msg"><code>refreshQuestionStats</code> (admin) y <code>nightlyQuestionStats</code> (03:30 Lima)</td><td>—</td><td>Suman las respuestas de los exámenes entregados en <code>iya-question-stats</code> (requiere <code>questions:v</code>).</td><td>Cursor por <code>submittedAt</code></td></tr>
   <tr><td class="msg"><code>audit*</code> (11 disparadores, us-central1)</td><td>Escrituras en preguntas, cursos/temas/subtemas, plantillas, universidades y sus subcolecciones, carreras, configuración y personal</td><td>Agregan una entrada en <code>iya-admin-audit</code> (no anotan cambios solo de fechas o tokens).</td><td>Una entrada por escritura</td></tr>
   <tr><td class="msg"><code>closeLeagueWeek</code> (tarea programada)</td><td>—</td><td>Lunes 00:10 (Lima): cierra la semana anterior si la liga corrió; escribe <code>stage</code> y <code>lastResult</code> en <code>ranking/current</code>.</td><td>Marca <code>{semana}_closed</code></td></tr>
 </table></div>
@@ -501,6 +505,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Estadísticas por pregunta (<code>refreshQuestionStats</code>, <code>nightlyQuestionStats</code>, <code>iya-question-stats</code>, <code>{config}/quality</code>); el admin con <code>students:v</code> lee resultados del Simulador y el avance de la guía de un alumno (rediseño del admin, fase 7).</li>
   <li><b>16-oct-2026</b> · Historial de cambios del admin: 11 disparadores <code>audit*</code> (us-central1), colección <code>iya-admin-audit</code> (lectura con <code>history:v</code>), callable <code>restoreAuditEntry</code> e índice <code>section + at</code>.</li>
   <li><b>16-oct-2026</b> · Configuración del admin rehecha (fase 5): escribe los mismos documentos <code>{config}/rankings|xp|simulator|study|sync</code> con la misma validación; sin cambios en servidor.</li>
   <li><b>16-oct-2026</b> · Salud del contenido calculada en el admin y campo <code>partDefaults.examTemplateId</code> del curso (rediseño del admin, fase 4).</li>

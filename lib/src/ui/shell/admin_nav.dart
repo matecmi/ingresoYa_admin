@@ -91,9 +91,23 @@ const adminNav = <AdminNavItem>[
           'nuevas.',
       shortcuts: [
         ('Cargar preguntas una tras otra', '/questions/quick'),
-        ('Importar un examen completo', '/universities'),
+        ('Importar un examen completo', '/import-exam'),
       ],
       guideAnchor: 'admin-preguntas',
+    ),
+  ),
+  AdminNavItem(
+    route: '/import-exam',
+    label: 'Importar examen pasado',
+    icon: Icons.upload_file_outlined,
+    group: 'CONTENIDO',
+    permission: 'questions',
+    help: AdminHelp(
+      purpose:
+          'Pega el texto completo de un examen de admisión: separamos las '
+          'preguntas numeradas, sus alternativas y la tabla de claves; '
+          'sugerimos curso y parte; y las creas todas de una vez.',
+      guideAnchor: 'admin-importar',
     ),
   ),
   AdminNavItem(
@@ -135,6 +149,35 @@ const adminNav = <AdminNavItem>[
           'Las carreras que el alumno elige en el registro. Se usan para su '
           'plan de estudio y para la tabla «Mi carrera» del reto del día.',
       guideAnchor: 'admin-carreras',
+    ),
+  ),
+  AdminNavItem(
+    route: '/students',
+    label: 'Buscar alumno',
+    icon: Icons.person_search_outlined,
+    group: 'ALUMNOS',
+    permission: 'students',
+    help: AdminHelp(
+      purpose:
+          'La ficha de un alumno en un solo lugar: su avance en la guía, sus '
+          'exámenes, su XP con el libro de movimientos (revertir con motivo) '
+          'y su nombre de usuario (retirarlo si es inapropiado).',
+      guideAnchor: 'admin-alumnos',
+    ),
+  ),
+  AdminNavItem(
+    route: '/quality',
+    label: 'Preguntas a revisar',
+    icon: Icons.fact_check_outlined,
+    group: 'CALIDAD',
+    permission: 'questions',
+    help: AdminHelp(
+      purpose:
+          'Preguntas sospechosas según lo que respondieron los alumnos: casi '
+          'todos fallan y eligen otra alternativa (la clave puede estar mal), '
+          'demasiado fáciles o con alternativas que nadie elige. Los umbrales '
+          'se cambian en Configuración.',
+      guideAnchor: 'admin-calidad',
     ),
   ),
   AdminNavItem(

@@ -10,6 +10,8 @@ import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
 import { createStaffHandlers } from "./staff";
 import { createAuditHandlers, recordWrite } from "./audit";
+import { db } from "./admin";
+import { createQuestionStatsHandlers } from "./question_stats";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
 // environment variables. Loading the ignored local .env lets that discovery
@@ -56,6 +58,20 @@ export const syncAdminAccess = onCall(adminCallableOptions, staffHandlers.syncAd
 export const manageAdminStaff = onCall(adminCallableOptions, staffHandlers.manageAdminStaff);
 const auditHandlers = createAuditHandlers(config);
 export const restoreAuditEntry = onCall(adminCallableOptions, auditHandlers.restoreAuditEntry);
+
+// Estadísticas por pregunta para «Preguntas a revisar»
+// (docs/question_stats_contract.md): cada noche y con «Actualizar ahora».
+const questionStats = createQuestionStatsHandlers(db, config);
+export const refreshQuestionStats = onCall(
+  { ...adminCallableOptions, timeoutSeconds: 300, memory: "512MiB" },
+  questionStats.refreshQuestionStats
+);
+export const nightlyQuestionStats = onSchedule(
+  { schedule: "30 3 * * *", timeZone: "America/Lima", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    await questionStats.service.refresh(20000);
+  }
+);
 
 // Historial de cambios del admin (docs/admin_audit_contract.md). La base de
 // Firestore está en nam5, así que los disparadores van en us-central1.

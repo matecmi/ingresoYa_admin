@@ -7,6 +7,9 @@ import 'screens/course/part_editor_screen.dart';
 import 'screens/dashboard_shell.dart';
 import 'screens/history/history_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/import/import_exam_screen.dart';
+import 'screens/quality/quality_screen.dart';
+import 'screens/students/students_screen.dart';
 import 'screens/professions/professions_screen.dart';
 import 'screens/question/questions_screen.dart';
 import 'screens/question/quick_load_screen.dart';
@@ -81,6 +84,28 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/settings',
             pageBuilder: (_, _) => _page(const SettingsScreen()),
+          ),
+          GoRoute(
+            path: '/import-exam',
+            pageBuilder: (_, state) => _page(
+              ImportExamScreen(
+                universityId: state.uri.queryParameters['uni'],
+                examId: state.uri.queryParameters['exam'],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/students',
+            pageBuilder: (_, _) => _page(const StudentsScreen()),
+          ),
+          GoRoute(
+            path: '/students/:uid',
+            pageBuilder: (_, state) =>
+                _page(StudentFileScreen(uid: state.pathParameters['uid']!)),
+          ),
+          GoRoute(
+            path: '/quality',
+            pageBuilder: (_, _) => _page(const QualityScreen()),
           ),
           GoRoute(
             path: '/history',

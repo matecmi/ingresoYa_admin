@@ -84,7 +84,13 @@ class AppTheme {
       fontFamily: fontFamily,
       brightness: Brightness.light,
     );
-    final text = base.textTheme.apply(bodyColor: ink, displayColor: ink);
+    // Roboto como respaldo: letras griegas y símbolos (α, π, √) que Plus
+    // Jakarta Sans no trae y aparecen en enunciados.
+    final text = base.textTheme.apply(
+      bodyColor: ink,
+      displayColor: ink,
+      fontFamilyFallback: const ['Roboto'],
+    );
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
     );

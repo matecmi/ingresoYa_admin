@@ -1,5 +1,5 @@
 // GENERADO por tool/sync_app_preview.py — NO EDITAR A MANO.
-// Copia fiel de iya-app/lib/features/simulator/presentation/pages/exam_view/part_exam_attempt_widgets.dart (commit 783bb74) para que la vista
+// Copia fiel de iya-app/lib/features/simulator/presentation/pages/exam_view/part_exam_attempt_widgets.dart (commit 721f52e) para que la vista
 // previa del admin sea idéntica a la app. Textos tomados de app_es.arb.
 // ignore_for_file: type=lint, deprecated_member_use
 
@@ -171,8 +171,7 @@ class PartExamProgressHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Semantics(
-                label:
-                    '${answeredCount} de ${questionCount} preguntas respondidas',
+                label: '${answeredCount} de ${questionCount} preguntas respondidas',
                 child: LinearProgressIndicator(
                   value: questionCount == 0 ? 0 : answeredCount / questionCount,
                   minHeight: 5,

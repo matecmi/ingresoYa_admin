@@ -1,5 +1,6 @@
 import '../../../shared/question_contract/question_contract.dart';
 import '../../domain/editor_document.dart';
+import '../../domain/entities/admission_exam.dart';
 import 'publishable_question_repo.dart';
 import 'question_repo.dart';
 
@@ -50,12 +51,16 @@ class QuickQuestionSaver {
     required QuickQuestionTarget target,
     required QuestionContent statement,
     required List<QuestionAlternative> alternatives,
-    required String correctAlternativeId,
+    required String? correctAlternativeId,
     required QuestionContent explanation,
+    AdmissionExam? exam,
+    int? originalNumber,
   }) async {
     final content = EditorDocument(statement);
     final questionId = await _repo.createQuestion(
       editorContent: content,
+      admissionExam: exam,
+      originalNumber: originalNumber,
       number: DateTime.now().microsecondsSinceEpoch,
       statementText: content.legacy,
       active: 'Y',
@@ -69,14 +74,17 @@ class QuickQuestionSaver {
       requireCompleteAcademic: false,
       courseId: target.courseId,
       courseName: target.courseName,
-      examId: '',
+      examId: exam?.id ?? '',
+      label: exam?.label,
     );
     final draft = QuestionDocument.fromJson({
       'schemaVersion': 2,
       'questionId': questionId,
       'version': 1,
       'status': 'draft',
-      'sourceType': 'original',
+      'sourceType': exam?.examType ?? 'original',
+      if (exam != null) 'sourceExam': exam.source.toJson(),
+      'originalNumber': ?originalNumber,
       'courseId': target.courseId,
       'topicId': target.topicId,
       'subtopicId': target.subtopicId,
@@ -85,13 +93,15 @@ class QuickQuestionSaver {
       'content': statement.toJson(),
       'alternatives': alternatives.map((a) => a.toJson()).toList(),
     });
-    final answerKey = QuestionAnswerKey.fromJson({
-      'schemaVersion': 2,
-      'questionId': questionId,
-      'version': 1,
-      'correctAlternativeId': correctAlternativeId,
-      'explanation': explanation.toJson(),
-    });
+    final answerKey = correctAlternativeId == null
+        ? null
+        : QuestionAnswerKey.fromJson({
+            'schemaVersion': 2,
+            'questionId': questionId,
+            'version': 1,
+            'correctAlternativeId': correctAlternativeId,
+            'explanation': explanation.toJson(),
+          });
     await _publicRepo.saveDraft(draft, answerKey: answerKey);
     await _repo.mirrorV2Alternatives(
       questionId: questionId,

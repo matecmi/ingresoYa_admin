@@ -36,7 +36,6 @@ final _subtopicsProvider = StreamProvider.autoDispose
     );
 
 const _difficulties = {
-  'unknown': 'Sin definir',
   'easy': 'Fácil',
   'medium': 'Media',
   'hard': 'Difícil',
@@ -868,7 +867,7 @@ class _EditorCard extends StatelessWidget {
             minLines: 1,
             maxLines: 5,
             decoration: const InputDecoration(
-              labelText: 'Explicación (opcional, pero el alumno la agradece)',
+              labelText: 'Explicación (hace falta para publicar)',
               hintText: 'v = v₀ + a·t = 0 + 3·4 = 12 m/s',
             ),
           ),
@@ -1108,7 +1107,7 @@ class _SidePanel extends StatelessWidget {
                         const Padding(
                           padding: EdgeInsets.only(left: 6),
                           child: Text(
-                            'sin explicación',
+                            'sin explicación: no se publica',
                             style: TextStyle(
                               fontSize: 11.5,
                               color: AppTheme.warn,
@@ -1151,7 +1150,7 @@ class _SidePanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextButton(
-                onPressed: () => context.go('/universities'),
+                onPressed: () => context.go('/import-exam'),
                 child: const Text(
                   'Pegar un examen entero (exámenes pasados) →',
                 ),

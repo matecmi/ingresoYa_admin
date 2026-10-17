@@ -45,6 +45,10 @@ class AppEnv {
   static const String staffRolesCollection = 'iya-admin-roles-test';
   static const String staffInvitesCollection = 'iya-admin-invites-test';
 
+  /// Estadísticas por pregunta (las escribe el servidor) y sus umbrales.
+  static const String questionStatsCollection = 'iya-question-stats-test';
+  static const String qualitySettingsDocument = 'quality';
+
   /// Historial de cambios del admin (lo escriben disparadores del servidor).
   static const String auditCollection = 'iya-admin-audit-test';
 
