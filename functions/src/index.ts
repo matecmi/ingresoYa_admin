@@ -104,6 +104,7 @@ export const auditTemplates = auditTrigger(`${col.templates}/{id}`, "templates")
 export const auditUniversities = auditTrigger(`${col.universities}/{id}`, "universities");
 export const auditUniversityChildren = auditTrigger(`${col.universities}/{u}/{sub}/{id}`, "universityChild");
 export const auditProfessions = auditTrigger(`${col.professions}/{id}`, "professions");
+export const auditNews = auditTrigger(`${col.news}/{id}`, "news");
 export const auditConfig = auditTrigger(`${col.config}/{id}`, "config");
 export const auditStaff = auditTrigger(`${col.staff}/{id}`, "staff");
 export const auditStaffRoles = auditTrigger(`${col.staffRoles}/{id}`, "staffRoles");

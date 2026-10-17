@@ -11,6 +11,7 @@ import 'package:ingresoya_admin/src/data/repo/settings_store.dart';
 import 'package:ingresoya_admin/src/data/repo/audit_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/quality_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/student_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/news_repo.dart';
 import 'package:ingresoya_admin/src/domain/content_health.dart';
 import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -161,4 +162,8 @@ final studentRepoProvider = Provider<StudentRepo>(
     ref.watch(xpRepoProvider),
     ref.watch(rankingsRepoProvider),
   ),
+);
+
+final newsRepoProvider = Provider<NewsRepo>(
+  (ref) => NewsRepo(ref.watch(firestoreProvider)),
 );

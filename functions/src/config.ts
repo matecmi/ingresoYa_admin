@@ -32,6 +32,8 @@ export interface BackendCollections {
   professions: string;
   /** Estadísticas por pregunta (docs/question_stats_contract.md). */
   questionStats: string;
+  /** Noticias del alumno (docs/news_contract.md). */
+  news: string;
 }
 
 export interface BackendConfig {
@@ -73,7 +75,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffInvites: "iya-admin-invites-test",
     audit: "iya-admin-audit-test",
     professions: "iya-professions-test",
-    questionStats: "iya-question-stats-test"
+    questionStats: "iya-question-stats-test",
+    news: "iya-news-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -95,7 +98,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffInvites: "iya-admin-invites-staging",
     audit: "iya-admin-audit-staging",
     professions: "iya-professions-staging",
-    questionStats: "iya-question-stats-staging"
+    questionStats: "iya-question-stats-staging",
+    news: "iya-news-staging"
   },
   production: {
     questions: "iya-questions",
@@ -117,7 +121,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     staffInvites: "iya-admin-invites",
     audit: "iya-admin-audit",
     professions: "iya-professions",
-    questionStats: "iya-question-stats"
+    questionStats: "iya-question-stats",
+    news: "iya-news"
   }
 };
 

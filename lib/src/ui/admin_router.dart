@@ -1,3 +1,5 @@
+import 'screens/news/news_editor_screen.dart';
+import 'screens/news/news_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -55,6 +57,19 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
                 partId: state.pathParameters['partId']!,
                 topicId: state.uri.queryParameters['topic'] ?? '',
                 subtopicId: state.uri.queryParameters['subtopic'] ?? '',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/news',
+            pageBuilder: (_, _) => _page(const NewsScreen()),
+          ),
+          GoRoute(
+            path: '/news/:newsId',
+            pageBuilder: (_, state) => _page(
+              NewsEditorScreen(
+                key: ValueKey(state.pathParameters['newsId']),
+                newsId: state.pathParameters['newsId']!,
               ),
             ),
           ),

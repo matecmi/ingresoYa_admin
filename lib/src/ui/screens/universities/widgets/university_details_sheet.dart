@@ -1,3 +1,4 @@
+import 'university_next_exam_card.dart';
 import 'package:flutter/material.dart';
 import 'admission_exams_tab.dart';
 import 'mode_form_dialog.dart';
@@ -115,6 +116,8 @@ class _DatosTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       physics: const BouncingScrollPhysics(),
       children: [
+        UniversityNextExamCard(university: u),
+        const SizedBox(height: 12),
         Container(
           decoration: AppTheme.cardDeco(
             radius: 22,

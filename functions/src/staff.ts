@@ -17,6 +17,7 @@ export const STAFF_SECTIONS = [
   "courses",
   "universities",
   "students",
+  "news",
   "settings",
   "staff",
   "history",
@@ -62,13 +63,13 @@ export const BUILTIN_ROLES: Record<string, StaffRole> = {
   editor: {
     name: "Editor de contenido",
     description: "Crea y edita preguntas, cursos y exámenes. Publicar pide revisión.",
-    perms: { questions: "ve", courses: "ve", universities: "ve", settings: "v", history: "v" },
+    perms: { questions: "ve", courses: "ve", universities: "ve", news: "ve", settings: "v", history: "v" },
     builtIn: true
   },
   reviewer: {
     name: "Revisor",
     description: "Revisa y publica lo que cargan los editores. No borra.",
-    perms: { questions: "vep", courses: "vep", universities: "vep", settings: "v", history: "v" },
+    perms: { questions: "vep", courses: "vep", universities: "vep", news: "vep", settings: "v", history: "v" },
     builtIn: true
   },
   support: {
@@ -81,7 +82,7 @@ export const BUILTIN_ROLES: Record<string, StaffRole> = {
     name: "Solo lectura",
     description: "Ve todo, no cambia nada. Útil para socios o auditoría.",
     perms: {
-      questions: "v", courses: "v", universities: "v", students: "v", settings: "v", history: "v"
+      questions: "v", courses: "v", universities: "v", students: "v", news: "v", settings: "v", history: "v"
     },
     builtIn: true
   }
