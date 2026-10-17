@@ -80,6 +80,8 @@ flowchart LR
   <tr><td class="msg">XP total, rango y libro de XP</td><td>Solo el servidor (el admin puede revertir)</td><td>App (solo los lee)</td></tr>
   <tr><td class="msg">Nombre de usuario, «Ocultarme», etapa de la liga</td><td>El servidor, cuando el alumno lo pide o al cerrar la semana (el admin puede retirar un nombre)</td><td>App del alumno</td></tr>
   <tr><td class="msg">Ficha pública, asiento de la liga y resultado del reto: nombre de usuario, insignia, XP de la semana, aciertos, universidad y carrera</td><td>Solo el servidor</td><td>Todos los alumnos con sesión (nunca ven nombre ni correo; los ocultos salen como «Postulante oculto»)</td></tr>
+  <tr><td class="msg">Noticias (avisos, novedades, consejos) con su audiencia, prioridad, fechas, imagen y botón</td><td>Panel admin (el servidor solo marca la notificación enviada)</td><td>App (solo las publicadas; decide dónde mostrarlas según la universidad del perfil)</td></tr>
+  <tr><td class="msg">Qué noticias ya vio el alumno (ventanas, historias, abiertas)</td><td>App, en el teléfono</td><td>App</td></tr>
   <tr><td class="msg">Reto del día de cada universidad (preguntas)</td><td>Solo el servidor (el admin puede cambiar una pregunta)</td><td>Solo el servidor</td></tr>
 </table></div>
 
@@ -306,6 +308,20 @@ flowchart LR
   F --> B
 </pre>
 
+<h3 id="c-noticias">Noticias y notificaciones</h3>
+<p>El admin publica en <code>iya-news</code> con prioridad (normal, fijada, urgente), audiencia (<code>universityIds</code> vacío = todos) y fechas. La app lee solo las publicadas (<code>status == 'published'</code>, índice con <code>publishAt</code>) y, con la universidad del perfil, arma lo que ve cada alumno: ventana del aviso urgente (una vez), fijada en el Inicio, historias, lista y «Otras universidades». Si la noticia pide notificación, una función la envía a los temas de FCM <code>news-all{-env}</code> o <code>news-uni-{id}{-env}</code> y marca <code>pushSentAt</code>; las programadas salen con la tarea cada 15 min. La fecha del examen del Inicio es <code>nextExam</code> en la universidad. Contrato: <code>docs/news_contract.md</code>.</p>
+<pre class="mermaid">
+flowchart LR
+  A[Admin · Alumnos · Noticias] --> B[(iya-news)]
+  A -. imagen .-> S[(Storage news-public)]
+  B --> C[App · buildNewsFeed]
+  P[(Perfil · universidad)] --> C
+  C --> V[Ventana · Fijada · Historias · Lista]
+  B --> F[sendNewsPushOnWrite · sendScheduledNewsPush]
+  F --> T[FCM · temas por universidad]
+  T --> U[Teléfono · abre el detalle]
+</pre>
+
 <h3 id="c-calidad">Preguntas a revisar</h3>
 <p>Cada noche (y con «Actualizar ahora») el servidor suma, por versión de pregunta, cuántos la respondieron, cuántos acertaron y cuántos eligieron cada alternativa, leyendo los exámenes entregados desde la última vez (<code>iya-question-stats</code>, con un cursor para no contar dos veces). El admin compara esos números con los umbrales de <code>{config}/quality</code> y muestra las preguntas sospechosas. Contrato: <code>docs/question_stats_contract.md</code>.</p>
 
@@ -332,6 +348,7 @@ flowchart LR
   <tr><td class="num">4</td><td class="msg"><s>Exámenes del Simulador sin recuperación</s></td><td>Corregido: el teléfono recuerda el examen abierto y el Simulador ofrece «Retomar» (si se reinstala la app, se pierde ese recuerdo).</td></tr>
   <tr><td class="num">5</td><td class="msg"><s>«Hoy te toca» puede duplicarse</s></td><td>Corregido: el servidor guarda la sesión abierta del día y la devuelve en lugar de crear otra.</td></tr>
   <tr><td class="num">6</td><td class="msg">Borrados sin protección en el admin</td><td>Se puede borrar una universidad o una carrera que todavía se usa.</td></tr>
+  <tr><td class="num">7</td><td class="msg">Firebase Storage no está activado en TEST</td><td>Sin Storage no se pueden subir imágenes de noticias ni de preguntas, y sus reglas no se pueden desplegar. Activarlo en la consola (Storage → Comenzar) y luego <code>firebase deploy --only storage</code>.</td></tr>
 </table></div>
 
 <h2 id="glosario">Glosario</h2>
@@ -380,7 +397,8 @@ flowchart LR
   <tr><td class="msg"><code>manageAdminStaff</code> (admin)</td><td><code>action</code>: <code>invite</code>, <code>update</code>, <code>revoke</code>, <code>cancelInvite</code>, <code>saveRole</code>, <code>deleteRole</code></td><td>Exige <code>staff:e</code> verificado contra la ficha. Errores: <code>not_staff</code>, <code>staff_forbidden</code>, <code>owner_only</code>, <code>last_owner</code>, <code>self_revoke</code>, <code>role_not_found</code>, <code>role_in_use</code>, <code>builtin_role</code>, <code>invalid_permissions</code>, <code>invalid_scope</code>, <code>invalid_email</code>, <code>invalid_role</code>. Quitar acceso cierra sus sesiones.</td><td>Escrituras completas</td></tr>
   <tr><td class="msg"><code>restoreAuditEntry</code> (admin)</td><td><code>entryId</code>, <code>force?</code></td><td>Deshace una entrada del historial (ver «Historial de cambios»). Errores: <code>entry_not_found</code>, <code>staff_forbidden</code>, <code>changed_since</code>, <code>creation_restore_unsupported</code>, <code>question_restore_unsupported</code>, <code>too_large</code>.</td><td>La restauración también queda anotada</td></tr>
   <tr><td class="msg"><code>refreshQuestionStats</code> (admin) y <code>nightlyQuestionStats</code> (03:30 Lima)</td><td>—</td><td>Suman las respuestas de los exámenes entregados en <code>iya-question-stats</code> (requiere <code>questions:v</code>).</td><td>Cursor por <code>submittedAt</code></td></tr>
-  <tr><td class="msg"><code>audit*</code> (11 disparadores, us-central1)</td><td>Escrituras en preguntas, cursos/temas/subtemas, plantillas, universidades y sus subcolecciones, carreras, configuración y personal</td><td>Agregan una entrada en <code>iya-admin-audit</code> (no anotan cambios solo de fechas o tokens).</td><td>Una entrada por escritura</td></tr>
+  <tr><td class="msg"><code>audit*</code> (12 disparadores, us-central1)</td><td>Escrituras en preguntas, cursos/temas/subtemas, plantillas, universidades y sus subcolecciones, carreras, noticias, configuración y personal</td><td>Agregan una entrada en <code>iya-admin-audit</code> (no anotan cambios solo de fechas o tokens).</td><td>Una entrada por escritura</td></tr>
+  <tr><td class="msg"><code>sendNewsPushOnWrite</code> (disparador, us-central1) y <code>sendScheduledNewsPush</code> (cada 15 min)</td><td>Escritura en <code>iya-news/{id}</code></td><td>Si está publicada, con <code>push</code>, sin <code>pushSentAt</code> y su hora ya llegó: reserva en transacción, envía a <code>news-all{-env}</code> o a cada <code>news-uni-{id}{-env}</code> (título «Aviso UNPRG: …» si es urgente) y deja <code>pushSentAt</code>; si FCM falla, lo libera.</td><td>Transacción sobre <code>pushSentAt</code></td></tr>
   <tr><td class="msg"><code>closeLeagueWeek</code> (tarea programada)</td><td>—</td><td>Lunes 00:10 (Lima): cierra la semana anterior si la liga corrió; escribe <code>stage</code> y <code>lastResult</code> en <code>ranking/current</code>.</td><td>Marca <code>{semana}_closed</code></td></tr>
 </table></div>
 <div class="table-wrap"><table>
@@ -415,7 +433,9 @@ flowchart LR
   <tr><th>Ruta</th><th>Contenido</th><th>Escribe → lee</th></tr>
   <tr><td class="msg"><code>{universities}/{id}</code>, <code>modes</code>, <code>admissionExams</code>, <code>admissionExamKeys</code></td><td>Universidad, carreras, <code>simulatorVisible</code>; exámenes con <code>simulator{…}</code>; reserva única de convocatoria.</td><td>Admin → App, Functions</td></tr>
   <tr><td class="msg"><code>{courses}/…/topics/…/subtopics</code></td><td>Subtema con <code>listPart[]</code>, <code>examTemplateId</code>, <code>masteryTemplateId</code>.</td><td>Admin → App, Functions</td></tr>
-  <tr><td class="msg"><code>{config}/sync · study · simulator</code></td><td>Sync, reglas de «Revisado», Simulador y plan.</td><td>Admin → App, Functions</td></tr>
+  <tr><td class="msg"><code>{config}/sync · study · simulator · news</code></td><td>Sync, reglas de «Revisado», Simulador y plan, noticias (<code>urgentPerWeek</code>, <code>storyDays</code>, <code>maxStories</code>).</td><td>Admin → App, Functions</td></tr>
+  <tr><td class="msg"><code>{news}/{id}</code> (<code>iya-news-{env}</code>)</td><td><code>title</code>, <code>body</code>, <code>category</code>, <code>priority</code>, <code>status</code>, <code>universityIds</code>, <code>universityLabels</code>, <code>publishAt</code>, <code>expiresAt</code>, <code>eventAt</code>, <code>eventLabel</code>, <code>keyDates</code>, <code>image{url, alt, mode}</code>, <code>story</code>, <code>action</code>, <code>push</code>, <code>pushSentAt</code>. Reglas: el alumno lee publicadas; <code>news:e</code> borradores, <code>news:p</code> publicar, <code>news:a</code> borrar; <code>pushSentAt</code> solo el servidor.</td><td>Admin → App (servidor: <code>pushSentAt</code>)</td></tr>
+  <tr><td class="msg"><code>{universities}/{id}.nextExam</code></td><td><code>{name, at}</code>: cuenta regresiva del Inicio.</td><td>Admin → App</td></tr>
   <tr><td class="msg"><code>{questions}</code> + <code>versions</code>, <code>{answerKeys}/{qid}_{v}</code>, <code>{templates}</code></td><td>Banco v2 inmutable por versión, claves y plantillas.</td><td>Admin → Functions</td></tr>
   <tr><td class="msg"><code>{attempts}/{id}</code></td><td>Intento congelado; en el Simulador también <code>simulator</code>, <code>questionMeta</code>, <code>simulatorResult</code>.</td><td>Functions → dueño (lectura)</td></tr>
   <tr><td class="msg"><code>{profile}/{uid}</code>, <code>courseProgress</code>, <code>favorites/parts</code>, <code>simulatorPlan/current</code></td><td>Perfil, avance local sincronizado, favoritos, meta.</td><td>App → App, Functions</td></tr>
@@ -505,6 +525,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>17-oct-2026</b> · Noticias: colección <code>iya-news</code> con reglas y sección de permisos <code>news</code>, <code>{config}/news</code>, imágenes en Storage <code>news-public</code>, <code>nextExam</code> por universidad, disparadores <code>auditNews</code> y <code>sendNewsPushOnWrite</code>, tarea <code>sendScheduledNewsPush</code> y temas de FCM por universidad. Desplegado en TEST (reglas de Firestore, índice y Functions; las reglas de Storage esperan que se active Storage en el proyecto).</li>
   <li><b>16-oct-2026</b> · Estadísticas por pregunta (<code>refreshQuestionStats</code>, <code>nightlyQuestionStats</code>, <code>iya-question-stats</code>, <code>{config}/quality</code>); el admin con <code>students:v</code> lee resultados del Simulador y el avance de la guía de un alumno (rediseño del admin, fase 7).</li>
   <li><b>16-oct-2026</b> · Historial de cambios del admin: 11 disparadores <code>audit*</code> (us-central1), colección <code>iya-admin-audit</code> (lectura con <code>history:v</code>), callable <code>restoreAuditEntry</code> e índice <code>section + at</code>.</li>
   <li><b>16-oct-2026</b> · Configuración del admin rehecha (fase 5): escribe los mismos documentos <code>{config}/rankings|xp|simulator|study|sync</code> con la misma validación; sin cambios en servidor.</li>
