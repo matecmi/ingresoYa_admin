@@ -9,6 +9,8 @@ import 'package:uuid/uuid.dart';
 import 'package:ingresoya_admin/src/domain/entities/question_entity.dart';
 import 'package:ingresoya_admin/src/domain/question_publication_validation.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
+import 'package:ingresoya_admin/src/domain/staff.dart';
+import 'package:ingresoya_admin/src/ui/widgets/admin_ui.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
 
 // ✅ ajusta a tu ruta real
@@ -754,8 +756,49 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
   };
 
   Widget _primaryActions(bool isEdit) {
+    final session = ref.watch(effectiveSessionProvider);
+    final canPublish = session.can(StaffSection.questions, StaffAction.publish);
+    final review = widget.question?.review;
+    if (widget.question?.editorialStatus == 'published' && !canPublish) {
+      return const InfoNote(
+        'Esta pregunta está publicada. Para cambiarla hace falta permiso de '
+        'publicar: pídeselo a un revisor o a un Dueño.',
+        tone: Tone.warn,
+        icon: Icons.lock_outline_rounded,
+      );
+    }
     return Column(
       children: [
+        if (review != null && review.pending) ...[
+          InfoNote(
+            canPublish
+                ? 'Enviada a revisión por ${review.requestedByEmail.isEmpty ? 'un editor' : review.requestedByEmail}. '
+                      'Revísala y publícala, o devuélvela con un comentario.'
+                : 'En revisión: espera a que alguien con permiso de publicar la '
+                      'revise.',
+            tone: Tone.warn,
+            icon: Icons.hourglass_top_rounded,
+          ),
+          if (canPublish)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: saving ? null : _returnForChanges,
+                icon: const Icon(Icons.reply_rounded, size: 18),
+                label: const Text('Devolver con comentario'),
+              ),
+            ),
+          const SizedBox(height: 10),
+        ],
+        if (review != null && review.returned) ...[
+          InfoNote(
+            'Devuelta${review.reviewedByEmail.isEmpty ? '' : ' por ${review.reviewedByEmail}'}: '
+            '«${review.note}». Corrígela y vuelve a enviarla.',
+            tone: Tone.error,
+            icon: Icons.reply_rounded,
+          ),
+          const SizedBox(height: 10),
+        ],
         OutlinedButton.icon(
           onPressed: saving
               ? null
@@ -787,14 +830,23 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: saving ? null : () => _save(publish: true),
-                icon: const Icon(Icons.publish_rounded, size: 18),
-                label: const Text(
-                  'Publicar',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                onPressed: saving
+                    ? null
+                    : () => canPublish
+                          ? _save(publish: true)
+                          : _save(publish: false, sendToReview: true),
+                icon: Icon(
+                  canPublish ? Icons.publish_rounded : Icons.send_rounded,
+                  size: 18,
+                ),
+                label: Text(
+                  canPublish ? 'Publicar' : 'Enviar a revisión',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A),
+                  backgroundColor: canPublish
+                      ? AppTheme.success
+                      : AppTheme.brandInk,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -843,9 +895,61 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
     );
   }
 
+  Future<void> _returnForChanges() async {
+    final note = TextEditingController();
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Devolver con comentario'),
+        content: SizedBox(
+          width: 420,
+          child: TextField(
+            controller: note,
+            autofocus: true,
+            maxLines: 3,
+            maxLength: 300,
+            decoration: const InputDecoration(
+              hintText: 'Ej.: La alternativa D está repetida.',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, note.text.trim()),
+            child: const Text('Devolver'),
+          ),
+        ],
+      ),
+    );
+    note.dispose();
+    if (text == null || text.isEmpty || widget.question == null) return;
+    setState(() => saving = true);
+    try {
+      await ref.read(questionRepoProvider).returnForChanges(
+        widget.question!.id,
+        note: text,
+        reviewerEmail: ref.read(adminSessionProvider).email,
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo devolver. Vuelve a intentarlo.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   Future<void> _save({
     required bool publish,
     bool validateAfterSave = false,
+    bool sendToReview = false,
   }) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -971,7 +1075,7 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
       if (explanation.hasContent) {
         await repo.saveExplanation(resolvedQuestionId, explanation);
       }
-      if (publish || validateAfterSave) {
+      if (publish || validateAfterSave || sendToReview) {
         final validation = await publicRepo.validateDraft(resolvedQuestionId);
         if (!mounted) return;
         setState(() => publicationIssues = validation.issues);
@@ -979,6 +1083,23 @@ class _QuestionFormSheetState extends ConsumerState<QuestionFormSheet> {
         if (validateAfterSave) return;
       }
       if (publish) await publicRepo.publishDraft(resolvedQuestionId);
+      if (sendToReview) {
+        final session = ref.read(adminSessionProvider);
+        await repo.requestReview(
+          resolvedQuestionId,
+          uid: session.uid,
+          email: session.email,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Enviada a revisión. Te avisaremos en «Mi trabajo» si la devuelven.',
+              ),
+            ),
+          );
+        }
+      }
 
       if (!mounted) return;
       Navigator.pop(context);

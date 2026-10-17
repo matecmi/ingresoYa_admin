@@ -7,6 +7,7 @@ import "./admin";
 import { readBackendConfig } from "./config";
 import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
+import { createStaffHandlers } from "./staff";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
 // environment variables. Loading the ignored local .env lets that discovery
@@ -16,6 +17,7 @@ loadDotenv();
 
 const config = readBackendConfig();
 const handlers = createCallableHandlers(config);
+const staffHandlers = createStaffHandlers(config);
 
 setGlobalOptions({
   region: config.region,
@@ -43,6 +45,13 @@ export const reconcileSubtopicAchievement = onCall(
   callableOptions,
   handlers.reconcileSubtopicAchievement
 );
+
+// Admin web callables (docs/admin_staff_contract.md). They are protected by
+// sign-in and staff claims checked against Firestore; the web admin has no
+// App Check provider, so enforcing it would lock the panel out.
+const adminCallableOptions = { enforceAppCheck: false };
+export const syncAdminAccess = onCall(adminCallableOptions, staffHandlers.syncAdminAccess);
+export const manageAdminStaff = onCall(adminCallableOptions, staffHandlers.manageAdminStaff);
 
 /**
  * Weekly league close (docs/rankings_contract.md §5): Monday 00:10 in Lima,

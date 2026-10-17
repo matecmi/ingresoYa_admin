@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/providers/providers.dart';
 import 'package:ingresoya_admin/src/ui/admin_router.dart';
 import 'package:ingresoya_admin/src/ui/theme/app_theme.dart';
@@ -45,6 +46,8 @@ Future<void> shot(
   required FakeFirebaseFirestore db,
   Size size = const Size(1440, 1000),
   Future<void> Function(WidgetTester tester)? act,
+  AdminSession? session,
+  StaffRole? preview,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -59,6 +62,11 @@ Future<void> shot(
       overrides: [
         firestoreProvider.overrideWithValue(db),
         firebaseFirestoreProvider.overrideWithValue(db),
+        functionsProvider.overrideWithValue(null),
+        if (session != null)
+          adminSessionProvider.overrideWith(() => _FixedSession(session)),
+        if (preview != null)
+          staffPreviewProvider.overrideWith(() => _FixedPreview(preview)),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -109,3 +117,25 @@ Future<FakeFirebaseFirestore> sampleDb() async {
   }
   return db;
 }
+
+class _FixedSession extends AdminSessionNotifier {
+  _FixedSession(this.value);
+  final AdminSession value;
+  @override
+  AdminSession build() => value;
+}
+
+class _FixedPreview extends StaffPreviewNotifier {
+  _FixedPreview(this.value);
+  final StaffRole value;
+  @override
+  StaffRole? build() => value;
+}
+
+/// Sesión de un Editor de contenido (perfil de fábrica).
+AdminSession editorSession() => AdminSession(
+  uid: 'editor-lucia',
+  email: 'lucia@ingresoya.test',
+  roleId: 'editor',
+  perms: builtinStaffRoles.firstWhere((r) => r.id == 'editor').perms,
+);

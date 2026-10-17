@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../theme/app_theme.dart';
 import '../../widgets/admin_ui.dart';
+import '../../../domain/staff.dart';
+import '../../../providers/providers.dart';
 import 'content_health_section.dart';
+import 'my_work_section.dart';
 
 /// Inicio del admin (tableros 7 y 14): accesos rápidos y salud del contenido.
 class HomeScreen extends ConsumerWidget {
@@ -12,6 +15,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(effectiveSessionProvider);
+    bool can(StaffSection s) => session.can(s, StaffAction.edit);
     return ListView(
       padding: const EdgeInsets.fromLTRB(28, 22, 28, 40),
       children: [
@@ -26,30 +31,35 @@ class HomeScreen extends ConsumerWidget {
           builder: (context, c) {
             final cols = c.maxWidth >= 900 ? 3 : (c.maxWidth >= 560 ? 2 : 1);
             final cards = [
-              _QuickCard(
-                primary: true,
-                title: 'Cargar preguntas',
-                text: 'Pega o escribe, y sigue con la siguiente',
-                icon: Icons.bolt_rounded,
-                onTap: () => context.go('/questions'),
-              ),
-              _QuickCard(
-                title: 'Armar un curso',
-                text: 'Temas, subtemas y partes',
-                icon: Icons.account_tree_outlined,
-                onTap: () => context.go('/courses'),
-              ),
-              _QuickCard(
-                title: 'Exámenes pasados',
-                text: 'Universidades y exámenes del Simulador',
-                icon: Icons.account_balance_outlined,
-                onTap: () => context.go('/universities'),
-              ),
+              if (can(StaffSection.questions))
+                _QuickCard(
+                  primary: true,
+                  title: 'Cargar preguntas',
+                  text: 'Pega o escribe, y sigue con la siguiente',
+                  icon: Icons.bolt_rounded,
+                  onTap: () => context.go('/questions'),
+                ),
+              if (can(StaffSection.courses))
+                _QuickCard(
+                  title: 'Armar un curso',
+                  text: 'Temas, subtemas y partes',
+                  icon: Icons.account_tree_outlined,
+                  onTap: () => context.go('/courses'),
+                ),
+              if (can(StaffSection.universities))
+                _QuickCard(
+                  title: 'Exámenes pasados',
+                  text: 'Universidades y exámenes del Simulador',
+                  icon: Icons.account_balance_outlined,
+                  onTap: () => context.go('/universities'),
+                ),
             ];
+            if (cards.isEmpty) return const SizedBox.shrink();
             return _Grid(columns: cols, children: cards);
           },
         ),
         const SizedBox(height: 22),
+        const MyWorkSection(),
         const ContentHealthSection(),
       ],
     );

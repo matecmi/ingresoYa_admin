@@ -151,6 +151,21 @@ const adminNav = <AdminNavItem>[
       guideAnchor: 'admin-configuracion',
     ),
   ),
+  AdminNavItem(
+    route: '/staff',
+    label: 'Perfiles y permisos',
+    icon: Icons.admin_panel_settings_outlined,
+    group: 'AJUSTES',
+    permission: 'staff',
+    help: AdminHelp(
+      purpose:
+          'Quién entra al admin y qué puede hacer. Un perfil es un conjunto de '
+          'permisos (ver, crear y editar, publicar, archivar) por sección; a '
+          'una persona le puedes sumar una excepción o limitarla a ciertos '
+          'cursos.',
+      guideAnchor: 'admin-perfiles',
+    ),
+  ),
 ];
 
 AdminNavItem? navItemFor(String location) {

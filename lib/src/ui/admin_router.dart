@@ -7,6 +7,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/professions/professions_screen.dart';
 import 'screens/question/questions_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/staff/staff_screen.dart';
 import 'screens/templates/exam_templates_screen.dart';
 import 'screens/universities/universities_screen.dart';
 
@@ -46,6 +47,10 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/settings',
             pageBuilder: (_, _) => _page(const SettingsScreen()),
+          ),
+          GoRoute(
+            path: '/staff',
+            pageBuilder: (_, _) => _page(const StaffScreen()),
           ),
         ],
       ),

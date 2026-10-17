@@ -2,6 +2,11 @@ import 'package:ingresoya_admin/src/data/repo/rankings_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/xp_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/app_config_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:ingresoya_admin/src/data/repo/staff_repo.dart';
+import 'package:ingresoya_admin/src/domain/staff.dart';
+import 'package:ingresoya_admin/src/env/app_env.dart';
 import '../data/repo/admission_exam_repo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ingresoya_admin/src/data/repo/course_repo.dart';
@@ -60,3 +65,51 @@ final xpRepoProvider = Provider<XpRepo>(
 final rankingsRepoProvider = Provider<RankingsRepo>(
   (ref) => RankingsRepo(ref.watch(firestoreProvider)),
 );
+
+/// Callables (región de las Functions). `null` en pruebas sin Firebase.
+final functionsProvider = Provider<FirebaseFunctions?>((ref) {
+  if (Firebase.apps.isEmpty) return null;
+  return FirebaseFunctions.instanceFor(region: AppEnv.functionsRegion);
+});
+
+final staffRepoProvider = Provider<StaffRepo>(
+  (ref) => StaffRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
+);
+
+/// Quién usa el admin y qué puede hacer (lo fija el control de acceso con los
+/// claims del token). En pruebas, Dueño.
+class AdminSessionNotifier extends Notifier<AdminSession> {
+  @override
+  AdminSession build() => const AdminSession.owner();
+
+  void set(AdminSession session) => state = session;
+}
+
+final adminSessionProvider =
+    NotifierProvider<AdminSessionNotifier, AdminSession>(
+      AdminSessionNotifier.new,
+    );
+
+/// «Ver el admin como este perfil»: perfil en vista previa o `null`.
+class StaffPreviewNotifier extends Notifier<StaffRole?> {
+  @override
+  StaffRole? build() => null;
+
+  void preview(StaffRole? role) => state = role;
+}
+
+final staffPreviewProvider =
+    NotifierProvider<StaffPreviewNotifier, StaffRole?>(StaffPreviewNotifier.new);
+
+/// La sesión que manda en la interfaz: la vista previa si hay una.
+final effectiveSessionProvider = Provider<AdminSession>((ref) {
+  final session = ref.watch(adminSessionProvider);
+  final preview = ref.watch(staffPreviewProvider);
+  if (preview == null) return session;
+  return AdminSession(
+    uid: session.uid,
+    email: session.email,
+    roleId: preview.id,
+    perms: preview.perms,
+  );
+});

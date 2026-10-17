@@ -16,6 +16,56 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // Perfiles y permisos del admin (docs/admin_staff_contract.md). Un token
+    // admin sin `role` es de antes de los perfiles y vale como Dueño.
+    function isStaffOwner() {
+      return isAdmin() && request.auth.token.get('role', 'owner') == 'owner';
+    }
+
+    // `action`: v ver · e crear y editar · p publicar · a archivar o borrar.
+    function can(section, action) {
+      return isAdmin() && (isStaffOwner()
+        || request.auth.token.get('p', {}).get(section, '').matches('.*' + action + '.*'));
+    }
+
+    // Alcance opcional por curso (`cs`); sin alcance, todos los cursos.
+    function inCourseScope(courseId) {
+      return isStaffOwner() || !request.auth.token.keys().hasAny(['cs'])
+        || courseId in request.auth.token.cs;
+    }
+
+    function isStaffCollection(collectionName) {
+      return collectionName in [
+        'iya-admin-staff-test', 'iya-admin-staff-staging', 'iya-admin-staff'
+      ];
+    }
+
+    function isStaffMetaCollection(collectionName) {
+      return collectionName in [
+        'iya-admin-roles-test', 'iya-admin-roles-staging', 'iya-admin-roles',
+        'iya-admin-invites-test', 'iya-admin-invites-staging', 'iya-admin-invites'
+      ];
+    }
+
+    function catalogSection(catalog) {
+      return catalog.matches('iya-courses.*') ? 'courses'
+        : catalog.matches('iya-config.*') ? 'settings'
+        : 'universities';
+    }
+
+    // Una pregunta publicada o retirada solo la toca quien puede publicar;
+    // retirarla exige además archivar.
+    function questionWriteAllowed() {
+      let next = request.resource.data.get('status', '');
+      let prev = resource == null ? '' : resource.data.get('status', '');
+      return can('questions', 'e')
+        && inCourseScope(request.resource.data.get('courseId', ''))
+        && ((next != 'published' && next != 'retired'
+              && prev != 'published' && prev != 'retired')
+            || can('questions', 'p'))
+        && (next != 'retired' || prev == 'retired' || can('questions', 'a'));
+    }
+
     function isCatalog(collectionName) {
       return collectionName in [
         'iya-universities-test', 'iya-universities-staging', 'iya-universities',
@@ -99,7 +149,12 @@ service cloud.firestore {
     // Editor explanations contain answer rationale and are never readable by a
     // student. Legacy alternatives are handled separately below.
     match /{collectionName}/{questionId} {
-      allow read, write: if isAdmin() && collectionName in [
+      allow read: if can('questions', 'v') && collectionName in [
+        'iya-questions-test-editor-private',
+        'iya-questions-staging-editor-private',
+        'iya-questions-editor-private'
+      ];
+      allow write: if can('questions', 'e') && collectionName in [
         'iya-questions-test-editor-private',
         'iya-questions-staging-editor-private',
         'iya-questions-editor-private'
@@ -111,22 +166,26 @@ service cloud.firestore {
       // Catalogs are needed by a signed-in learner to browse published
       // questions, but are not an anonymous data export surface.
       allow read: if signedIn() && isCatalog(catalog);
-      allow write: if isCatalog(catalog) && isAdmin();
+      allow write: if isCatalog(catalog)
+        && can(catalogSection(catalog), 'e')
+        && (catalogSection(catalog) != 'courses'
+          || inCourseScope(request.path[4]));
     }
 
     // Question-bank roots are an editor/server surface. Learners receive only
     // their frozen, safe question snapshot from their own attempt; allowing
     // direct reads here would make the full bank enumerable.
     match /{collectionName}/{questionId} {
-      allow read: if isQuestionsCollection(collectionName) && isAdmin();
-      allow create, update: if isQuestionsCollection(collectionName) && isAdmin()
+      allow read: if isQuestionsCollection(collectionName) && can('questions', 'v');
+      allow create, update: if isQuestionsCollection(collectionName)
+        && questionWriteAllowed()
         && !request.resource.data.keys().hasAny([
           'correctAlternativeId', 'isCorrect', 'explanation'
         ]);
       // Preserve the public history after it has ever become selectable.
       // Status-less documents are legacy drafts and retain the existing editor
       // deletion workflow until an explicit v2 migration is performed.
-      allow delete: if isQuestionsCollection(collectionName) && isAdmin()
+      allow delete: if isQuestionsCollection(collectionName) && can('questions', 'a')
         && (resource.data.status == 'draft'
           || !resource.data.keys().hasAny(['status']));
     }
@@ -134,22 +193,23 @@ service cloud.firestore {
     // Write-once question snapshot used by attempts. Functions use Admin SDK
     // and are not constrained by these client rules.
     match /{collectionName}/{questionId}/versions/{version} {
-      allow read: if isQuestionsCollection(collectionName) && isAdmin();
-      allow create: if isQuestionsCollection(collectionName) && isAdmin();
+      allow read: if isQuestionsCollection(collectionName) && can('questions', 'v');
+      allow create: if isQuestionsCollection(collectionName) && can('questions', 'p');
       allow update, delete: if false;
     }
 
     // Existing editor alternatives contain `isCorrect`, so they remain admin
     // only and cannot leak through the public root projection.
     match /{collectionName}/{questionId}/alternatives/{alternativeId} {
-      allow read, write: if isQuestionsCollection(collectionName) && isAdmin();
+      allow read: if isQuestionsCollection(collectionName) && can('questions', 'v');
+      allow write: if isQuestionsCollection(collectionName) && can('questions', 'e');
     }
 
     // Private key. It is editable only for the root's current draft revision.
     // Forking a root changes its version, which makes every old key immutable.
     match /{collectionName}/{keyId} {
-      allow read: if isAnswerKeyCollection(collectionName) && isAdmin();
-      allow create, update: if isAnswerKeyCollection(collectionName) && isAdmin()
+      allow read: if isAnswerKeyCollection(collectionName) && can('questions', 'v');
+      allow create, update: if isAnswerKeyCollection(collectionName) && can('questions', 'e')
         && request.resource.data.questionId is string
         && request.resource.data.version is int
         && (
@@ -165,7 +225,7 @@ service cloud.firestore {
         );
       // Clearing the correct answer is allowed only while the corresponding
       // draft is still current. Published and historical keys stay immutable.
-      allow delete: if isAnswerKeyCollection(collectionName)
+      allow delete: if isAnswerKeyCollection(collectionName) && can('questions', 'e')
         && resource.data.questionId is string
         && resource.data.version is int
         && (
@@ -186,19 +246,19 @@ service cloud.firestore {
     // an authenticated admin running the migration process.
     match /{collectionName}/{runId}/{document=**} {
       allow read, write: if isQuestionMigrationRunCollection(collectionName)
-        && isAdmin();
+        && isStaffOwner();
     }
 
     match /{collectionName}/{templateId} {
       // The server owns template selection and constraints. A learner cannot
       // enumerate templates or infer bank composition from the client.
-      allow read: if isTemplateCollection(collectionName) && isAdmin();
-      allow write: if isTemplateCollection(collectionName) && isAdmin();
+      allow read: if isTemplateCollection(collectionName) && can('courses', 'v');
+      allow write: if isTemplateCollection(collectionName) && can('courses', 'e');
     }
 
     match /{collectionName}/{templateId}/versions/{version} {
-      allow read: if isTemplateCollection(collectionName) && isAdmin();
-      allow create: if isTemplateCollection(collectionName) && isAdmin();
+      allow read: if isTemplateCollection(collectionName) && can('courses', 'v');
+      allow create: if isTemplateCollection(collectionName) && can('courses', 'e');
       allow update, delete: if false;
     }
 
@@ -206,7 +266,7 @@ service cloud.firestore {
     // safe projection only; no client can write selection, result or answers.
     match /{collectionName}/{attemptId} {
       allow read: if isAttemptCollection(collectionName)
-        && (isAdmin() || (signedIn() && resource.data.userId == request.auth.uid));
+        && (can('students', 'v') || (signedIn() && resource.data.userId == request.auth.uid));
       allow write: if false;
     }
 
@@ -242,13 +302,13 @@ service cloud.firestore {
     // Admin XP tool (docs/xp_contract.md): find a student, read the XP
     // ledger and revert an event. Students never write their XP.
     match /{profiles}/{userId} {
-      allow read: if isProfileCollection(profiles) && isAdmin();
+      allow read: if isProfileCollection(profiles) && can('students', 'v');
     }
 
     match /{profiles}/{userId}/{subcollection}/{document} {
-      allow read: if isProfileCollection(profiles) && isAdmin()
+      allow read: if isProfileCollection(profiles) && can('students', 'v')
         && subcollection in ['xp', 'xpEvents', 'ranking'];
-      allow update: if isProfileCollection(profiles) && isAdmin()
+      allow update: if isProfileCollection(profiles) && can('students', 'e')
         && subcollection in ['xp', 'xpEvents', 'ranking'];
     }
 
@@ -257,25 +317,35 @@ service cloud.firestore {
     // reverting XP and removes one when moderating a username.
     match /{collectionName}/{userId} {
       allow read: if isLeaderboardCollection(collectionName) && signedIn();
-      allow update, delete: if isLeaderboardCollection(collectionName) && isAdmin();
+      allow update, delete: if isLeaderboardCollection(collectionName) && can('students', 'e');
     }
 
     match /{collectionName}/{entryId} {
       allow read: if isPublicRankingCollection(collectionName) && signedIn();
-      allow update, delete: if isPublicRankingCollection(collectionName) && isAdmin();
+      allow update, delete: if isPublicRankingCollection(collectionName) && can('students', 'e');
     }
 
     // The admin may look at groups and today's challenges and swap a
     // question of a challenge nobody has played yet.
     match /{collectionName}/{docId} {
-      allow read: if isServerRankingCollection(collectionName) && isAdmin();
-      allow update: if isServerRankingCollection(collectionName) && isAdmin()
+      allow read: if isServerRankingCollection(collectionName) && can('students', 'v');
+      allow update: if isServerRankingCollection(collectionName) && can('settings', 'e')
         && collectionName.matches('iya-daily-challenges.*');
     }
 
     // Alias reservations: server-only; the admin frees one when moderating.
     match /{collectionName}/{aliasKey} {
-      allow read, delete: if isAliasCollection(collectionName) && isAdmin();
+      allow read: if isAliasCollection(collectionName) && can('students', 'v');
+      allow delete: if isAliasCollection(collectionName) && can('students', 'e');
+    }
+
+    // Fichas del personal del admin: cada uno lee la suya; con staff:v, todas.
+    // Perfiles e invitaciones los lee cualquier miembro. Solo Functions escribe.
+    match /{collectionName}/{uid} {
+      allow read: if isStaffCollection(collectionName)
+        && (isOwner(uid) || can('staff', 'v'));
+      allow read: if isStaffMetaCollection(collectionName) && isAdmin();
+      allow write: if false;
     }
 
     // These records are server-owned: request IDs provide idempotency and

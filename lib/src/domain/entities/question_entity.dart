@@ -1,6 +1,7 @@
 import 'alternative_entity.dart';
 import 'admission_exam.dart';
 import '../editor_document.dart';
+import '../question_review.dart';
 
 class QuestionEntity {
   final AdmissionExam? admissionExam;
@@ -36,6 +37,9 @@ class QuestionEntity {
   final DateTime? updatedAt;
   final List<String> editorialWarnings;
 
+  /// Revisión pendiente o devuelta (solo borradores).
+  final QuestionReview? review;
+
   final List<AlternativeEntity> alternatives; // en lista lo dejamos vacío
 
   const QuestionEntity({
@@ -61,6 +65,7 @@ class QuestionEntity {
     this.period = '',
     this.updatedAt,
     this.editorialWarnings = const [],
+    this.review,
     this.subtopicId = '',
     this.subtopicName = '',
     this.partIds = const [],

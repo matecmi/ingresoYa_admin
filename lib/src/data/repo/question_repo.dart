@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/question_review.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/editor_document.dart';
 import '../../domain/entities/admission_exam.dart';
@@ -23,6 +24,59 @@ class QuestionRepo {
   Stream<List<QuestionEntity>> watchQuestions() {
     return _col.orderBy('number').snapshots().map((snap) {
       return snap.docs.map(_toQuestion).toList();
+    });
+  }
+
+  /// Borradores esperando revisión (cola de quien puede publicar).
+  Stream<List<QuestionEntity>> watchReviewQueue() {
+    return _col
+        .where('review.status', isEqualTo: 'pending')
+        .limit(200)
+        .snapshots()
+        .map((snap) => snap.docs.map(_toQuestion).toList());
+  }
+
+  /// Lo que una persona envió a revisión (pendiente o devuelto).
+  Stream<List<QuestionEntity>> watchMyReviews(String uid) {
+    return _col
+        .where('review.requestedBy', isEqualTo: uid)
+        .limit(200)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map(_toQuestion)
+              .where((q) => q.review != null)
+              .toList(),
+        );
+  }
+
+  /// Envía un borrador a revisión (quien no puede publicar).
+  Future<void> requestReview(
+    String questionId, {
+    required String uid,
+    required String email,
+  }) {
+    return _col.doc(questionId).update({
+      'review': {
+        'status': 'pending',
+        'requestedBy': uid,
+        'requestedByEmail': email,
+        'requestedAt': FieldValue.serverTimestamp(),
+      },
+    });
+  }
+
+  /// Devuelve un borrador con un comentario para quien lo envió.
+  Future<void> returnForChanges(
+    String questionId, {
+    required String note,
+    required String reviewerEmail,
+  }) {
+    return _col.doc(questionId).update({
+      'review.status': 'returned',
+      'review.note': note,
+      'review.reviewedByEmail': reviewerEmail,
+      'review.reviewedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -436,6 +490,14 @@ class QuestionRepo {
       period: (d['period'] ?? '').toString(),
       updatedAt: _date(d['updatedAt']),
       editorialWarnings: _warnings(d, status),
+      review: status == 'draft'
+          ? QuestionReview.fromJson(
+              d['review'],
+              requestedAt: d['review'] is Map
+                  ? _date((d['review'] as Map)['requestedAt'])
+                  : null,
+            )
+          : null,
       alternatives: const [],
     );
   }
