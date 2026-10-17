@@ -63,7 +63,11 @@ class CourseStructureRepo {
     return id;
   }
 
-  Future<String> addSubtopic(String courseId, String topicId, String name) async {
+  Future<String> addSubtopic(
+    String courseId,
+    String topicId,
+    String name,
+  ) async {
     final existing = await _topic(
       courseId,
       topicId,
@@ -108,7 +112,8 @@ class CourseStructureRepo {
         0,
         (m, p) => _order(p['order']) > m ? _order(p['order']) : m,
       );
-      for (final name in names.map((n) => n.trim()).where((n) => n.isNotEmpty)) {
+      for (final name
+          in names.map((n) => n.trim()).where((n) => n.isNotEmpty)) {
         final id = const Uuid().v4();
         ids.add(id);
         next++;
@@ -344,7 +349,8 @@ class CourseStructureRepo {
                       .whereType<Map>()
                       .toList()
                     ..sort(
-                      (a, b) => _order(a['order']).compareTo(_order(b['order'])),
+                      (a, b) =>
+                          _order(a['order']).compareTo(_order(b['order'])),
                     )))
                 SyllabusNode('${p['name'] ?? ''}', const []),
             ]),

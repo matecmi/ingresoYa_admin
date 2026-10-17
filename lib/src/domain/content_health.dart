@@ -99,9 +99,7 @@ class PartHealth {
       : '$publishedQuestions/${template!.questionCount}';
 
   /// Qué falta para que la parte esté completa (para «Para publicar falta»).
-  List<String> get missing => [
-    for (final i in issues) i.title,
-  ];
+  List<String> get missing => [for (final i in issues) i.title];
 }
 
 bool _has(String v) => v.trim().isNotEmpty;

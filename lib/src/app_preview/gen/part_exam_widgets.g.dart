@@ -171,7 +171,8 @@ class PartExamProgressHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Semantics(
-                label: '${answeredCount} de ${questionCount} preguntas respondidas',
+                label:
+                    '${answeredCount} de ${questionCount} preguntas respondidas',
                 child: LinearProgressIndicator(
                   value: questionCount == 0 ? 0 : answeredCount / questionCount,
                   minHeight: 5,

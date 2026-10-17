@@ -50,8 +50,7 @@ class QuestionRepo {
         .get();
     return snap.docs
         .where(
-          (d) =>
-              d.data()['status'] == 'published' && d.data()['active'] != 'N',
+          (d) => d.data()['status'] == 'published' && d.data()['active'] != 'N',
         )
         .length;
   }

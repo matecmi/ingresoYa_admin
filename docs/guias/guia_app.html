@@ -861,6 +861,23 @@ flowchart LR
   <tr><td class="msg">«Publicar · faltan N cosas» / «Publicar» / «Ocultar a los alumnos»</td><td>Con permiso de publicar cursos. Publicar = la parte vuelve a estar visible para los alumnos.</td><td>Muestra u oculta la parte.</td></tr>
 </table></div>
 
+<h3 id="admin-configuracion-v3">Configuración en lenguaje simple</h3>
+<div class="wide-pair">
+  <figure class="wide-shot"><img src="img/adm-f5-rankings-cambio.jpg" alt="Configuración de rankings con un preajuste elegido"><figcaption>Rankings y ligas con «Competitivo» elegido: tres cambios sin guardar.</figcaption></figure>
+  <figure class="wide-shot"><img src="img/adm-f5-reto.jpg" alt="Configuración del reto del día con la captura real"><figcaption>Reto del día: al tocar un ajuste se marca en la captura real dónde lo ve el alumno.</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Elemento</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">Temas: Rankings y ligas · Reto del día · Cómo gana XP el alumno · Niveles e insignias · Simulador de examen · Plan de entrenamiento · Guía de estudio · XP de un alumno</td><td>Siempre, a la izquierda. Un número ámbar indica cambios sin guardar en ese tema.</td><td>Abre el tema.</td></tr>
+  <tr><td class="msg">«¿Qué quieres cambiar?»</td><td>Siempre.</td><td>Busca en todas las preguntas, sin importar tildes (p. ej. «reloj», «cuántos suben»).</td></tr>
+  <tr><td class="msg">Cada ajuste es una pregunta («¿Qué porcentaje del grupo sube de etapa?») con su explicación</td><td>Siempre.</td><td>Al tocarlo, la columna «Dónde lo ve el alumno» marca en naranja la zona de la captura real.</td></tr>
+  <tr><td class="msg">«En la práctica: En un grupo de 30, los 5 primeros suben de etapa y los 5 últimos bajan…»</td><td>En los ajustes que tienen un efecto calculable; se recalcula con lo que escribes (mismo redondeo que el servidor).</td><td>—</td></tr>
+  <tr><td class="msg">«Guardado: X · volver» · «De fábrica: X» / «valor de fábrica»</td><td>Al cambiar un valor / siempre.</td><td>«volver» deja el valor guardado.</td></tr>
+  <tr><td class="msg">«Suave · Recomendado · Competitivo · A medida»</td><td>Rankings y ligas.</td><td>Llena «suben», «bajan» y «alumnos por grupo» de una vez.</td></tr>
+  <tr><td class="msg">«Ajustes avanzados (N)» · «Más opciones: …»</td><td>Si el tema los tiene.</td><td>Muestra los ajustes poco usados y el editor completo anterior (rangos, etapas, palabras prohibidas, tamaños de práctica, sesiones por semana, nombres de usuario y reto de hoy), que guarda con su propio botón.</td></tr>
+  <tr><td class="msg">«N cambios sin guardar · «Suben de liga» 15 % → 20 % … · Descartar · Guardar en TEST»</td><td>Con cambios pendientes.</td><td>Valida con las mismas reglas que la app y el servidor y guarda. «Guardado. La app lo aplica la próxima vez que lee la configuración (normalmente al abrirse).» Si algo está fuera de rango, el ajuste se marca en rojo («Mínimo 5 alumnos.»).</td></tr>
+</table></div>
+
 <p id="admin-cursos"><b>Cursos</b>, <span id="admin-preguntas"><b>Banco de preguntas</b></span>, <span id="admin-plantillas"><b>Plantillas</b></span>, <span id="admin-universidades"><b>Universidades</b></span>, <span id="admin-carreras"><b>Carreras</b></span> y <span id="admin-configuracion"><b>Configuración</b></span> mantienen por ahora su funcionamiento; las fases siguientes las rehacen (ver la tabla de abajo para qué controla cada una).</p>
 
 <h2 id="admin">Lo que se cambia en el admin</h2>
@@ -903,6 +920,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>16-oct-2026</b> · Admin, fase 5: Configuración en lenguaje simple (preguntas, «En la práctica», valor guardado y de fábrica, buscador, preajustes, barra única de guardado) con capturas reales de la app y la zona que cambia cada ajuste.</li>
   <li><b>16-oct-2026</b> · Admin, fase 4: «Salud del contenido» en Inicio y contador en el menú; un curso como árbol con el estado de cada parte, alta en línea, pegar temario, copiar estructura y plantilla de parte; editor de parte con lo que falta y «Cargar N preguntas aquí».</li>
   <li><b>16-oct-2026</b> · Admin, fase 3: «Carga rápida» de preguntas (pegar y seguir, clave y solución reconocidas, aviso de repetidas, publicar o enviar a revisión en bloque) y «Así la ve el alumno», generada desde el código de la app.</li>
   <li><b>16-oct-2026</b> · Admin, fase 2: «Perfiles y permisos» (perfiles de fábrica, tabla de permisos, invitar, excepciones, alcance por curso, ver como perfil), menú según el perfil y «Enviar a revisión» con «Mi trabajo» en Inicio.</li>

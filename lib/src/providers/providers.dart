@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:ingresoya_admin/src/data/repo/staff_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/content_health_repo.dart';
 import 'package:ingresoya_admin/src/data/repo/course_structure_repo.dart';
+import 'package:ingresoya_admin/src/data/repo/settings_store.dart';
 import 'package:ingresoya_admin/src/domain/content_health.dart';
 import 'package:ingresoya_admin/src/domain/staff.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -76,7 +77,8 @@ final functionsProvider = Provider<FirebaseFunctions?>((ref) {
 });
 
 final staffRepoProvider = Provider<StaffRepo>(
-  (ref) => StaffRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
+  (ref) =>
+      StaffRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
 );
 
 /// Quién usa el admin y qué puede hacer (lo fija el control de acceso con los
@@ -101,8 +103,9 @@ class StaffPreviewNotifier extends Notifier<StaffRole?> {
   void preview(StaffRole? role) => state = role;
 }
 
-final staffPreviewProvider =
-    NotifierProvider<StaffPreviewNotifier, StaffRole?>(StaffPreviewNotifier.new);
+final staffPreviewProvider = NotifierProvider<StaffPreviewNotifier, StaffRole?>(
+  StaffPreviewNotifier.new,
+);
 
 /// La sesión que manda en la interfaz: la vista previa si hay una.
 final effectiveSessionProvider = Provider<AdminSession>((ref) {
@@ -129,4 +132,12 @@ final contentHealthProvider = FutureProvider<ContentHealthReport>(
 
 final courseStructureRepoProvider = Provider<CourseStructureRepo>(
   (ref) => CourseStructureRepo(ref.watch(firestoreProvider)),
+);
+
+final settingsStoreProvider = Provider<SettingsStore>(
+  (ref) => SettingsStore(
+    ref.watch(appConfigRepoProvider),
+    ref.watch(xpRepoProvider),
+    ref.watch(rankingsRepoProvider),
+  ),
 );
