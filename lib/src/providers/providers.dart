@@ -151,7 +151,8 @@ final auditRepoProvider = Provider<AuditRepo>(
 );
 
 final qualityRepoProvider = Provider<QualityRepo>(
-  (ref) => QualityRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
+  (ref) =>
+      QualityRepo(ref.watch(firestoreProvider), ref.watch(functionsProvider)),
 );
 
 final studentRepoProvider = Provider<StudentRepo>(

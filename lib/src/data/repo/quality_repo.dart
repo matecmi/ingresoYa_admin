@@ -31,10 +31,11 @@ class QualityRepo {
   }
 
   /// Hasta cuándo están sumadas las respuestas.
-  Stream<DateTime?> watchUpdatedAt() => _col.doc('_cursor').snapshots().map((s) {
-    final at = s.data()?['updatedAt'];
-    return at is Timestamp ? at.toDate() : null;
-  });
+  Stream<DateTime?> watchUpdatedAt() =>
+      _col.doc('_cursor').snapshots().map((s) {
+        final at = s.data()?['updatedAt'];
+        return at is Timestamp ? at.toDate() : null;
+      });
 
   /// «Está bien así»: se oculta hasta que lleguen bastantes respuestas nuevas.
   Future<void> markReviewed(

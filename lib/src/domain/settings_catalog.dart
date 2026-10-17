@@ -965,7 +965,8 @@ final List<SettingsTopic> settingsTopics = [
       SettingSpec(
         doc: SettingsDoc.quality,
         path: const ['minAnswers'],
-        question: '¿Cuántas respuestas hacen falta para opinar sobre una pregunta?',
+        question:
+            '¿Cuántas respuestas hacen falta para opinar sobre una pregunta?',
         label: 'Respuestas mínimas',
         min: 5,
         max: 500,
@@ -984,7 +985,8 @@ final List<SettingsTopic> settingsTopics = [
       SettingSpec(
         doc: SettingsDoc.quality,
         path: const ['dominantWrongPercent'],
-        question: '¿Qué parte de las respuestas debe llevarse una alternativa incorrecta para sospechar de la clave?',
+        question:
+            '¿Qué parte de las respuestas debe llevarse una alternativa incorrecta para sospechar de la clave?',
         label: 'Alternativa que atrae',
         min: 20,
         max: 100,
@@ -1002,7 +1004,8 @@ final List<SettingsTopic> settingsTopics = [
       SettingSpec(
         doc: SettingsDoc.quality,
         path: const ['deadAlternativeAnswers'],
-        question: '¿Con cuántas respuestas se avisa de una alternativa que nadie elige?',
+        question:
+            '¿Con cuántas respuestas se avisa de una alternativa que nadie elige?',
         label: '«Nadie la elige»',
         min: 10,
         max: 1000,

@@ -70,7 +70,7 @@ Future<void> shot(
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: _shotTheme(),
         routerConfig: router,
       ),
     ),
@@ -87,7 +87,7 @@ Future<void> shot(
   await _precacheImages(tester);
   await expectLater(
     find.byType(MaterialApp),
-    matchesGoldenFile('out/$name.png'),
+    matchesGoldenFile('out/$name$_suffix.png'),
   );
 }
 
@@ -166,13 +166,19 @@ Future<void> shotWidget(
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: _shotTheme(),
       home: Scaffold(body: Center(child: child)),
     ),
   );
   await tester.pump(const Duration(milliseconds: 300));
   await expectLater(
     find.byType(MaterialApp),
-    matchesGoldenFile('out/$name.png'),
+    matchesGoldenFile('out/$name$_suffix.png'),
   );
 }
+
+/// `--dart-define=SHOT_DARK=true` saca las capturas con el tema oscuro
+/// (archivos `*_dark.png`).
+const _dark = bool.fromEnvironment('SHOT_DARK');
+const _suffix = _dark ? '_dark' : '';
+ThemeData _shotTheme() => _dark ? AppTheme.dark() : AppTheme.light();

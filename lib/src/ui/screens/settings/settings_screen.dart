@@ -184,7 +184,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           for (final (t, s) in results) ...[
             Text(
               t.label.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.muted,
@@ -665,10 +665,7 @@ class _SettingCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           spec.help,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.muted,
-                          ),
+                          style: TextStyle(fontSize: 13, color: AppTheme.muted),
                         ),
                       ],
                     ],
@@ -688,14 +685,14 @@ class _SettingCard extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: 'Guardado: ${spec.format(savedValue)} · ',
-                          style: const TextStyle(color: AppTheme.warn),
+                          style: TextStyle(color: AppTheme.warn),
                         ),
                         WidgetSpan(
                           alignment: PlaceholderAlignment.baseline,
                           baseline: TextBaseline.alphabetic,
                           child: InkWell(
                             onTap: enabled ? () => onChanged(savedValue) : null,
-                            child: const Text(
+                            child: Text(
                               'volver',
                               style: TextStyle(
                                 color: AppTheme.warn,
@@ -715,7 +712,7 @@ class _SettingCard extends StatelessWidget {
                     value == factoryValue
                         ? 'valor de fábrica'
                         : 'De fábrica: ${spec.format(factoryValue)}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                    style: TextStyle(fontSize: 12, color: AppTheme.muted),
                   ),
               ],
             ),
@@ -723,7 +720,7 @@ class _SettingCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 error!,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.error,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
@@ -870,7 +867,7 @@ class _WhereInApp extends StatelessWidget {
         if (caption != null)
           Text(
             caption!,
-            style: const TextStyle(fontSize: 12.5, color: AppTheme.brandInk),
+            style: TextStyle(fontSize: 12.5, color: AppTheme.brandInk),
           ),
         const SizedBox(height: 10),
         Center(
@@ -912,7 +909,7 @@ class _WhereInApp extends StatelessWidget {
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Captura real del teléfono (app de prueba). Lo marcado en naranja es '
           'lo que cambia este ajuste.',
           style: TextStyle(fontSize: 12, color: AppTheme.muted),
@@ -952,7 +949,7 @@ class _SaveBar extends StatelessWidget {
         ? 'Guardar en PRODUCCIÓN'
         : 'Guardar en TEST';
     return Material(
-      color: AppTheme.ink,
+      color: AppTheme.bar,
       elevation: 8,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 12, 20, 12),
@@ -1004,7 +1001,7 @@ class _SaveBar extends StatelessWidget {
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.ink,
+                  foregroundColor: const Color(0xFF101828),
                 ),
                 onPressed: saving || changes.isEmpty ? null : onSave,
                 child: Text(saving ? 'Guardando…' : env),

@@ -35,11 +35,7 @@ final _subtopicsProvider = StreamProvider.autoDispose
           .watchSubtopics(courseId: ids.$1, topicId: ids.$2),
     );
 
-const _difficulties = {
-  'easy': 'Fácil',
-  'medium': 'Media',
-  'hard': 'Difícil',
-};
+const _difficulties = {'easy': 'Fácil', 'medium': 'Media', 'hard': 'Difícil'};
 
 class _Saved {
   const _Saved({
@@ -621,7 +617,7 @@ class _StickyBar extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.card,
         border: Border(bottom: BorderSide(color: AppTheme.line)),
       ),
@@ -640,7 +636,7 @@ class _StickyBar extends StatelessWidget {
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
           ),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Se queda fijo para las siguientes:',
             style: TextStyle(color: AppTheme.muted, fontSize: 12.5),
           ),
@@ -793,7 +789,7 @@ class _EditorCard extends StatelessWidget {
                 'Pregunta n.º $number de esta sesión',
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              const Text(
+              Text(
                 'Pega todo junto: enunciado y alternativas. Nosotros las '
                 'separamos.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.muted),
@@ -821,7 +817,7 @@ class _EditorCard extends StatelessWidget {
           ),
           if (!parsed.isEmpty) ...[
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'ASÍ QUEDÓ · HAZ CLIC EN LA CORRECTA',
               style: TextStyle(
                 fontSize: 12,
@@ -891,7 +887,7 @@ class _EditorCard extends StatelessWidget {
             spacing: 12,
             runSpacing: 10,
             children: [
-              const Text(
+              Text(
                 'Alt+1…5 marca la correcta · Ctrl+Enter guarda y abre la '
                 'siguiente',
                 style: TextStyle(fontSize: 12, color: AppTheme.muted),
@@ -958,7 +954,7 @@ class _AltChip extends StatelessWidget {
                 ),
                 TextSpan(text: text.isEmpty ? '(vacía)' : text),
                 if (selected)
-                  const WidgetSpan(
+                  WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
                     child: Padding(
                       padding: EdgeInsets.only(left: 6),
@@ -1040,7 +1036,7 @@ class _SidePanel extends StatelessWidget {
                   height: 200,
                   alignment: Alignment.center,
                   decoration: AppTheme.cardDeco(color: AppTheme.subtle),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
                       'Pega una pregunta y aquí verás la pantalla de la app.',
@@ -1052,7 +1048,7 @@ class _SidePanel extends StatelessWidget {
               : AppPhoneFrame(width: 320, child: preview!),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Se dibuja con el mismo código de la app (tema, textos y '
           'componentes).',
           textAlign: TextAlign.center,
@@ -1083,15 +1079,15 @@ class _SidePanel extends StatelessWidget {
                   ),
                 ),
               if (saved.isEmpty)
-                const Text(
+                Text(
                   'Se guardan como borrador al instante: puedes cerrar y '
                   'seguir mañana.',
                   style: TextStyle(fontSize: 13, color: AppTheme.muted),
                 ),
               for (final s in saved.take(8))
                 Container(
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0xFFF0F2F5))),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: AppTheme.rowLine)),
                   ),
                   child: Row(
                     children: [
@@ -1104,7 +1100,7 @@ class _SidePanel extends StatelessWidget {
                         ),
                       ),
                       if (!s.hasExplanation)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(left: 6),
                           child: Text(
                             'sin explicación: no se publica',
@@ -1125,12 +1121,12 @@ class _SidePanel extends StatelessWidget {
               if (saved.length > 8)
                 Text(
                   '… ${saved.length - 8} más',
-                  style: const TextStyle(color: AppTheme.muted),
+                  style: TextStyle(color: AppTheme.muted),
                 ),
               if (saved.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: AppTheme.ink),
+                  style: FilledButton.styleFrom(backgroundColor: AppTheme.bar),
                   onPressed: publishing ? null : onFinish,
                   child: Text(
                     canPublish

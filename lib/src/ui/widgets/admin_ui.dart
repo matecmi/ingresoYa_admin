@@ -17,7 +17,7 @@ extension ToneColors on Tone {
   };
 
   Color get bg => switch (this) {
-    Tone.neutral => const Color(0xFFF2F4F7),
+    Tone.neutral => AppTheme.neutralSoft,
     Tone.brand => AppTheme.brandSoft,
     Tone.success => AppTheme.successSoft,
     Tone.warn => AppTheme.warnSoft,
@@ -27,11 +27,11 @@ extension ToneColors on Tone {
 
   Color get border => switch (this) {
     Tone.neutral => AppTheme.line,
-    Tone.brand => const Color(0xFFD9C8FF),
-    Tone.success => const Color(0xFFABEFC6),
+    Tone.brand => AppTheme.brandLine,
+    Tone.success => AppTheme.successLine,
     Tone.warn => AppTheme.warnLine,
     Tone.error => AppTheme.errorLine,
-    Tone.info => const Color(0xFFC7D7FE),
+    Tone.info => AppTheme.infoLine,
   };
 }
 
@@ -102,7 +102,7 @@ class AdminPageHeader extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               crumbs.join(' / '),
-              style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
           ),
         Wrap(
@@ -118,7 +118,7 @@ class AdminPageHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: AppTheme.ink,
@@ -128,7 +128,7 @@ class AdminPageHeader extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       subtitle!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppTheme.muted,
                         fontSize: 14,
                         height: 1.5,
@@ -246,7 +246,7 @@ class KpiTile extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   color: AppTheme.muted,
                   fontWeight: FontWeight.w600,
@@ -255,7 +255,7 @@ class KpiTile extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.ink,
@@ -264,7 +264,7 @@ class KpiTile extends StatelessWidget {
               if (hint != null)
                 Text(
                   hint!,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                  style: TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
             ],
           ),
@@ -344,7 +344,7 @@ class EmptyState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
           ],
           if (action != null) ...[const SizedBox(height: 14), action!],

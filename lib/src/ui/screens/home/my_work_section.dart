@@ -97,7 +97,7 @@ class _ReviewList extends StatelessWidget {
       child: items.isEmpty
           ? Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Text(empty, style: const TextStyle(color: AppTheme.muted)),
+              child: Text(empty, style: TextStyle(color: AppTheme.muted)),
             )
           : Column(
               children: [
@@ -111,9 +111,9 @@ class _ReviewList extends StatelessWidget {
                       builder: (_) => QuestionFormSheet(question: q),
                     ),
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         border: Border(
-                          top: BorderSide(color: Color(0xFFF0F2F5)),
+                          top: BorderSide(color: AppTheme.rowLine),
                         ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -137,7 +137,7 @@ class _ReviewList extends StatelessWidget {
                                   subtitle(q),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     color: AppTheme.muted,
                                   ),
@@ -156,7 +156,7 @@ class _ReviewList extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       'y ${items.length - 8} más',
-                      style: const TextStyle(color: AppTheme.muted),
+                      style: TextStyle(color: AppTheme.muted),
                     ),
                   ),
               ],

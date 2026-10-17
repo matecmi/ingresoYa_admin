@@ -414,7 +414,7 @@ class _QuestionCard extends StatelessWidget {
                           '⚠ ${q.editorialWarnings.join(' · ')}',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.warn,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

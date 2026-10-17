@@ -82,10 +82,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.admin_panel_settings_rounded,
                     size: 52,
-                    color: Colors.white,
+                    color: AppTheme.brand,
                   ),
                   const SizedBox(height: 18),
                   const Text(
@@ -104,7 +104,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   const SizedBox(height: 24),
                   if (_error.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    Text(_error, style: const TextStyle(color: AppTheme.error)),
+                    Text(_error, style: TextStyle(color: AppTheme.error)),
                   ],
                   const SizedBox(height: 24),
                   if (kIsWeb) ...[

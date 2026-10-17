@@ -7,15 +7,57 @@ import 'package:ingresoya_admin/src/ui/screens/auth/admin_login_screen.dart';
 
 import 'ui/admin_router.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/theme/theme_mode_provider.dart';
 
-class AdminApp extends StatelessWidget {
+class AdminApp extends ConsumerStatefulWidget {
   const AdminApp({super.key});
 
   @override
+  ConsumerState<AdminApp> createState() => _AdminAppState();
+}
+
+class _AdminAppState extends ConsumerState<AdminApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppTheme.use(_brightness(ref.read(themeModeProvider)));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Brightness _brightness(ThemeMode mode) => resolveBrightness(
+    mode,
+    WidgetsBinding.instance.platformDispatcher.platformBrightness,
+  );
+
+  /// Cambia la paleta y reconstruye todo (las pantallas leen los colores de
+  /// `AppTheme` directamente), sin perder el estado de formularios ni la ruta.
+  void _apply(ThemeMode mode) {
+    if (!AppTheme.use(_brightness(mode))) return;
+    void mark(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(mark);
+    }
+
+    (context as Element).visitChildren(mark);
+    setState(() {});
+  }
+
+  @override
+  void didChangePlatformBrightness() => _apply(ref.read(themeModeProvider));
+
+  @override
   Widget build(BuildContext context) {
+    ref.listen(themeModeProvider, (_, mode) => _apply(mode));
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.current(),
       // El enrutador real vive dentro del control de acceso. En web no se debe
       // intentar resolver `/courses` en este MaterialApp exterior.
       initialRoute: '/',
@@ -112,7 +154,7 @@ class _AdminRouterState extends State<_AdminRouter> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
+      theme: AppTheme.current(),
       routerConfig: _router,
     );
   }
@@ -145,11 +187,7 @@ class _AccessDeniedScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.block_rounded,
-                    size: 52,
-                    color: AppTheme.error,
-                  ),
+                  Icon(Icons.block_rounded, size: 52, color: AppTheme.error),
                   const SizedBox(height: 18),
                   const Text(
                     'Acceso no autorizado',

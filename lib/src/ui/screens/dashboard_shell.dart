@@ -10,6 +10,7 @@ import '../shell/admin_nav.dart';
 import '../shell/help_panel.dart';
 import '../shell/nav_badges.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_mode_provider.dart';
 import '../widgets/admin_ui.dart';
 
 /// Marco del admin: aviso de entorno, menú por tareas y barra superior con
@@ -131,7 +132,7 @@ class EnvBanner extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            color: isProd ? AppTheme.error : const Color(0xFF93370D),
+            color: isProd ? AppTheme.error : AppTheme.warnInk,
             fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
@@ -152,9 +153,9 @@ class _PreviewBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 4, 12, 4),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.infoSoft,
-        border: Border(bottom: BorderSide(color: Color(0xFFC7D7FE))),
+        border: Border(bottom: BorderSide(color: AppTheme.infoLine)),
       ),
       child: Row(
         children: [
@@ -162,7 +163,7 @@ class _PreviewBanner extends StatelessWidget {
             child: Text(
               'Estás viendo el admin como «$roleName». Puedes moverte por el '
               'menú; nada de lo que veas se puede tocar ni se guarda.',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppTheme.infoInk,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -187,8 +188,8 @@ class _ReadOnlyStrip extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      color: const Color(0xFFF2F4F7),
-      child: const Text(
+      color: AppTheme.neutralSoft,
+      child: Text(
         'Solo lectura: tu perfil puede ver esta sección, pero no cambiarla.',
         style: TextStyle(color: AppTheme.body, fontSize: 13),
       ),
@@ -208,7 +209,7 @@ class _TopBar extends StatelessWidget {
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.card,
         border: Border(bottom: BorderSide(color: AppTheme.line)),
       ),
@@ -224,9 +225,9 @@ class _TopBar extends StatelessWidget {
           if (item != null && item.group.isNotEmpty) ...[
             Text(
               _groupLabel(item.group),
-              style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
-            const Text(
+            Text(
               '  /  ',
               style: TextStyle(color: AppTheme.faint, fontSize: 13),
             ),
@@ -235,7 +236,7 @@ class _TopBar extends StatelessWidget {
             child: Text(
               item?.label ?? '',
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppTheme.ink,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -252,7 +253,7 @@ class _TopBar extends StatelessWidget {
                   width: 30,
                   height: 30,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTheme.brand,
                     shape: BoxShape.circle,
                   ),
@@ -268,7 +269,9 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          const _ThemeMenu(),
+          const SizedBox(width: 4),
         ],
       ),
     );
@@ -276,6 +279,50 @@ class _TopBar extends StatelessWidget {
 
   static String _groupLabel(String group) =>
       group[0] + group.substring(1).toLowerCase();
+}
+
+/// Selector de tema: automático (el del sistema), claro u oscuro.
+class _ThemeMenu extends ConsumerWidget {
+  const _ThemeMenu();
+
+  static const _options = [
+    (
+      ThemeMode.system,
+      'Automático (como el sistema)',
+      Icons.brightness_auto_rounded,
+    ),
+    (ThemeMode.light, 'Claro', Icons.light_mode_rounded),
+    (ThemeMode.dark, 'Oscuro', Icons.dark_mode_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    return PopupMenuButton<ThemeMode>(
+      tooltip: 'Tema claro u oscuro',
+      initialValue: mode,
+      onSelected: ref.read(themeModeProvider.notifier).set,
+      icon: Icon(
+        AppTheme.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+        color: AppTheme.body,
+      ),
+      itemBuilder: (_) => [
+        for (final (value, label, icon) in _options)
+          PopupMenuItem(
+            value: value,
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: AppTheme.body),
+                const SizedBox(width: 12),
+                Expanded(child: Text(label)),
+                if (value == mode)
+                  Icon(Icons.check_rounded, size: 18, color: AppTheme.brand),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _SideMenu extends StatelessWidget {
@@ -311,7 +358,7 @@ class _SideMenu extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(22, 14, 16, 4),
             child: Text(
               group,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: .7,
@@ -334,7 +381,7 @@ class _SideMenu extends StatelessWidget {
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.card,
         border: Border(right: BorderSide(color: AppTheme.line)),
       ),
@@ -385,7 +432,7 @@ class _Brand extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
           ),
         ),
-        const Text(
+        Text(
           'Admin',
           style: TextStyle(
             color: AppTheme.muted,
@@ -502,7 +549,7 @@ class _UserFooter extends StatelessWidget {
             backgroundColor: AppTheme.brandSoft,
             child: Text(
               label.isEmpty ? '?' : label[0].toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppTheme.brandInk,
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
@@ -514,7 +561,7 @@ class _UserFooter extends StatelessWidget {
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12.5, color: AppTheme.body),
+              style: TextStyle(fontSize: 12.5, color: AppTheme.body),
             ),
           ),
           IconButton(

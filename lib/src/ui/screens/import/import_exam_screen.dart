@@ -220,7 +220,7 @@ class _ImportExamScreenState extends ConsumerState<ImportExamScreen> {
     final header = Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.card,
         border: Border(bottom: BorderSide(color: AppTheme.line)),
       ),
@@ -286,7 +286,7 @@ class _ImportExamScreenState extends ConsumerState<ImportExamScreen> {
                 onChanged: (v) => setState(() => _examId = v),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Si el examen no existe, créalo primero en Universidades → '
                 'Exámenes de origen.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.muted),
@@ -310,7 +310,7 @@ class _ImportExamScreenState extends ConsumerState<ImportExamScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Copia todo el texto del PDF (Ctrl+A, Ctrl+C) y pégalo aquí. '
                 'Reconocemos las preguntas numeradas (25. …), sus alternativas '
                 'y, si viene al final, la tabla de claves (CLAVES: 25. C 26. B …).',
@@ -467,9 +467,9 @@ class _ImportExamScreenState extends ConsumerState<ImportExamScreen> {
                 children: [
                   for (final q in _items)
                     Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         border: Border(
-                          top: BorderSide(color: Color(0xFFF0F2F5)),
+                          top: BorderSide(color: AppTheme.rowLine),
                         ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -500,7 +500,7 @@ class _ImportExamScreenState extends ConsumerState<ImportExamScreen> {
                                   (_targets[q.number]?.partId.isEmpty ?? true)
                                   ? null
                                   : _targets[q.number]!.key,
-                              hint: const Text(
+                              hint: Text(
                                 'Sin clasificar',
                                 style: TextStyle(color: AppTheme.warn),
                               ),
@@ -670,7 +670,7 @@ class _ReviewCard extends StatelessWidget {
             for (final i in issues)
               Text(
                 '• $i',
-                style: const TextStyle(color: Color(0xFF7A2E0E), fontSize: 13),
+                style: TextStyle(color: AppTheme.warnInk, fontSize: 13),
               ),
           ],
           const SizedBox(height: 8),

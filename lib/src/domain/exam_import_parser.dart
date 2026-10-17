@@ -63,7 +63,9 @@ final _keyHeading = RegExp(
   multiLine: true,
 );
 
-final _keyPair = RegExp(r'(\d{1,3})\s*[.)\-:–]?\s*\(?([A-Ea-e])\)?(?![a-zA-Z])');
+final _keyPair = RegExp(
+  r'(\d{1,3})\s*[.)\-:–]?\s*\(?([A-Ea-e])\)?(?![a-zA-Z])',
+);
 
 final _figure = RegExp(
   r'\b(figura|gr[aá]fico|gr[aá]fica|imagen|dibujo|cuadro adjunto|diagrama)\b',
@@ -145,8 +147,7 @@ ImportResult parseExam(String text) {
             'Hay una alternativa vacía.',
           if (_figure.hasMatch(q.parsed.statement))
             'Tiene una figura: súbela con el editor completo después de importar.',
-          if (q.parsed.correctIndex == null)
-            'Falta la clave: márcala aquí.',
+          if (q.parsed.correctIndex == null) 'Falta la clave: márcala aquí.',
         ],
       ),
   ];

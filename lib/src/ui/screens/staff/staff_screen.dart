@@ -376,7 +376,7 @@ class _RoleCard extends StatelessWidget {
                   ),
                   Text(
                     count == 1 ? '1 persona' : '$count personas',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                    style: TextStyle(fontSize: 12, color: AppTheme.muted),
                   ),
                 ],
               ),
@@ -384,7 +384,7 @@ class _RoleCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   role.description,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                  style: TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
               ],
             ],
@@ -499,8 +499,8 @@ class _PermissionMatrix extends StatelessWidget {
           ),
           for (final s in StaffSection.values)
             Container(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFF0F2F5))),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: AppTheme.rowLine)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               child: Row(
@@ -516,10 +516,7 @@ class _PermissionMatrix extends StatelessWidget {
                         ),
                         Text(
                           s.hint,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.muted,
-                          ),
+                          style: TextStyle(fontSize: 12, color: AppTheme.muted),
                         ),
                       ],
                     ),
@@ -531,7 +528,7 @@ class _PermissionMatrix extends StatelessWidget {
             ),
           if (dirty)
             Container(
-              color: AppTheme.ink,
+              color: AppTheme.bar,
               padding: const EdgeInsets.fromLTRB(18, 10, 12, 10),
               child: Row(
                 children: [
@@ -553,7 +550,7 @@ class _PermissionMatrix extends StatelessWidget {
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.ink,
+                      foregroundColor: const Color(0xFF101828),
                     ),
                     onPressed: onSave,
                     child: const Text('Guardar perfil'),
@@ -575,7 +572,7 @@ class _PermissionMatrix extends StatelessWidget {
         perms.can(s, StaffAction.edit);
     if (!editable) {
       if (reviewHint) {
-        return const Text(
+        return Text(
           'pide revisión',
           style: TextStyle(
             color: AppTheme.warn,
@@ -585,15 +582,15 @@ class _PermissionMatrix extends StatelessWidget {
         );
       }
       return on
-          ? const Icon(Icons.check_rounded, color: AppTheme.success, size: 20)
-          : const Text('—', style: TextStyle(color: AppTheme.faint));
+          ? Icon(Icons.check_rounded, color: AppTheme.success, size: 20)
+          : Text('—', style: TextStyle(color: AppTheme.faint));
     }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Checkbox(value: on, onChanged: (v) => onToggle(s, a, v ?? false)),
         if (reviewHint)
-          const Text(
+          Text(
             'pide revisión',
             style: TextStyle(color: AppTheme.warn, fontSize: 11),
           ),
@@ -735,8 +732,8 @@ class _PersonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFF0F2F5))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppTheme.rowLine)),
       ),
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Wrap(
@@ -756,7 +753,7 @@ class _PersonRow extends StatelessWidget {
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                    style: TextStyle(fontSize: 12, color: AppTheme.muted),
                   ),
               ],
             ),
@@ -770,7 +767,7 @@ class _PersonRow extends StatelessWidget {
                 for (final n in notes)
                   Text(
                     n,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       color: AppTheme.warn,
                       fontWeight: FontWeight.w700,
@@ -950,7 +947,7 @@ class _MemberDialogState extends State<_MemberDialog> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     role.description,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                    style: TextStyle(fontSize: 12, color: AppTheme.muted),
                   ),
                 ),
               if (_roleId != 'owner') ...[
@@ -1022,7 +1019,7 @@ class _MemberDialogState extends State<_MemberDialog> {
                                   ),
                                   Text(
                                     a.letter.toUpperCase(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.muted,
                                     ),

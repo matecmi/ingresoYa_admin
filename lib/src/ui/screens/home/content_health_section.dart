@@ -50,7 +50,7 @@ class ContentHealthSection extends ConsumerWidget {
               ? 'Revisando cursos, partes, plantillas y preguntas…'
               : 'Revisado ${_ago(health.value?.checkedAt)} · cada problema dice '
                     'qué le pasa al alumno.',
-          style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+          style: TextStyle(color: AppTheme.muted, fontSize: 13),
         ),
         const SizedBox(height: 12),
         if (health.hasError)
@@ -185,8 +185,8 @@ class _IssueListState extends State<_IssueList> {
         children: [
           for (final i in shown)
             Container(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFF0F2F5))),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: AppTheme.rowLine)),
               ),
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
@@ -204,10 +204,7 @@ class _IssueListState extends State<_IssueList> {
                         ),
                         Text(
                           i.detail,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.muted,
-                          ),
+                          style: TextStyle(fontSize: 13, color: AppTheme.muted),
                         ),
                       ],
                     ),
