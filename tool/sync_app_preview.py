@@ -9,7 +9,7 @@ Uso, desde la raíz del admin:
     python tool/sync_app_preview.py --check  # falla si la copia quedó vieja
 
 Volver a correrlo cada vez que cambie en la app el tema, el renderizador de
-preguntas o los widgets del examen.
+preguntas, los widgets del examen, el búho o las piezas de las noticias.
 """
 
 import json
@@ -26,6 +26,11 @@ SOURCES = {
     'app_theme.g.dart': ('lib/config/theme/app_theme.dart', None),
     'question_content_renderer.g.dart': (
         'lib/features/questions/presentation/widgets/question_content_renderer.dart',
+        None,
+    ),
+    'owl_mascot.g.dart': ('lib/app/widgets/owl_mascot.dart', None),
+    'news_visuals.g.dart': (
+        'lib/features/news/presentation/widgets/news_visuals.dart',
         None,
     ),
     'part_exam_widgets.g.dart': (
@@ -61,6 +66,27 @@ def split_args(s):
     return args
 
 
+def plural_cases(text):
+    """«{count, plural, =1{…} other{…}}» → ('count', [('1', '…'), ('_', '…')])."""
+    m = re.match(r'^\{(\w+), plural,(.*)\}$', text, re.S)
+    if not m:
+        return None
+    name, body, cases, i = m.group(1), m.group(2), [], 0
+    while i < len(body):
+        sel = re.match(r'\s*(=\d+|other)\{', body[i:])
+        if not sel:
+            break
+        start = i + sel.end()
+        depth, k = 1, start
+        while depth:
+            depth += {'{': 1, '}': -1}.get(body[k], 0)
+            k += 1
+        key = '_' if sel.group(1) == 'other' else sel.group(1)[1:]
+        cases.append((key, body[start:k - 1]))
+        i = k
+    return name, cases
+
+
 def replace_l10n(src, arb):
     out, i = '', 0
     pattern = re.compile(r'(context\.l10n|appStrings|l10n)\.([A-Za-z0-9_]+)')
@@ -92,10 +118,21 @@ def replace_l10n(src, arb):
             args = split_args(src[j + 1:k])
             if not placeholders:
                 placeholders = re.findall(r'\{(\w+)\}', text)
-            value = dart_string(text)
-            for name, arg in zip(placeholders, args):
-                value = value.replace('{' + name + '}', '${' + arg + '}')
-            out += value
+            plural = plural_cases(text)
+            if plural:
+                name, cases = plural
+                arg = dict(zip(placeholders or [name], args)).get(name, args[0])
+                arms = []
+                for key, case in cases:
+                    value = dart_string(case)
+                    value = value.replace('{' + name + '}', '${' + arg + '}')
+                    arms.append(f'{key} => {value}')
+                out += '(switch (' + arg + ') { ' + ', '.join(arms) + ' })'
+            else:
+                value = dart_string(text)
+                for name, arg in zip(placeholders, args):
+                    value = value.replace('{' + name + '}', '${' + arg + '}')
+                out += value
             i = k + 1
         else:
             out += dart_string(text)
@@ -132,6 +169,10 @@ def adapt(src, arb, rel, commit):
     src = src.replace(
         "import 'package:ingresoya/config/theme/app_theme.dart';",
         "import 'app_theme.g.dart';",
+    )
+    src = src.replace(
+        "import 'package:ingresoya/app/widgets/owl_mascot.dart';",
+        "import 'owl_mascot.g.dart';",
     )
     src = src.replace(
         "import 'package:ingresoya/features/questions/presentation/widgets/question_content_renderer.dart';",
