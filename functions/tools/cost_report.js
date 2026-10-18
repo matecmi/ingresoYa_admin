@@ -14,7 +14,7 @@
 // No es la factura de Firebase: Firestore puede cobrar lecturas de índices y
 // reintentos que este contador no ve. Sirve para comparar antes y después.
 'use strict';
-const { execFileSync } = require('child_process');
+const { execSync } = require('child_process');
 const https = require('https');
 
 const args = parseArgs(process.argv.slice(2));
@@ -41,7 +41,8 @@ async function main() {
   const byEvent = new Map();
   for (const e of entries) {
     const p = e.jsonPayload || {};
-    const event = String(p.message || e.textPayload || 'sin_nombre');
+    // Los eventos de error llegan como "Error: nombre\n    at ..." (logger.error con un Error): se deja solo el nombre.
+    const event = String(p.message || e.textPayload || 'sin_nombre').split('\n')[0].replace(/^Error:\s*/, '').trim();
     if (!byEvent.has(event)) byEvent.set(event, { n: 0, samples: Object.fromEntries(NUMERIC.map((k) => [k, []])) });
     const bucket = byEvent.get(event);
     bucket.n += 1;
@@ -86,9 +87,11 @@ async function main() {
 }
 
 function gcloudToken() {
-  const cmd = process.platform === 'win32' ? 'gcloud.cmd' : 'gcloud';
+  // GCLOUD_PATH permite apuntar al SDK si no está en el PATH (p. ej.
+  // C:\Users\USER\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd).
+  const cmd = process.env.GCLOUD_PATH ? `"${process.env.GCLOUD_PATH}"` : 'gcloud';
   try {
-    return execFileSync(cmd, ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
+    return execSync(`${cmd} auth print-access-token`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch (e) {
     throw new Error('No se pudo obtener el token. Ejecuta `gcloud auth login` una vez o define GOOGLE_OAUTH_ACCESS_TOKEN.');
   }

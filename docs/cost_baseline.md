@@ -54,6 +54,26 @@ Estimación de partida del análisis del 18-oct-2026, para contrastar: 900
 lecturas, 110 escrituras, 40 invocaciones y 6 MB de egreso por sesión típica;
 `createExamAttempt` con `durationMs` p50 ≈ 800 ms.
 
+### Telemetría real previa (prueba en el teléfono del 17-oct-2026, Functions en southamerica-east1)
+
+`node tools/cost_report.js --days 3` el 18-oct-2026, 155 eventos:
+
+| Evento | n | durationMs p50 | p95 | lecturas media | lecturas p95 | escrituras media |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| exam_attempt_create_completed | 10 | 6,130 | 15,700 | 202 | 419 | 16.3 |
+| exam_attempt_submit_completed | 8 | 2,749 | 3,778 | 20 | 64 | 11.9 |
+| xp_granted | 5 | 7,119 | 7,743 | 21 | 25 | 15.0 |
+| exam_attempt_answers_save_completed | 65 | 981 | 1,832 | 1 | 1 | 1.0 |
+| achievement_summary_get_completed | 33 | 239 | 1,503 | 1 | 1 | 0 |
+| part_section_completion_completed | 4 | 3,214 | 3,217 | 5 | 5 | 0.5 |
+
+Lectura: crear un examen tarda **6 s de mediana y hasta 16 s**, no los 0.8 s
+estimados, y lee 202 documentos de media. Conceder XP tarda 7 s. Son los
+viajes entre São Paulo y la base en nam5 sumados a la selección de candidatos:
+confirma que la Fase 1A (región) y la 3C (selección) son las primeras.
+También: 65 guardados de respuestas para 10 exámenes (6.5 por examen) y 33
+lecturas del resumen de logros en unas pocas sesiones (Fase 2C).
+
 ## Resultados por subfase
 
 Se agrega una fila al cerrar cada subfase, con la misma sesión típica.
