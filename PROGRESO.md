@@ -2,7 +2,7 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-17_
+_Última actualización: 2026-10-18_
 
 ## Estado actual
 - **Noticias y nuevo Inicio (2026-10-17):** fases 1–4 hechas en `codex/noticias-inicio` (admin y app), sin fusionar. Desplegado en TEST: reglas de Firestore, índice `iya-news` y Functions (`auditNews`, `sendNewsPushOnWrite`, `sendScheduledNewsPush`). **Storage no está activado en TEST**: activarlo en la consola y desplegar `storage.rules` para poder subir imágenes.
@@ -253,6 +253,7 @@ _Última actualización: 2026-10-17_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
+- **Reestructuración de costos (2026-10-18):** análisis de costos (https://claude.ai/code/artifact/67c4d360-d8ac-48d3-9b94-7796330b092f) , plan de trabajo en 5 fases (https://claude.ai/code/artifact/61c9dbd2-7d11-46e8-bc47-d6c80bca2879) y plan de ejecución por subfases 0, 1A, 1B, 2A–2D, 3A–3C, 4A, 4B, 5A, 5B (https://claude.ai/code/artifact/9593d89b-8959-4507-826c-300792dd21c0; Kevin pide una subfase por vez, rama `codex/costos-<subfase>`; Kevin autorizó a Claude a fusionar PRs, desplegar en TEST y usar gcloud/firebase CLI sin pedir confirmación; él solo prueba en el teléfono y crea cuentas de AdMob/Play Console): meta de $0.0022 a $0.0004 por alumno-día. Siguiente: Fase 0 (fusionar PRs pendientes, activar Storage en TEST, línea base en `docs/cost_baseline.md`), luego Fase 1 (producción en us-central1 región única, Functions junto a la base, minInstances 0, límites de selección por variable).
 - **Noticias/Inicio (2026-10-17):** revisar y fusionar los PRs de `codex/noticias-inicio`; activar Firebase Storage en TEST y `firebase deploy --only storage --project test`; sumar «Noticias» a los perfiles Editor/Revisor/Solo lectura ya guardados; poner la fecha real del próximo examen de la UNPRG (hoy hay una de prueba). Diseñado pero sin construir: Universidades (directorio y fichas), calendario de admisión, «¿Me alcanza?», racha.
 - Siguientes mejoras de la guía (propuestas a Kevin el 2026-10-14): tras reprobar el examen de una parte, indicar qué repasar; bancos de al menos ~15 preguntas por parte para que el reintento no repita el examen; guardar el puntaje del Repaso relámpago y las tarjetas falladas; repaso espaciado y racha diaria; teclado numérico en «Intenta primero». Para el lanzamiento: producción (`INGRESOYA_ENV=production`), contenido real y prueba con otra cuenta.
 - l10n fusionado en `desarrollo` (app #55 / admin #37, 2026-10-10). Al agregar textos nuevos, usar el ARB (ver CLAUDE.md de la app).

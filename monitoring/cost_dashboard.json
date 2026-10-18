@@ -1,0 +1,48 @@
+{
+  "displayName": "IngresoYa · costo observado por operación",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "width": 6, "height": 4,
+        "widget": {
+          "title": "Lecturas observadas p50 por evento",
+          "xyChart": {"dataSets": [{"timeSeriesQuery": {"timeSeriesFilter": {
+            "filter": "metric.type=\"logging.googleapis.com/user/iya_observed_reads\"",
+            "aggregation": {"alignmentPeriod": "3600s", "perSeriesAligner": "ALIGN_PERCENTILE_50", "groupByFields": ["metric.label.event"], "crossSeriesReducer": "REDUCE_MEAN"}}},
+            "plotType": "LINE"}]}
+        }
+      },
+      {
+        "xPos": 6, "width": 6, "height": 4,
+        "widget": {
+          "title": "durationMs p50 por evento",
+          "xyChart": {"dataSets": [{"timeSeriesQuery": {"timeSeriesFilter": {
+            "filter": "metric.type=\"logging.googleapis.com/user/iya_duration_ms\"",
+            "aggregation": {"alignmentPeriod": "3600s", "perSeriesAligner": "ALIGN_PERCENTILE_50", "groupByFields": ["metric.label.event"], "crossSeriesReducer": "REDUCE_MEAN"}}},
+            "plotType": "LINE"}]}
+        }
+      },
+      {
+        "yPos": 4, "width": 6, "height": 4,
+        "widget": {
+          "title": "Invocaciones con telemetría por evento (por hora)",
+          "xyChart": {"dataSets": [{"timeSeriesQuery": {"timeSeriesFilter": {
+            "filter": "metric.type=\"logging.googleapis.com/user/iya_duration_ms\"",
+            "aggregation": {"alignmentPeriod": "3600s", "perSeriesAligner": "ALIGN_COUNT", "groupByFields": ["metric.label.event"], "crossSeriesReducer": "REDUCE_SUM"}}},
+            "plotType": "STACKED_BAR"}]}
+        }
+      },
+      {
+        "xPos": 6, "yPos": 4, "width": 6, "height": 4,
+        "widget": {
+          "title": "Lecturas de documentos de Firestore (todas, incluida la app)",
+          "xyChart": {"dataSets": [{"timeSeriesQuery": {"timeSeriesFilter": {
+            "filter": "metric.type=\"firestore.googleapis.com/document/read_count\"",
+            "aggregation": {"alignmentPeriod": "3600s", "perSeriesAligner": "ALIGN_RATE", "crossSeriesReducer": "REDUCE_SUM"}}},
+            "plotType": "LINE"}]}
+        }
+      }
+    ]
+  }
+}

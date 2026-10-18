@@ -1,0 +1,21 @@
+# Métrica basada en logs: lecturas observadas por evento de las Functions.
+# Crear: gcloud logging metrics create iya_observed_reads --config-from-file=monitoring/log_metric_reads.yaml --project ingresoya-e5115
+name: iya_observed_reads
+description: Lecturas de Firestore observadas por las Functions, por evento (telemetría de OperationMetrics)
+filter: (resource.type="cloud_run_revision" OR resource.type="cloud_function") AND jsonPayload.observedDocumentReads:*
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: "1"
+  labels:
+    - key: event
+      valueType: STRING
+      description: Nombre del evento (p. ej. exam_attempt_create_completed)
+valueExtractor: EXTRACT(jsonPayload.observedDocumentReads)
+labelExtractors:
+  event: EXTRACT(jsonPayload.message)
+bucketOptions:
+  exponentialBuckets:
+    numFiniteBuckets: 20
+    growthFactor: 1.6
+    scale: 1
