@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'exam_settings.dart';
 import 'plan_settings.dart';
 import 'news.dart';
 import 'quality_settings.dart';
@@ -18,7 +19,17 @@ import 'xp_settings.dart';
 /// real de la app donde lo ve el alumno.
 
 /// Documentos de `{config}` que edita esta pantalla.
-enum SettingsDoc { rankings, xp, simulator, plan, study, sync, quality, news }
+enum SettingsDoc {
+  rankings,
+  xp,
+  simulator,
+  plan,
+  study,
+  sync,
+  quality,
+  news,
+  exam,
+}
 
 enum SettingKind { integer, toggle, choice, time }
 
@@ -1010,6 +1021,51 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
   SettingsTopic(
+    id: 'exam',
+    label: 'Exámenes',
+    icon: Icons.save_outlined,
+    intro:
+        'Cómo guarda la app las respuestas mientras el alumno rinde un examen. '
+        'Las respuestas nunca se pierden en el teléfono; esto decide cada '
+        'cuánto viajan al servidor (cada viaje es una llamada y una lectura y '
+        'escritura del intento completo).',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['saveEveryAnswers'],
+        question: '¿Cada cuántas respuestas se guardan en el servidor?',
+        label: 'Respuestas por guardado',
+        min: ExamSettings.minSaveEveryAnswers,
+        max: ExamSettings.maxSaveEveryAnswers,
+        unit: 'respuestas',
+        help:
+            '1 = una llamada por respuesta (como antes). Al pausar, salir o '
+            'enviar siempre se guarda todo.',
+        keywords: 'guardar respuestas costo llamadas examen',
+        inPractice: (v) {
+          final n = _int(v, SettingsDoc.exam, ['saveEveryAnswers'], 5);
+          final s = _int(v, SettingsDoc.exam, ['saveEverySeconds'], 30);
+          return 'Un examen de 10 preguntas hace unas ${(10 / n).ceil()} '
+              'llamadas de guardado (o una cada $s s si responde despacio), más '
+              'el envío.';
+        },
+      ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['saveEverySeconds'],
+        question:
+            '¿Cuántos segundos como máximo entre un cambio y su guardado?',
+        label: 'Segundos entre guardados',
+        min: ExamSettings.minSaveEverySeconds,
+        max: ExamSettings.maxSaveEverySeconds,
+        unit: 's',
+        help: 'Aunque no se llegue al número de respuestas.',
+        keywords: 'guardar respuestas costo segundos examen',
+        advanced: true,
+      ),
+    ],
+  ),
+  SettingsTopic(
     id: 'quality',
     label: 'Preguntas a revisar',
     icon: Icons.fact_check_outlined,
@@ -1186,6 +1242,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.sync => SyncSettings.defaults.toMap(),
   SettingsDoc.quality => QualitySettings.defaults.toMap(),
   SettingsDoc.news => NewsSettings.defaults.toMap(),
+  SettingsDoc.exam => ExamSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1199,6 +1256,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.sync => SyncSettings.fromMap(map).validate(),
   SettingsDoc.quality => QualitySettings.fromMap(map).validate(),
   SettingsDoc.news => NewsSettings.fromMap(map).validate(),
+  SettingsDoc.exam => ExamSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1215,4 +1273,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.sync => SyncSettings.fromMap(map).toMap(),
   SettingsDoc.quality => QualitySettings.fromMap(map).toMap(),
   SettingsDoc.news => NewsSettings.fromMap(map).toMap(),
+  SettingsDoc.exam => ExamSettings.fromMap(map).toMap(),
 };

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/exam_settings.dart';
 import 'package:ingresoya_admin/src/domain/news.dart';
 import 'package:ingresoya_admin/src/domain/quality_settings.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
@@ -44,6 +45,28 @@ class AppConfigRepo {
   DocumentReference<Map<String, dynamic>> get _study => db
       .collection(AppEnv.configCollection)
       .doc(AppEnv.studyReviewRulesDocument);
+
+  /// `{config}/exam` (docs/exam_config_contract.md): guardado de respuestas
+  /// en la app y, desde la Fase 3C, límites de selección de preguntas.
+  DocumentReference<Map<String, dynamic>> get _exam =>
+      db.collection(AppEnv.configCollection).doc('exam');
+
+  Stream<ExamSettings> watchExamSettings() => _exam.snapshots().map(
+    (snapshot) => ExamSettings.fromMap(snapshot.data()),
+  );
+
+  Future<void> saveExamSettings(
+    ExamSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _exam.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
 
   Stream<StudyReviewRulesRecord> watchStudyReviewRules() =>
       _study.snapshots().map((snapshot) {
@@ -140,9 +163,8 @@ class AppConfigRepo {
     });
   }
 
-  DocumentReference<Map<String, dynamic>> get _news => db
-      .collection(AppEnv.configCollection)
-      .doc(AppEnv.newsSettingsDocument);
+  DocumentReference<Map<String, dynamic>> get _news =>
+      db.collection(AppEnv.configCollection).doc(AppEnv.newsSettingsDocument);
 
   Stream<NewsSettings> watchNewsSettings() =>
       _news.snapshots().map((s) => NewsSettings.fromMap(s.data()));
