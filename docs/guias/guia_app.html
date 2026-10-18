@@ -68,7 +68,10 @@
 <!-- ============================================================ INICIO -->
 <h2 id="inicio">Inicio</h2>
 <p>Es la primera pestaña (lienzo «Inicio final»). Muestra lo que el alumno tiene pendiente, cuánto lleva de su guía, cuánto falta para su examen y lo lleva a los demás apartados.</p>
-<div class="note"><p><b>Captura pendiente.</b> El Inicio cambió el 17-oct-2026; las capturas se reemplazan en cuanto haya un teléfono conectado.</p></div>
+<div class="screen two">
+  <figure><img src="img/ini-inicio.jpg" alt="Inicio con días al examen, % de la guía, aviso fijado y pendiente"><figcaption>Inicio (TEST, 17-oct-2026).</figcaption></figure>
+  <figure><img src="img/ini-inicio-abajo.jpg" alt="Inicio con historias y atajos"><figcaption>Historias y atajos.</figcaption></figure>
+</div>
 
 <h3 id="inicio-cabecera">Cabecera</h3>
 <div class="table-wrap"><table>
@@ -100,6 +103,15 @@
 <!-- ============================================================ NOTICIAS -->
 <h2 id="noticias"><span class="chip info">NOTICIAS</span><br>Noticias</h2>
 <p>Las publica el admin. La app decide dónde se ve cada una según su prioridad y la universidad del perfil del alumno (contrato <code>docs/news_contract.md</code>).</p>
+<div class="screen two">
+  <figure><img src="img/not-ventana.jpg" alt="Ventana del aviso urgente al abrir la app"><figcaption>Aviso urgente al abrir.</figcaption></figure>
+  <figure><img src="img/not-historia.jpg" alt="Visor de historias"><figcaption>Historia.</figcaption></figure>
+</div>
+<div class="screen two">
+  <figure><img src="img/not-lista.jpg" alt="Lista de noticias"><figcaption>Lista «Noticias».</figcaption></figure>
+  <figure><img src="img/not-detalle.jpg" alt="Detalle con cuenta regresiva y fechas clave"><figcaption>Detalle.</figcaption></figure>
+</div>
+<figure class="wide-shot"><img src="img/not-push.jpg" alt="Notificación de una noticia"><figcaption>Notificación (ícono del búho).</figcaption></figure>
 <div class="table-wrap"><table>
   <tr><th>Noticia</th><th>Ventana al abrir</th><th>Fijada en el Inicio</th><th>Historias</th><th>Lista</th><th>Notificación</th></tr>
   <tr><td class="msg">Urgente para tu universidad (o general)</td><td>Sí, una sola vez</td><td>Sí, hasta vencer</td><td>Si se marcó</td><td>Arriba, «FIJADO»</td><td>Si se marcó</td></tr>
@@ -1005,6 +1017,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>17-oct-2026</b> · Probado en el teléfono (TEST): ventana del aviso urgente, Inicio, historias, lista, «Otras universidades», detalle, visor de imagen y notificación (abre el detalle). Capturas reales.</li>
   <li><b>17-oct-2026</b> · Noticias del admin (ventana del aviso urgente por universidad, fijada, historias, lista con «Otras universidades», detalle, imagen a pantalla completa y notificación) y nuevo Inicio (días al examen, % de la guía con ritmo, pendientes, historias y atajos). Admin: Alumnos → Noticias, Configuración → Noticias y «Próximo examen de admisión».</li>
   <li><b>16-oct-2026</b> · Admin: tema oscuro (selector Automático / Claro / Oscuro en la barra superior).</li>
   <li><b>16-oct-2026</b> · Admin, fase 7: «Preguntas a revisar» (señales según las respuestas, umbrales en Configuración), «Ficha del alumno» (avance, exámenes, XP con revertir, retirar nombre de usuario) e «Importar examen pasado» (pegar, revisar, clasificar con sugerencias, publicar).</li>

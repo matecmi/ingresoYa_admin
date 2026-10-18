@@ -89,8 +89,14 @@ export async function sendNewsPush(config: BackendConfig, newsId: string): Promi
   if (!data) return false;
   try {
     const messages = pushMessages(config.environment, newsId, data);
-    await getMessaging().sendEach(messages);
-    safeLog("news_push_sent", "system", { topics: messages.length });
+    const result = await getMessaging().sendEach(messages);
+    if (result.successCount === 0) {
+      throw new Error(result.responses.map((r) => r.error?.code ?? "unknown").join(","));
+    }
+    safeLog("news_push_sent", "system", {
+      topics: messages.length,
+      failed: result.failureCount
+    });
     return true;
   } catch (error) {
     await ref.update({ pushSentAt: null });
