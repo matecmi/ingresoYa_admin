@@ -337,6 +337,34 @@ final List<SettingsTopic> settingsTopics = [
     specs: [
       SettingSpec(
         doc: SettingsDoc.rankings,
+        path: const ['tableSize'],
+        question:
+            '¿Cuántas filas muestran las tablas «Esta semana» y del reto?',
+        label: 'Filas de las tablas',
+        min: 10,
+        max: 100,
+        unit: 'filas',
+        help:
+            'Cada fila es una lectura cuando un alumno abre la tabla. Su '
+            'posición se calcula aparte, no depende de este número.',
+        keywords: 'lecturas costo tabla top',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.rankings,
+        path: const ['tableCacheMinutes'],
+        question:
+            '¿Cuántos minutos guarda la app una tabla antes de volver a pedirla?',
+        label: 'Minutos de caché de las tablas',
+        min: 0,
+        max: 60,
+        unit: 'minutos',
+        help: 'Tirar para refrescar la pide de nuevo. 0 = siempre fresca.',
+        keywords: 'lecturas costo cache tabla',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.rankings,
         path: const ['enabled'],
         kind: SettingKind.toggle,
         question: '¿Están encendidos los rankings?',
@@ -665,6 +693,32 @@ final List<SettingsTopic> settingsTopics = [
     screen: _practicaBoton,
     fullEditor: 'simulator',
     specs: [
+      SettingSpec(
+        doc: SettingsDoc.simulator,
+        path: const ['resultsLimit'],
+        question: '¿Cuántos resultados recientes baja la app?',
+        label: 'Resultados que baja la app',
+        min: SimulatorSettings.minResultsLimit,
+        max: SimulatorSettings.maxResultsLimit,
+        unit: 'resultados',
+        help:
+            'Alimentan el historial, las estadísticas y «Hoy te toca». Cada '
+            'resultado es una lectura por sesión.',
+        keywords: 'lecturas costo historial estadisticas',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.simulator,
+        path: const ['topicStatsLimit'],
+        question: '¿Cuántos temas con estadística baja la app para el plan?',
+        label: 'Temas con estadística',
+        min: SimulatorSettings.minTopicStatsLimit,
+        max: SimulatorSettings.maxTopicStatsLimit,
+        unit: 'temas',
+        help: 'Los más practicados. «Hoy te toca» elige entre ellos.',
+        keywords: 'lecturas costo plan temas',
+        advanced: true,
+      ),
       SettingSpec(
         doc: SettingsDoc.simulator,
         path: const ['practiceTimerDefault'],
@@ -1025,6 +1079,23 @@ final List<SettingsTopic> settingsTopics = [
     specs: [
       SettingSpec(
         doc: SettingsDoc.news,
+        path: const ['feedLimit'],
+        question: '¿Cuántas noticias baja la app al abrir el Inicio?',
+        label: 'Noticias que baja la app',
+        min: 5,
+        max: 80,
+        unit: 'noticias',
+        help:
+            'Las más nuevas. Cada noticia es una lectura por alumno y sesión; '
+            'con 20 alcanza para las historias y la lista.',
+        keywords: 'lecturas costo inicio lista',
+        advanced: true,
+        inPractice: (v) =>
+            'Cada vez que un alumno abre la app se bajan como máximo '
+            '${_int(v, SettingsDoc.news, ['feedLimit'], 20)} noticias.',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.news,
         path: const ['urgentPerWeek'],
         question:
             '¿Cuántos avisos urgentes (ventana al abrir la app) se permiten por semana?',
@@ -1036,16 +1107,13 @@ final List<SettingsTopic> settingsTopics = [
             'Para la misma audiencia. Abusar de la ventana hace que los '
             'alumnos dejen de leerla. 0 la desactiva.',
         keywords: 'urgente ventana aviso importante',
-        inPractice: (v) => switch (_int(
-          v,
-          SettingsDoc.news,
-          ['urgentPerWeek'],
-          1,
-        )) {
-          0 => 'No se pueden publicar avisos urgentes.',
-          1 => 'Un alumno ve como máximo una ventana de aviso por semana.',
-          final n => 'Un alumno ve como máximo $n ventanas de aviso por semana.',
-        },
+        inPractice: (v) =>
+            switch (_int(v, SettingsDoc.news, ['urgentPerWeek'], 1)) {
+              0 => 'No se pueden publicar avisos urgentes.',
+              1 => 'Un alumno ve como máximo una ventana de aviso por semana.',
+              final n =>
+                'Un alumno ve como máximo $n ventanas de aviso por semana.',
+            },
       ),
       SettingSpec(
         doc: SettingsDoc.news,

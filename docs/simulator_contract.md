@@ -188,3 +188,16 @@ Se calculan con `simulatorResults` (§3): una sesión es un intento entregado
 con `total ≥ minQuestionsPerSession` (los libres solo si `freeExamsCount`). La
 semana va de lunes a domingo; la racha cuenta días seguidos con sesión,
 tolerando `streakGraceDays` días sin práctica.
+
+## Costo de lectura (Fase 2C de la reestructuración de costos, 2026-10-18)
+
+- `{config}/simulator.resultsLimit` (10 a 200, 60 de fábrica): resultados
+  recientes (`simulatorResults`) que baja la app; alimentan el historial, las
+  estadísticas y «Hoy te toca».
+- `{config}/simulator.topicStatsLimit` (5 a 200, 30 de fábrica): temas de
+  `simulatorTopicStats` que baja la app, los más practicados primero
+  (`answered` descendente).
+- Resultados, estadísticas por tema, mejores puntajes y meta del plan se leen
+  **una vez** (sin listener) y la app los vuelve a pedir al enviar un examen o
+  al guardar la meta. `{config}/simulator` se lee una vez y se recuerda 5
+  minutos; la lista de universidades, por versión del catálogo.
