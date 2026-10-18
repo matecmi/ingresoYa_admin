@@ -2,10 +2,11 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-17_
+_Última actualización: 2026-10-18_
 
 ## Estado actual
-- **Noticias y nuevo Inicio (2026-10-17):** fases 1–4 hechas en `codex/noticias-inicio` (admin y app), sin fusionar. Desplegado en TEST: reglas de Firestore, índice `iya-news` y Functions (`auditNews`, `sendNewsPushOnWrite`, `sendScheduledNewsPush`). **Storage no está activado en TEST**: activarlo en la consola y desplegar `storage.rules` para poder subir imágenes.
+- **Reestructuración de costos · Fase 0 (2026-10-18, casi cerrada):** admin #88 fusionado en `desarrollo`; #89 reapuntado a `desarrollo` sin conflictos; app #105 con formato corregido y suite local en verde (425 pruebas); GitHub Actions de la organización matecmi está detenido por facturación (ningún CI corre). **Storage activado en TEST** (bucket `ingresoya-e5115.firebasestorage.app` en us-central1, creado por la API `defaultBucket`) y `storage.rules` desplegadas; presupuesto de $10 con avisos al 50/90/100 %; métricas `iya_observed_reads` / `iya_duration_ms` y panel de Monitoring creados; `docs/cost_baseline.md`, `functions/tools/cost_report.js` (probado: crear un examen tarda 6 s p50 y lee 202 docs) y `monitoring/` en PR #90. Falta: Kevin fusiona #89, #90, #105 y #106 y usa la app 3 días para la línea base. Plan: https://claude.ai/code/artifact/9593d89b-8959-4507-826c-300792dd21c0
+- **Noticias y nuevo Inicio (2026-10-17):** fases 1–4 hechas en `codex/noticias-inicio`; admin #88 fusionado en `desarrollo` el 2026-10-18, app #105 pendiente de fusionar. Desplegado en TEST: reglas de Firestore, índice `iya-news` y Functions (`auditNews`, `sendNewsPushOnWrite`, `sendScheduledNewsPush`). Storage activado en TEST el 2026-10-18 (bucket en us-central1) con `storage.rules` desplegadas.
 - **Rediseño del admin (en curso):** Fases 1–7 del rediseño hechas + tema oscuro. Pendiente: fase 8 («Listo para producción» + App Check) en la recta final antes de Play Console.
 - `desarrollo` con admin #53 (repaso relámpago, 2026-10-14). Antes: #52, #51, #50. Functions en Node.js 22; las 7 callables e índices TTL desplegados en TEST; reglas de Firestore desplegadas en TEST.
 
@@ -254,6 +255,7 @@ _Última actualización: 2026-10-17_
 - Siguiente: validar ambas partes en la app y el logro «Subtema completado». Opcional: plantilla de dominio para este subtema.
 
 ## Pendiente / siguiente paso
+- **Reestructuración de costos (2026-10-18):** análisis de costos (https://claude.ai/code/artifact/67c4d360-d8ac-48d3-9b94-7796330b092f) , plan de trabajo en 5 fases (https://claude.ai/code/artifact/61c9dbd2-7d11-46e8-bc47-d6c80bca2879) y plan de ejecución por subfases 0, 1A, 1B, 2A–2D, 3A–3C, 4A, 4B, 5A, 5B (https://claude.ai/code/artifact/9593d89b-8959-4507-826c-300792dd21c0; Kevin pide una subfase por vez, rama `codex/costos-<subfase>`; Kevin autorizó a Claude a fusionar PRs, desplegar en TEST y usar gcloud/firebase CLI sin pedir confirmación; él solo prueba en el teléfono y crea cuentas de AdMob/Play Console): meta de $0.0022 a $0.0004 por alumno-día. Siguiente: Fase 0 (fusionar PRs pendientes, activar Storage en TEST, línea base en `docs/cost_baseline.md`), luego Fase 1 (producción en us-central1 región única, Functions junto a la base, minInstances 0, límites de selección por variable).
 - **Noticias/Inicio (2026-10-17):** revisar y fusionar los PRs de `codex/noticias-inicio`; activar Firebase Storage en TEST y `firebase deploy --only storage --project test`; sumar «Noticias» a los perfiles Editor/Revisor/Solo lectura ya guardados; poner la fecha real del próximo examen de la UNPRG (hoy hay una de prueba). Diseñado pero sin construir: Universidades (directorio y fichas), calendario de admisión, «¿Me alcanza?», racha.
 - Siguientes mejoras de la guía (propuestas a Kevin el 2026-10-14): tras reprobar el examen de una parte, indicar qué repasar; bancos de al menos ~15 preguntas por parte para que el reintento no repita el examen; guardar el puntaje del Repaso relámpago y las tarjetas falladas; repaso espaciado y racha diaria; teclado numérico en «Intenta primero». Para el lanzamiento: producción (`INGRESOYA_ENV=production`), contenido real y prueba con otra cuenta.
 - l10n fusionado en `desarrollo` (app #55 / admin #37, 2026-10-10). Al agregar textos nuevos, usar el ARB (ver CLAUDE.md de la app).

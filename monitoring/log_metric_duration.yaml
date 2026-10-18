@@ -1,0 +1,20 @@
+# Métrica basada en logs: duración por evento de las Functions.
+# Crear: gcloud logging metrics create iya_duration_ms --config-from-file=monitoring/log_metric_duration.yaml --project ingresoya-e5115
+name: iya_duration_ms
+description: durationMs por evento de las Functions (telemetría de OperationMetrics)
+filter: (resource.type="cloud_run_revision" OR resource.type="cloud_function") AND jsonPayload.durationMs:*
+metricDescriptor:
+  metricKind: DELTA
+  valueType: DISTRIBUTION
+  unit: ms
+  labels:
+    - key: event
+      valueType: STRING
+valueExtractor: EXTRACT(jsonPayload.durationMs)
+labelExtractors:
+  event: EXTRACT(jsonPayload.message)
+bucketOptions:
+  exponentialBuckets:
+    numFiniteBuckets: 20
+    growthFactor: 1.6
+    scale: 10
