@@ -67,3 +67,18 @@ Una por alumno con nombre de usuario (oculto o no). La escribe Functions al camb
 - Fichas, miembros de la liga y entradas del reto: lectura para alumnos con sesión; escritura solo Functions (el admin puede borrar al moderar).
 - `ranking/current`: lectura del dueño; escritura Functions/admin.
 - `dailyChallenges`: solo Functions (la app recibe el reto a través del intento).
+
+## Costo de lectura (Fase 2C de la reestructuración de costos, 2026-10-18)
+
+- `{config}/rankings.tableSize` (10 a 100, 30 de fábrica): filas que baja la
+  app en «Esta semana» y en la tabla del reto. La posición del alumno y el
+  total de jugadores salen de consultas `count()` (una lectura cada una) y no
+  dependen de este número; el resumen «15° en UNPRG · 3° en Ing. Civil» del
+  Inicio de Rankings pide **una fila** más esos conteos, no la tabla completa.
+- `{config}/rankings.tableCacheMinutes` (0 a 60, 10 de fábrica): minutos que
+  la app conserva una tabla o un grupo de liga antes de volver a pedirlos.
+  Tirar para refrescar los pide de nuevo.
+- `{config}/rankings`, el asiento de liga y el resultado del reto se leen una
+  vez por pantalla (sin listener); al enviar un examen la app los vuelve a
+  pedir. `ranking/current` del alumno sigue en vivo.
+- El grupo de liga trae a lo sumo `league.groupSize` miembros (30).

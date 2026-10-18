@@ -21,6 +21,8 @@ class RankingsSettings {
     this.ownPastExamQuestions = 6,
     this.noRepeatDays = 30,
     this.challengeMinCareerPlayers = 5,
+    this.tableSize = 30,
+    this.tableCacheMinutes = 10,
   });
 
   static const defaultStageNames = [
@@ -50,6 +52,13 @@ class RankingsSettings {
   final int ownPastExamQuestions;
   final int noRepeatDays;
   final int challengeMinCareerPlayers;
+
+  /// Filas que baja la app en «Esta semana» y en la tabla del reto. Menos =
+  /// menos lecturas cada vez que un alumno abre Rankings.
+  final int tableSize;
+
+  /// Minutos que la app conserva una tabla antes de volver a pedirla.
+  final int tableCacheMinutes;
 
   static int _bounded(Object? value, int fallback, int min, int max) =>
       value is num &&
@@ -136,6 +145,13 @@ class RankingsSettings {
         1,
         1000,
       ),
+      tableSize: _bounded(data['tableSize'], d.tableSize, 10, 100),
+      tableCacheMinutes: _bounded(
+        data['tableCacheMinutes'],
+        d.tableCacheMinutes,
+        0,
+        60,
+      ),
     );
   }
 
@@ -143,6 +159,8 @@ class RankingsSettings {
     'enabled': enabled,
     if (startWeek.isNotEmpty) 'startWeek': startWeek,
     'bannedWords': bannedWords,
+    'tableSize': tableSize,
+    'tableCacheMinutes': tableCacheMinutes,
     'league': {
       'stageNames': stageNames,
       'groupSize': groupSize,
@@ -198,6 +216,12 @@ class RankingsSettings {
     }
     if (bonusXp > 1000) return 'Bono del reto: hasta 1000 XP.';
     if (noRepeatDays > 365) return 'No repetir preguntas: hasta 365 días.';
+    if (tableSize < 10 || tableSize > 100) {
+      return 'Filas de las tablas: entre 10 y 100.';
+    }
+    if (tableCacheMinutes < 0 || tableCacheMinutes > 60) {
+      return 'Minutos de caché de las tablas: entre 0 y 60.';
+    }
     return null;
   }
 }

@@ -67,6 +67,8 @@ class SimulatorSettings {
     this.showOtherUniversities = true,
     this.onlyCompleteExams = true,
     this.showExplanations = true,
+    this.resultsLimit = 60,
+    this.topicStatsLimit = 30,
   });
 
   static const defaults = SimulatorSettings();
@@ -102,6 +104,14 @@ class SimulatorSettings {
   static const maxMinutes = 300;
   static const maxRepeatWindowDays = 365;
 
+  /// Resultados recientes que baja la app (historial, estadísticas, plan).
+  static const minResultsLimit = 10;
+  static const maxResultsLimit = 200;
+
+  /// Temas con estadística que baja la app para «Hoy te toca».
+  static const minTopicStatsLimit = 5;
+  static const maxTopicStatsLimit = 200;
+
   final List<PracticeSize> practiceSizes;
   final bool practiceTimerDefault;
   final bool practicePenalty;
@@ -111,6 +121,8 @@ class SimulatorSettings {
   final bool showOtherUniversities;
   final bool onlyCompleteExams;
   final bool showExplanations;
+  final int resultsLimit;
+  final int topicStatsLimit;
 
   factory SimulatorSettings.fromMap(Map<String, dynamic>? data) {
     if (data == null) return defaults;
@@ -142,6 +154,8 @@ class SimulatorSettings {
       showOtherUniversities: data['showOtherUniversities'] != false,
       onlyCompleteExams: data['onlyCompleteExams'] != false,
       showExplanations: data['showExplanations'] != false,
+      resultsLimit: number('resultsLimit', defaults.resultsLimit),
+      topicStatsLimit: number('topicStatsLimit', defaults.topicStatsLimit),
     );
   }
 
@@ -155,6 +169,8 @@ class SimulatorSettings {
     bool? showOtherUniversities,
     bool? onlyCompleteExams,
     bool? showExplanations,
+    int? resultsLimit,
+    int? topicStatsLimit,
   }) => SimulatorSettings(
     practiceSizes: practiceSizes ?? this.practiceSizes,
     practiceTimerDefault: practiceTimerDefault ?? this.practiceTimerDefault,
@@ -165,6 +181,8 @@ class SimulatorSettings {
     showOtherUniversities: showOtherUniversities ?? this.showOtherUniversities,
     onlyCompleteExams: onlyCompleteExams ?? this.onlyCompleteExams,
     showExplanations: showExplanations ?? this.showExplanations,
+    resultsLimit: resultsLimit ?? this.resultsLimit,
+    topicStatsLimit: topicStatsLimit ?? this.topicStatsLimit,
   );
 
   Map<String, dynamic> toMap() => {
@@ -178,6 +196,8 @@ class SimulatorSettings {
     'showOtherUniversities': showOtherUniversities,
     'onlyCompleteExams': onlyCompleteExams,
     'showExplanations': showExplanations,
+    'resultsLimit': resultsLimit,
+    'topicStatsLimit': topicStatsLimit,
   };
 
   /// The first problem found, in Spanish for the editor, or null when valid.
@@ -202,6 +222,15 @@ class SimulatorSettings {
     }
     if (repeatWindowDays < 0 || repeatWindowDays > maxRepeatWindowDays) {
       return 'Los días sin repetir deben estar entre 0 y $maxRepeatWindowDays.';
+    }
+    if (resultsLimit < minResultsLimit || resultsLimit > maxResultsLimit) {
+      return 'Resultados que baja la app: entre $minResultsLimit y '
+          '$maxResultsLimit.';
+    }
+    if (topicStatsLimit < minTopicStatsLimit ||
+        topicStatsLimit > maxTopicStatsLimit) {
+      return 'Temas con estadística: entre $minTopicStatsLimit y '
+          '$maxTopicStatsLimit.';
     }
     return null;
   }

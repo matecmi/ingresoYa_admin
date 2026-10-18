@@ -67,3 +67,15 @@ Campo `nextExam: {name, at}` en el documento de la universidad (`iya-universitie
 ## 6. Notificaciones
 
 Temas de FCM: `news-all-{env}` (todos) y `news-uni-{universityId}-{env}`. La app se suscribe a los dos al iniciar sesión (y cambia de tema si cambia de universidad). La Function `sendNewsPush` (disparador sobre `iya-news-{env}/{id}`) envía cuando la noticia está `published`, `push == true`, `pushSentAt == null` y `publishAt <= ahora`; las programadas las envía el job `sendScheduledNewsPush` (cada 15 min). Marca `pushSentAt`. Al tocar la notificación la app abre el detalle `/news/{id}`.
+
+## Costo de lectura (Fase 2C de la reestructuración de costos, 2026-10-18)
+
+- `{config}/news.feedLimit` (5 a 80, 20 de fábrica; ajuste avanzado del tema
+  «Noticias» en Configuración): cuántas noticias publicadas, las más nuevas,
+  baja la app al abrir el Inicio. Cada noticia es una lectura por alumno y
+  sesión.
+- La app ya no mantiene un listener sobre la colección: hace **una lectura**
+  al arrancar, otra al volver del segundo plano (como mucho cada 5 minutos) y
+  otra si el alumno refresca. `{config}/news` se lee una vez y se recuerda 5
+  minutos. Una noticia nueva aparece en la siguiente de esas lecturas o al
+  tocar su notificación.

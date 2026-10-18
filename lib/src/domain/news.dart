@@ -16,10 +16,8 @@ enum NewsCategory {
   final String key;
   final String label;
 
-  static NewsCategory fromKey(Object? key) => values.firstWhere(
-    (c) => c.key == key,
-    orElse: () => NewsCategory.notice,
-  );
+  static NewsCategory fromKey(Object? key) =>
+      values.firstWhere((c) => c.key == key, orElse: () => NewsCategory.notice);
 }
 
 enum NewsPriority {
@@ -41,10 +39,8 @@ enum NewsPriority {
   final String label;
   final String hint;
 
-  static NewsPriority fromKey(Object? key) => values.firstWhere(
-    (p) => p.key == key,
-    orElse: () => NewsPriority.normal,
-  );
+  static NewsPriority fromKey(Object? key) =>
+      values.firstWhere((p) => p.key == key, orElse: () => NewsPriority.normal);
 }
 
 enum NewsStatus {
@@ -57,10 +53,8 @@ enum NewsStatus {
   final String key;
   final String label;
 
-  static NewsStatus fromKey(Object? key) => values.firstWhere(
-    (s) => s.key == key,
-    orElse: () => NewsStatus.draft,
-  );
+  static NewsStatus fromKey(Object? key) =>
+      values.firstWhere((s) => s.key == key, orElse: () => NewsStatus.draft);
 }
 
 /// Qué hace el botón de acción de la noticia.
@@ -73,10 +67,8 @@ enum NewsActionType {
   final String key;
   final String label;
 
-  static NewsActionType fromKey(Object? key) => values.firstWhere(
-    (t) => t.key == key,
-    orElse: () => NewsActionType.url,
-  );
+  static NewsActionType fromKey(Object? key) =>
+      values.firstWhere((t) => t.key == key, orElse: () => NewsActionType.url);
 }
 
 /// Secciones de la app que puede abrir el botón (ruta de go_router en la app).
@@ -407,6 +399,7 @@ class NewsSettings {
     this.urgentPerWeek = 1,
     this.storyDays = 7,
     this.maxStories = 5,
+    this.feedLimit = 20,
   });
 
   static const defaults = NewsSettings();
@@ -420,6 +413,10 @@ class NewsSettings {
   /// Historias que caben en la fila del Inicio.
   final int maxStories;
 
+  /// Noticias que la app baja al abrir el Inicio (las más nuevas). Menos =
+  /// menos lecturas por sesión; las demás siguen en la lista al refrescar.
+  final int feedLimit;
+
   static int _bounded(Object? v, int fallback, int min, int max) =>
       v is num && v == v.roundToDouble() && v >= min && v <= max
       ? v.toInt()
@@ -432,6 +429,7 @@ class NewsSettings {
       urgentPerWeek: _bounded(d['urgentPerWeek'], f.urgentPerWeek, 0, 7),
       storyDays: _bounded(d['storyDays'], f.storyDays, 1, 30),
       maxStories: _bounded(d['maxStories'], f.maxStories, 1, 10),
+      feedLimit: _bounded(d['feedLimit'], f.feedLimit, 5, 80),
     );
   }
 
@@ -439,6 +437,7 @@ class NewsSettings {
     'urgentPerWeek': urgentPerWeek,
     'storyDays': storyDays,
     'maxStories': maxStories,
+    'feedLimit': feedLimit,
   };
 
   String? validate() {
@@ -450,6 +449,9 @@ class NewsSettings {
     }
     if (maxStories < 1 || maxStories > 10) {
       return 'Historias en el Inicio: entre 1 y 10.';
+    }
+    if (feedLimit < 5 || feedLimit > 80) {
+      return 'Noticias que baja la app: entre 5 y 80.';
     }
     return null;
   }
