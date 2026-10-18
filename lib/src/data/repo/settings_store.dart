@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../domain/exam_settings.dart';
 import '../../domain/news.dart';
 import '../../domain/plan_settings.dart';
 import '../../domain/quality_settings.dart';
@@ -38,6 +39,7 @@ class SettingsStore {
     ),
     SettingsDoc.quality => _config.watchQualitySettings().map((s) => s.toMap()),
     SettingsDoc.news => _config.watchNewsSettings().map((s) => s.toMap()),
+    SettingsDoc.exam => _config.watchExamSettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.
@@ -99,6 +101,10 @@ class SettingsStore {
     ),
     SettingsDoc.news => _config.saveNewsSettings(
       NewsSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.exam => _config.saveExamSettings(
+      ExamSettings.fromMap(map),
       editor: editor,
     ),
   };
