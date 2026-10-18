@@ -374,7 +374,7 @@ flowchart LR
 <div class="table-wrap"><table>
   <tr><th>Componente</th><th>Cómo se elige</th><th>Valores</th></tr>
   <tr><td class="msg">App</td><td>Flavor + entrada (<code>--flavor X -t lib/main_X.dart</code>)</td><td>development <code>com.ingresoya.app.dev</code> → <code>iya-*-test</code> · staging → <code>-staging</code> · production → sin sufijo. Hive con prefijo por flavor.</td></tr>
-  <tr><td class="msg">Functions</td><td><code>INGRESOYA_ENV</code></td><td>test · staging · production. Región <code>southamerica-east1</code>, máx. 10 instancias, 30 s, 256 MiB. App Check solo en producción.</td></tr>
+  <tr><td class="msg">Functions</td><td><code>INGRESOYA_ENV</code></td><td>test · staging · production. Región <code>us-central1</code> (la misma de la base de Firestore, <code>nam5</code>; hasta el 18-oct-2026 era <code>southamerica-east1</code> y crear un examen tardaba 6 s), máx. 10 instancias, 30 s, 256 MiB, 0 instancias calientes. App Check solo en producción.</td></tr>
   <tr><td class="msg">Admin</td><td>Constantes en <code>lib/src/env/app_env.dart</code></td><td>Fijo en TEST.</td></tr>
 </table></div>
 </details>
@@ -525,7 +525,8 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
-  <li><b>17-oct-2026</b> · Noticias: colección <code>iya-news</code> con reglas y sección de permisos <code>news</code>, <code>{config}/news</code>, imágenes en Storage <code>news-public</code>, <code>nextExam</code> por universidad, disparadores <code>auditNews</code> y <code>sendNewsPushOnWrite</code>, tarea <code>sendScheduledNewsPush</code> y temas de FCM por universidad. Desplegado en TEST (reglas de Firestore, índice y Functions; las reglas de Storage esperan que se active Storage en el proyecto).</li>
+  <li><b>18-oct-2026</b> · Reestructuración de costos, Fase 1A (PR admin #91, app #107): todas las Functions pasan a <code>us-central1</code>, junto a la base; instancias calientes en 0; límites de selección en TEST 2 / 40 / 60 (<code>EXAM_CANDIDATE_STARTS_PER_BLOCK</code>, <code>EXAM_MAX_CANDIDATES_PER_START</code>, <code>EXAM_RECENT_QUESTION_LIMIT</code>); se eliminan los logs <code>*_requested</code> y se excluyen en Cloud Logging las solicitudes exitosas de Cloud Run; <code>{config}/sync</code> en TEST con 120 s / 300 s. Medición en <code>docs/cost_baseline.md</code>.</li>
+<li><b>17-oct-2026</b> · Noticias: colección <code>iya-news</code> con reglas y sección de permisos <code>news</code>, <code>{config}/news</code>, imágenes en Storage <code>news-public</code>, <code>nextExam</code> por universidad, disparadores <code>auditNews</code> y <code>sendNewsPushOnWrite</code>, tarea <code>sendScheduledNewsPush</code> y temas de FCM por universidad. Desplegado en TEST (reglas de Firestore, índice y Functions; las reglas de Storage esperan que se active Storage en el proyecto).</li>
   <li><b>16-oct-2026</b> · Estadísticas por pregunta (<code>refreshQuestionStats</code>, <code>nightlyQuestionStats</code>, <code>iya-question-stats</code>, <code>{config}/quality</code>); el admin con <code>students:v</code> lee resultados del Simulador y el avance de la guía de un alumno (rediseño del admin, fase 7).</li>
   <li><b>16-oct-2026</b> · Historial de cambios del admin: 11 disparadores <code>audit*</code> (us-central1), colección <code>iya-admin-audit</code> (lectura con <code>history:v</code>), callable <code>restoreAuditEntry</code> e índice <code>section + at</code>.</li>
   <li><b>16-oct-2026</b> · Configuración del admin rehecha (fase 5): escribe los mismos documentos <code>{config}/rankings|xp|simulator|study|sync</code> con la misma validación; sin cambios en servidor.</li>

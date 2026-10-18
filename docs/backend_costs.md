@@ -70,9 +70,14 @@ impedir una consulta accidentalmente abierta:
 
 | Variable | Predeterminado | Rango permitido |
 | --- | ---: | ---: |
-| `EXAM_CANDIDATE_STARTS_PER_BLOCK` | 4 | 1–8 |
-| `EXAM_MAX_CANDIDATES_PER_START` | 80 | 20–80 |
-| `EXAM_RECENT_QUESTION_LIMIT` | 200 | 1–200 |
+| `EXAM_CANDIDATE_STARTS_PER_BLOCK` | 4 (TEST usa 2) | 1–8 |
+| `EXAM_MAX_CANDIDATES_PER_START` | 80 (TEST usa 40) | 20–80 |
+| `EXAM_RECENT_QUESTION_LIMIT` | 200 (TEST usa 60) | 1–200 |
+
+Desde la Fase 1A de la reestructuración de costos (2026-10-18) TEST corre con
+2 / 40 / 60: la mitad de escaneos de candidatos y menos preguntas recientes por
+examen. La Fase 3C los pasa a `{config}/exam` para ajustarlos desde el admin.
+La medición antes y después está en `docs/cost_baseline.md`.
 
 `firestore.rules`, `storage.rules`, `firestore.indexes.json`, `firebase.json`,
 `functions/src/config.ts` y `.env.example` permanecen versionados. Los dos
