@@ -233,6 +233,11 @@ aprobaciones.
   `submitExamAttempt` y `recordPartSectionCompletion`. Cada instancia caliente
   cuesta unos $12 al mes en reposo; activarlas solo si el arranque en frío
   molesta.
+- `{config}/catalog` (`docs/catalog_version_contract.md`): los disparadores
+  `audit*` de cursos, temas, subtemas y universidades suben `coursesVersion`,
+  `courseVersions.<curso>` y `universitiesVersion` (`catalog_version.ts`). La
+  app lo lee una vez al arrancar y baja solo lo que cambió. `auditConfig` no
+  anota ese documento.
 - El admin no deja borrar una parte, subtema, tema o curso con preguntas no
   retiradas o plantillas activas que lo usen; para una parte, se recomienda
   desactivarla.
