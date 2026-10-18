@@ -16,6 +16,7 @@ export type AuditSection =
   | "questions"
   | "courses"
   | "universities"
+  | "news"
   | "settings"
   | "staff";
 
@@ -148,6 +149,7 @@ const KIND_LABEL: Record<string, string> = {
   universities: "Universidad",
   universityChild: "Elemento de universidad",
   professions: "Carrera",
+  news: "Noticia",
   config: "Configuración",
   staff: "Personal",
   staffRoles: "Perfil"
@@ -158,7 +160,9 @@ const CONFIG_LABEL: Record<string, string> = {
   xp: "XP y rangos",
   simulator: "Simulador y plan",
   study: "Guía de estudio",
-  sync: "Sincronización"
+  sync: "Sincronización",
+  news: "Noticias",
+  quality: "Preguntas a revisar"
 };
 
 /** «Pregunta «Simplifica (2/3)…»», «Configuración · Rankings…». */
@@ -181,6 +185,7 @@ export function sectionOf(kind: string): AuditSection {
     case "universities":
     case "universityChild":
     case "professions": return "universities";
+    case "news": return "news";
     case "config": return "settings";
     default: return "staff";
   }

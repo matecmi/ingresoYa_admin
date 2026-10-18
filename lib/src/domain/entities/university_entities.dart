@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ingresoya_admin/src/domain/entities/profession_entity.dart';
 
 class UniversityEntity {
@@ -21,6 +22,9 @@ class UniversityEntity {
   /// Its past exams appear in the app's Simulator (default true).
   final bool simulatorVisible;
 
+  /// Próximo examen de admisión: la app muestra «Faltan N días» en el Inicio.
+  final UniversityNextExam? nextExam;
+
   const UniversityEntity({
     required this.id,
     required this.idDoc,
@@ -39,6 +43,7 @@ class UniversityEntity {
     required this.modes,
     required this.professions,
     this.simulatorVisible = true,
+    this.nextExam,
   });
 
   UniversityEntity copyWith({
@@ -73,7 +78,27 @@ class UniversityEntity {
       modes: modes,
       professions: professions,
       simulatorVisible: simulatorVisible,
+      nextExam: nextExam,
     );
+  }
+}
+
+/// `nextExam` del documento de la universidad: `{name, at}`.
+class UniversityNextExam {
+  const UniversityNextExam({required this.name, required this.at});
+
+  final String name;
+  final DateTime at;
+
+  static UniversityNextExam? fromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final date = switch (raw['at']) {
+      Timestamp t => t.toDate(),
+      DateTime d => d,
+      _ => null,
+    };
+    if (date == null) return null;
+    return UniversityNextExam(name: '${raw['name'] ?? ''}', at: date);
   }
 }
 

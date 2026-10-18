@@ -58,6 +58,7 @@ class UniversityRepo {
           professions: _toProfessions(data['professions']),
 
           simulatorVisible: data['simulatorVisible'] != false,
+          nextExam: UniversityNextExam.fromMap(data['nextExam']),
         );
       }).toList();
     });
@@ -150,6 +151,15 @@ class UniversityRepo {
 
     await _col.doc(id).update(patch);
   }
+
+  /// Fecha del próximo examen de admisión (null la quita).
+  Future<void> setNextExam(String id, {String? name, DateTime? at}) =>
+      _col.doc(id).update({
+        'nextExam': at == null
+            ? FieldValue.delete()
+            : {'name': (name ?? '').trim(), 'at': Timestamp.fromDate(at)},
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
   /// ============================================================
   /// DELETE UNIVERSITY

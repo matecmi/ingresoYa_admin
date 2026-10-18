@@ -361,6 +361,29 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['review']);
     }
 
+    // Noticias del alumno (docs/news_contract.md). El alumno lee solo las
+    // publicadas (la app decide dónde mostrarlas según su universidad); el
+    // admin con news:v ve también borradores y archivadas. Publicar, o tocar
+    // una ya publicada, pide news:p; borrar pide news:a.
+    function isNewsCollection(collectionName) {
+      return collectionName in ['iya-news-test', 'iya-news-staging', 'iya-news'];
+    }
+
+    match /{collectionName}/{newsId} {
+      allow read: if isNewsCollection(collectionName)
+        && ((signedIn() && resource.data.get('status', '') == 'published')
+          || can('news', 'v'));
+      allow create, update: if isNewsCollection(collectionName)
+        && can('news', 'e')
+        && ((request.resource.data.get('status', '') != 'published'
+              && (resource == null || resource.data.get('status', '') != 'published'))
+            || can('news', 'p'))
+        // Solo el servidor marca la notificación como enviada.
+        && request.resource.data.get('pushSentAt', null)
+          == (resource == null ? null : resource.data.get('pushSentAt', null));
+      allow delete: if isNewsCollection(collectionName) && can('news', 'a');
+    }
+
     // Historial de cambios del admin (docs/admin_audit_contract.md): lo
     // escriben solo los disparadores; se lee con history:v.
     match /{collectionName}/{entryId} {

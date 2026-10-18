@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'plan_settings.dart';
+import 'news.dart';
 import 'quality_settings.dart';
 import 'rankings_settings.dart';
 import 'simulator_settings.dart';
@@ -17,7 +18,7 @@ import 'xp_settings.dart';
 /// real de la app donde lo ve el alumno.
 
 /// Documentos de `{config}` que edita esta pantalla.
-enum SettingsDoc { rankings, xp, simulator, plan, study, sync, quality }
+enum SettingsDoc { rankings, xp, simulator, plan, study, sync, quality, news }
 
 enum SettingKind { integer, toggle, choice, time }
 
@@ -1014,6 +1015,63 @@ final List<SettingsTopic> settingsTopics = [
       ),
     ],
   ),
+  SettingsTopic(
+    id: 'news',
+    label: 'Noticias',
+    icon: Icons.campaign_outlined,
+    intro:
+        'Cuántos avisos urgentes se permiten y cuánto duran las historias en '
+        'el Inicio de la app. Las noticias se publican en Alumnos → Noticias.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.news,
+        path: const ['urgentPerWeek'],
+        question:
+            '¿Cuántos avisos urgentes (ventana al abrir la app) se permiten por semana?',
+        label: 'Avisos urgentes por semana',
+        min: 0,
+        max: 7,
+        unit: 'avisos',
+        help:
+            'Para la misma audiencia. Abusar de la ventana hace que los '
+            'alumnos dejen de leerla. 0 la desactiva.',
+        keywords: 'urgente ventana aviso importante',
+        inPractice: (v) => switch (_int(
+          v,
+          SettingsDoc.news,
+          ['urgentPerWeek'],
+          1,
+        )) {
+          0 => 'No se pueden publicar avisos urgentes.',
+          1 => 'Un alumno ve como máximo una ventana de aviso por semana.',
+          final n => 'Un alumno ve como máximo $n ventanas de aviso por semana.',
+        },
+      ),
+      SettingSpec(
+        doc: SettingsDoc.news,
+        path: const ['storyDays'],
+        question: '¿Cuántos días queda una historia en el Inicio?',
+        label: 'Días de una historia',
+        min: 1,
+        max: 30,
+        unit: 'días',
+        help: 'Después sigue en la lista de Noticias, pero sale de la fila.',
+        keywords: 'historias stories inicio',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.news,
+        path: const ['maxStories'],
+        question: '¿Cuántas historias caben en la fila del Inicio?',
+        label: 'Historias en el Inicio',
+        min: 1,
+        max: 10,
+        unit: 'historias',
+        help: 'Se muestran las más nuevas primero.',
+        keywords: 'historias stories inicio',
+        advanced: true,
+      ),
+    ],
+  ),
 ];
 
 List<SettingSpec> get allSettingSpecs => [
@@ -1059,6 +1117,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.study => StudyReviewRules.defaults.toMap(),
   SettingsDoc.sync => SyncSettings.defaults.toMap(),
   SettingsDoc.quality => QualitySettings.defaults.toMap(),
+  SettingsDoc.news => NewsSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1071,6 +1130,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.study => StudyReviewRules.fromMap(map).validate(),
   SettingsDoc.sync => SyncSettings.fromMap(map).validate(),
   SettingsDoc.quality => QualitySettings.fromMap(map).validate(),
+  SettingsDoc.news => NewsSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1086,4 +1146,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.study => StudyReviewRules.fromMap(map).toMap(),
   SettingsDoc.sync => SyncSettings.fromMap(map).toMap(),
   SettingsDoc.quality => QualitySettings.fromMap(map).toMap(),
+  SettingsDoc.news => NewsSettings.fromMap(map).toMap(),
 };

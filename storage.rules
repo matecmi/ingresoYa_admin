@@ -36,6 +36,16 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
+    // Imágenes de noticias (docs/news_contract.md): las sube el admin y la
+    // noticia guarda su URL de descarga, porque es contenido para todos.
+    match /news-public/{fileName} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+      allow update, delete: if false;
+    }
+
     // There is intentionally no catch-all read rule. Any future private
     // prefixes require an explicit access policy before they can be exposed.
   }

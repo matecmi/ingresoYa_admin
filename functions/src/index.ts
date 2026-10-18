@@ -1,7 +1,7 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentWrittenWithAuthContext } from "firebase-functions/v2/firestore";
+import { onDocumentWritten, onDocumentWrittenWithAuthContext } from "firebase-functions/v2/firestore";
 import { config as loadDotenv } from "dotenv";
 
 import "./admin";
@@ -12,6 +12,7 @@ import { createStaffHandlers } from "./staff";
 import { createAuditHandlers, recordWrite } from "./audit";
 import { db } from "./admin";
 import { createQuestionStatsHandlers } from "./question_stats";
+import { sendDueNewsPushes, sendNewsPush, shouldSendPush } from "./news_push";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
 // environment variables. Loading the ignored local .env lets that discovery
@@ -104,9 +105,27 @@ export const auditTemplates = auditTrigger(`${col.templates}/{id}`, "templates")
 export const auditUniversities = auditTrigger(`${col.universities}/{id}`, "universities");
 export const auditUniversityChildren = auditTrigger(`${col.universities}/{u}/{sub}/{id}`, "universityChild");
 export const auditProfessions = auditTrigger(`${col.professions}/{id}`, "professions");
+export const auditNews = auditTrigger(`${col.news}/{id}`, "news");
 export const auditConfig = auditTrigger(`${col.config}/{id}`, "config");
 export const auditStaff = auditTrigger(`${col.staff}/{id}`, "staff");
 export const auditStaffRoles = auditTrigger(`${col.staffRoles}/{id}`, "staffRoles");
+
+// Notificaciones de noticias (docs/news_contract.md §6): al publicarse y,
+// para las programadas, cada 15 minutos.
+export const sendNewsPushOnWrite = onDocumentWritten(
+  { document: `${col.news}/{id}`, region: "us-central1", timeoutSeconds: 60, memory: "256MiB" },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists || !shouldSendPush(after.data(), Date.now())) return;
+    await sendNewsPush(config, after.id);
+  }
+);
+export const sendScheduledNewsPush = onSchedule(
+  { schedule: "*/15 * * * *", timeZone: "America/Lima", timeoutSeconds: 120 },
+  async () => {
+    await sendDueNewsPushes(config);
+  }
+);
 
 /**
  * Weekly league close (docs/rankings_contract.md §5): Monday 00:10 in Lima,
