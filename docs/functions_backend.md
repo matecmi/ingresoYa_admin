@@ -11,7 +11,9 @@ Antes de desplegar, se debe definir `INGRESOYA_ENV` como `test`, `staging` o
 función resuelve únicamente las colecciones del entorno indicado, por ejemplo
 `iya-questions-test` o `iya-questions`. Esto evita que una configuración local
 apunte a producción por accidente. `FUNCTIONS_REGION` es explícita y por
-defecto usa `southamerica-east1`.
+defecto usa `us-central1`, la misma región donde vive la base de Firestore
+(`nam5`): cada callable hace de 5 a 12 viajes a Firestore y, desplegada en
+São Paulo, crear un examen tardaba 6 s de mediana (medido el 2026-10-17).
 
 Copiar `functions/.env.example` a un archivo de entorno local no versionado.
 Para un despliegue, configurar esas mismas variables en el entorno seguro de
@@ -226,10 +228,11 @@ aprobaciones.
 - `recentQuestions` y `examRequestKeys` guardan `expireAt` (120 y 30 días). Las
   políticas TTL están en `firestore.indexes.json` (`fieldOverrides`) y se
   despliegan con `firebase deploy --only firestore:indexes`.
-- `FUNCTIONS_MIN_INSTANCES` (0 a 3; 0 por defecto, 1 en producción) mantiene
-  calientes `createExamAttempt`, `submitExamAttempt` y
-  `recordPartSectionCompletion`. Cada instancia caliente tiene un costo mensual
-  en reposo.
+- `FUNCTIONS_MIN_INSTANCES` (0 a 3; 0 por defecto en todos los entornos desde
+  la Fase 1A de costos) mantiene calientes `createExamAttempt`,
+  `submitExamAttempt` y `recordPartSectionCompletion`. Cada instancia caliente
+  cuesta unos $12 al mes en reposo; activarlas solo si el arranque en frío
+  molesta.
 - El admin no deja borrar una parte, subtema, tema o curso con preguntas no
   retiradas o plantillas activas que lo usen; para una parte, se recomienda
   desactivarla.

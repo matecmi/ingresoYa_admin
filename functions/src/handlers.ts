@@ -123,7 +123,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseCreateExamAttempt(request.data);
-        safeLog("exam_attempt_create_requested", uid);
         const response = await attempts.create(uid, input, metrics);
         safeLog("exam_attempt_create_completed", uid, metrics.logFields());
         return response;
@@ -140,7 +139,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseGetExamAttempt(request.data);
-        safeLog("exam_attempt_get_requested", uid);
         const response = await attempts.get(uid, input.attemptId, metrics);
         safeLog("exam_attempt_get_completed", uid, metrics.logFields());
         return response;
@@ -157,7 +155,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseStartExamAttempt(request.data);
-        safeLog("exam_attempt_start_requested", uid);
         const response = await attempts.start(uid, input.attemptId, metrics);
         safeLog("exam_attempt_start_completed", uid, metrics.logFields());
         return response;
@@ -174,7 +171,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseSaveExamAnswers(request.data);
-        safeLog("exam_attempt_answers_save_requested", uid);
         const response = await attempts.saveAnswers(uid, input, metrics);
         safeLog("exam_attempt_answers_save_completed", uid, metrics.logFields());
         return response;
@@ -193,7 +189,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseRecordPartSectionCompletion(request.data);
-        safeLog("part_section_completion_requested", uid);
         const response = await attempts.recordPartSectionCompletion(uid, input, metrics);
         safeLog("part_section_completion_completed", uid, metrics.logFields());
         return { ...response, ...await grantXp(uid, () => xp.afterGuide(uid, { partId: input.partId }, metrics), metrics) };
@@ -212,7 +207,6 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseSubmitExamAttempt(request.data);
-        safeLog("exam_attempt_submit_requested", uid);
         const response = await attempts.submit(uid, input, metrics);
         safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
         const awarded = await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics), metrics);

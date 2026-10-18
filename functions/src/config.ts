@@ -42,8 +42,9 @@ export interface BackendConfig {
   enforceAppCheck: boolean;
   /**
    * Warm instances for the callables a student waits on (create, submit,
-   * section completion). 0 = cold starts, no idle cost; production defaults
-   * to 1. Each warm 256 MiB instance has a small monthly idle cost.
+   * section completion). 0 = cold starts, no idle cost, in every environment;
+   * FUNCTIONS_MIN_INSTANCES (0-3) turns them on if cold starts ever hurt.
+   * Each warm 256 MiB instance costs about $12 a month idle.
    */
   minInstances: number;
   selection: {
@@ -173,7 +174,9 @@ export function readBackendConfig(
       "INGRESOYA_ENV must be one of test, staging or production outside local emulators."
     );
   }
-  const region = env.FUNCTIONS_REGION?.trim() || "southamerica-east1";
+  // Misma región que la base de Firestore (nam5 vive en us-central1): cada
+  // callable hace de 5 a 12 viajes a Firestore y en otra región costaba segundos.
+  const region = env.FUNCTIONS_REGION?.trim() || "us-central1";
   if (!/^[a-z]+-[a-z]+\d$/.test(region)) {
     throw new Error("FUNCTIONS_REGION is not a supported region identifier.");
   }
@@ -194,7 +197,7 @@ export function readBackendConfig(
     minInstances: readBoundedPositiveInteger(
       env.FUNCTIONS_MIN_INSTANCES,
       "FUNCTIONS_MIN_INSTANCES",
-      environment === "production" ? 1 : 0,
+      0,
       0,
       3
     ),

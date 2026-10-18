@@ -93,7 +93,7 @@ La app traduce `HttpsError.code` y `details.reason`; el texto inglés es solo de
 | Cualquier llamada: solicitud inválida | `invalid-argument` | `invalid_request` | Payload y versión de la app |
 | Cualquier llamada: fallo inesperado | `internal` | `unexpected_server_error` | Logs de Functions y excepción del servidor |
 
-Los logs `exam_attempt_*_rejected` y `part_section_completion_rejected` incluyen entorno, `errorCode`, `reason`, actor anonimizado y métricas de lecturas/escrituras. Nunca registran payload, IDs de usuario, respuestas, claves ni el texto de la excepción. Para localizar un fallo, filtrar por evento, entorno y razón. Si se desplegaron Functions sobre `ingresoya-e5115`, verificar además la región `southamerica-east1` de la app. Un `not-found` sin `reason` puede indicar una callable no desplegada o una versión antigua del backend; no se debe diagnosticar como intento inexistente sin más evidencia.
+Los logs `exam_attempt_*_rejected` y `part_section_completion_rejected` incluyen entorno, `errorCode`, `reason`, actor anonimizado y métricas de lecturas/escrituras. Nunca registran payload, IDs de usuario, respuestas, claves ni el texto de la excepción. Para localizar un fallo, filtrar por evento, entorno y razón. Si se desplegaron Functions sobre `ingresoya-e5115`, verificar además que la app apunte a la región de las Functions (`Env.functionsRegion`, `us-central1`). Un `not-found` sin `reason` puede indicar una callable no desplegada o una versión antigua del backend; no se debe diagnosticar como intento inexistente sin más evidencia.
 
 ## `reconcileSubtopicAchievement`
 

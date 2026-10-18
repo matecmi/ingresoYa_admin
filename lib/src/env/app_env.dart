@@ -57,7 +57,7 @@ class AppEnv {
   static const String auditCollection = 'iya-admin-audit-test';
 
   /// Región de las Functions (callables del admin).
-  static const String functionsRegion = 'southamerica-east1';
+  static const String functionsRegion = 'us-central1';
   // Migration runs are admin-only audit records. Like every other collection,
   // their suffix changes with the configured test/staging/production build.
   static const String questionMigrationRunsCollection =
