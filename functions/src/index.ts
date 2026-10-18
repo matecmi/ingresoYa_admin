@@ -9,7 +9,8 @@ import { readBackendConfig } from "./config";
 import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
 import { createStaffHandlers } from "./staff";
-import { createAuditHandlers, recordWrite } from "./audit";
+import { createAuditHandlers, onlyMetaChanged, recordWrite } from "./audit";
+import { CATALOG_DOC, bumpCatalogVersion, catalogKindOf, courseIdFromParams } from "./catalog_version";
 import { db } from "./admin";
 import { createQuestionStatsHandlers } from "./question_stats";
 import { sendDueNewsPushes, sendNewsPush, shouldSendPush } from "./news_push";
@@ -85,15 +86,26 @@ function auditTrigger(document: string, kindKey: string) {
       const after = event.data?.after;
       const docId = (after?.id ?? before?.id) ?? "";
       const path = (after?.ref.path ?? before?.ref.path) ?? "";
+      // {config}/catalog lo escribe el servidor en cada cambio del catálogo:
+      // no es un cambio del equipo ni debe generar una entrada por edición.
+      if (kindKey === "config" && docId === CATALOG_DOC) return;
+      const beforeData = before?.exists ? (before.data() as Record<string, unknown>) : null;
+      const afterData = after?.exists ? (after.data() as Record<string, unknown>) : null;
       await recordWrite(config, {
         path,
         docId,
         kindKey,
-        before: before?.exists ? (before.data() as Record<string, unknown>) : null,
-        after: after?.exists ? (after.data() as Record<string, unknown>) : null,
+        before: beforeData,
+        after: afterData,
         authType: event.authType,
         authId: event.authId
       });
+      // Versión del catálogo (docs/catalog_version_contract.md): la app baja
+      // cursos y universidades solo cuando este contador cambia.
+      const catalogKind = catalogKindOf(kindKey);
+      if (catalogKind && !onlyMetaChanged(beforeData, afterData)) {
+        await bumpCatalogVersion(config, catalogKind, courseIdFromParams(kindKey, event.params as Record<string, string>));
+      }
     }
   );
 }
