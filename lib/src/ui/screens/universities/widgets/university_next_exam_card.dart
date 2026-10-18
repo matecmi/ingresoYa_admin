@@ -11,20 +11,30 @@ import '../../news/news_format.dart';
 /// «Próximo examen de admisión» de una universidad: la app lo usa para la
 /// cuenta regresiva del Inicio («Faltan 45 días»).
 class UniversityNextExamCard extends ConsumerWidget {
-  const UniversityNextExamCard({super.key, required this.university});
+  UniversityNextExamCard({super.key, required UniversityEntity university})
+    : universityId = university.id,
+      acronym = university.acronym,
+      nextExam = university.nextExam;
 
-  final UniversityEntity university;
+  const UniversityNextExamCard.raw({
+    super.key,
+    required this.universityId,
+    required this.acronym,
+    required this.nextExam,
+  });
+
+  final String universityId;
+  final String acronym;
+  final UniversityNextExam? nextExam;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final exam = university.nextExam;
+    final exam = nextExam;
     final canEdit = ref
         .watch(effectiveSessionProvider)
         .can(StaffSection.universities, StaffAction.edit);
     final days = exam == null ? null : daysUntil(exam.at, DateTime.now());
-    final who = university.acronym.isEmpty
-        ? 'esta universidad'
-        : university.acronym;
+    final who = acronym.isEmpty ? 'esta universidad' : acronym;
     return SectionCard(
       title: 'Próximo examen de admisión',
       trailing: canEdit
@@ -71,12 +81,12 @@ class UniversityNextExamCard extends ConsumerWidget {
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
     final result = await showDialog<_NextExamResult>(
       context: context,
-      builder: (_) => _NextExamDialog(initial: university.nextExam),
+      builder: (_) => _NextExamDialog(initial: nextExam),
     );
     if (result == null) return;
     await ref
         .read(universityRepoProvider)
-        .setNextExam(university.id, name: result.name, at: result.at);
+        .setNextExam(universityId, name: result.name, at: result.at);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

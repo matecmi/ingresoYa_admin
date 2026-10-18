@@ -1,5 +1,6 @@
 import 'screens/news/news_editor_screen.dart';
 import 'screens/news/news_screen.dart';
+import 'screens/universities/university_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -36,6 +37,15 @@ GoRouter buildAdminRouter({String initialLocation = '/', String? userLabel}) {
           GoRoute(
             path: '/universities',
             pageBuilder: (_, _) => _page(const UniversitiesScreen()),
+          ),
+          GoRoute(
+            path: '/universities/:universityId/ficha',
+            pageBuilder: (_, state) => _page(
+              UniversityProfileScreen(
+                key: ValueKey(state.pathParameters['universityId']),
+                universityId: state.pathParameters['universityId']!,
+              ),
+            ),
           ),
           GoRoute(
             path: '/courses',
