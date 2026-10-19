@@ -1148,6 +1148,22 @@ final List<SettingsTopic> settingsTopics = [
         keywords: 'lecturas costo repetir simulador vistas',
         advanced: true,
       ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['attemptRetentionDays'],
+        question:
+            '¿Cuántos días se guarda cada examen rendido con sus preguntas?',
+        label: 'Días que se guarda un intento',
+        min: ExamSettings.minRetentionDays,
+        max: ExamSettings.maxRetentionDays,
+        unit: 'días',
+        help:
+            'Después Firestore lo borra solo. El historial, las estadísticas y '
+            'los mejores puntajes del alumno no se borran: viven en resúmenes '
+            'aparte. Un intento ocupa de 25 a 250 KB con sus preguntas.',
+        keywords: 'almacenamiento costo borrar intentos ttl',
+        advanced: true,
+      ),
     ],
   ),
   SettingsTopic(

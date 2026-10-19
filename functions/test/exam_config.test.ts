@@ -12,21 +12,22 @@ const env = { candidateStartsPerBlock: 2, maxCandidatesPerStart: 40, recentQuest
 
 test("los límites de {config}/exam reemplazan al entorno solo dentro de rango", () => {
   const parsed = parseExamSelection(
-    { candidateStartsPerBlock: 3, maxCandidatesPerStart: 80, recentQuestionLimit: 150, simulatorSeenLimit: 200 },
+    { candidateStartsPerBlock: 3, maxCandidatesPerStart: 80, recentQuestionLimit: 150, simulatorSeenLimit: 200, attemptRetentionDays: 365 },
     env
   );
   assert.deepEqual(parsed, {
     candidateStartsPerBlock: 3,
     maxCandidatesPerStart: 80,
     recentQuestionLimit: 150,
-    simulatorSeenLimit: 200
+    simulatorSeenLimit: 200,
+    attemptRetentionDays: 365
   });
   const outOfRange = parseExamSelection(
-    { candidateStartsPerBlock: 0, maxCandidatesPerStart: 500, recentQuestionLimit: 2.5, simulatorSeenLimit: 5 },
+    { candidateStartsPerBlock: 0, maxCandidatesPerStart: 500, recentQuestionLimit: 2.5, simulatorSeenLimit: 5, attemptRetentionDays: 10 },
     env
   );
-  assert.deepEqual(outOfRange, { ...env, simulatorSeenLimit: 100 });
-  assert.deepEqual(parseExamSelection(undefined, env), { ...env, simulatorSeenLimit: 100 });
+  assert.deepEqual(outOfRange, { ...env, simulatorSeenLimit: 100, attemptRetentionDays: 180 });
+  assert.deepEqual(parseExamSelection(undefined, env), { ...env, simulatorSeenLimit: 100, attemptRetentionDays: 180 });
 });
 
 test("la caché de configuración lee una vez por instancia y relee tras el plazo", async () => {

@@ -16,7 +16,7 @@ import {
 import { activeCourseIds } from "./catalog_cache";
 import type { BackendConfig } from "./config";
 import { readConfigDoc } from "./config_cache";
-import { loadExamSelection } from "./exam_config";
+import { attemptExpireAt, loadExamSelection } from "./exam_config";
 import { type CandidateQuestion, parseCandidateQuestion } from "./exam_contracts";
 import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
@@ -550,6 +550,8 @@ export class SimulatorService {
   ): Promise<{ response: SubmittedAttemptResponse; attemptData?: Record<string, unknown> }> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
     const settings = await this.settings(metrics);
+    const selection = await loadExamSelection(this.db, this.config, metrics);
+    const summaryRef = this.userRef(uid).collection("simulatorSummary").doc("current");
     return this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const snapshot = await transaction.get(attemptRef);
@@ -617,6 +619,14 @@ export class SimulatorService {
       const bestRef = examId === undefined ? undefined : this.userRef(uid).collection("pastExamBest").doc(examId);
       const best = bestRef === undefined ? undefined : await transaction.get(bestRef);
       if (bestRef !== undefined) metrics.readDocument();
+      // Resumen por tema (Fase 4A): un documento en vez de uno por tema. La
+      // primera vez se migra lo que hubiera en `simulatorTopicStats`.
+      const summaryDoc = await transaction.get(summaryRef);
+      metrics.readDocument();
+      const legacyTopics = summaryDoc.exists
+        ? undefined
+        : await transaction.get(this.userRef(uid).collection("simulatorTopicStats"));
+      if (legacyTopics !== undefined) metrics.readQuery(legacyTopics.size);
       // «+N vs. anterior»: the score of the previous try at the same exam.
       const previousScore = best?.data()?.lastScore;
       if (typeof previousScore === "number") result.previousScore = previousScore;
@@ -629,6 +639,8 @@ export class SimulatorService {
         status: "submitted",
         submittedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+        // La política TTL de `attempts` lo borra pasada la retención (Fase 4A).
+        expireAt: attemptExpireAt(now, selection.attemptRetentionDays),
         result: {
           schemaVersion: 2,
           attemptId: input.attemptId,
@@ -685,16 +697,14 @@ export class SimulatorService {
       for (const info of meta.values()) {
         if (info.topicId.length > 0) topicCourses.set(info.topicId, info.courseId);
       }
-      for (const topic of result.byTopic) {
-        transaction.set(this.userRef(uid).collection("simulatorTopicStats").doc(topic.id), {
-          topicId: topic.id,
-          courseId: topicCourses.get(topic.id) ?? "",
-          answered: FieldValue.increment(topic.total),
-          correct: FieldValue.increment(topic.correct),
-          updatedAtMs: now
-        }, { merge: true });
+      if (result.byTopic.length > 0) {
+        transaction.set(
+          summaryRef,
+          summaryUpdate(legacyTopics?.docs.map((doc) => [doc.id, doc.data()]), result.byTopic, topicCourses, now),
+          { merge: true }
+        );
+        metrics.writeDocument();
       }
-      metrics.writeDocument(result.byTopic.length);
       transaction.set(
         this.userRef(uid).collection("learningEvents").doc(`${purpose}_completed_${input.attemptId}`),
         learningEvent(`${purpose}_completed`, {
@@ -1158,15 +1168,21 @@ export class SimulatorService {
     }));
   }
 
+  /** `simulatorSummary/current` (una lectura); antes de la primera migración, la subcolección antigua. */
   private async topicStats(uid: string, metrics: OperationMetrics): Promise<TopicStat[]> {
-    const snapshot = await this.userRef(uid).collection("simulatorTopicStats").get();
-    metrics.readQuery(snapshot.size);
-    return snapshot.docs.flatMap((doc) => {
-      const data = doc.data();
+    const summary = await this.userRef(uid).collection("simulatorSummary").doc("current").get();
+    metrics.readDocument();
+    const entries: [string, Record<string, unknown>][] = summary.exists
+      ? Object.entries(record(summary.data()?.topics) ?? {}).map(([id, value]) => [id, record(value) ?? {}])
+      : await this.userRef(uid).collection("simulatorTopicStats").get().then((snapshot) => {
+        metrics.readQuery(snapshot.size);
+        return snapshot.docs.map((doc) => [doc.id, doc.data()] as [string, Record<string, unknown>]);
+      });
+    return entries.flatMap(([topicId, data]) => {
       const answered = integer(data.answered) ?? 0;
       const correct = integer(data.correct) ?? 0;
       const courseId = typeof data.courseId === "string" ? data.courseId : "";
-      return answered > 0 && courseId.length > 0 ? [{ topicId: doc.id, courseId, answered, correct }] : [];
+      return answered > 0 && courseId.length > 0 ? [{ topicId, courseId, answered, correct }] : [];
     });
   }
 
@@ -1472,6 +1488,50 @@ export function publicSimulatorContext(
 export function questionCourseIds(data: Record<string, unknown>, questions: readonly AttemptQuestionSnapshot[]): string[] {
   const meta = parseQuestionMeta(data.questionMeta);
   return questions.map((question) => meta.get(question.questionId)?.courseId ?? "");
+}
+
+/**
+ * Qué escribir en `simulatorSummary/current` tras un envío: con el resumen ya
+ * creado, incrementos por tema (merge); la primera vez, los valores absolutos
+ * de la subcolección antigua más los de este envío.
+ */
+export function summaryUpdate(
+  legacy: readonly [string, Record<string, unknown>][] | undefined,
+  byTopic: readonly { id: string; total: number; correct: number }[],
+  topicCourses: ReadonlyMap<string, string>,
+  now: number
+): Record<string, unknown> {
+  const topics: Record<string, unknown> = {};
+  if (legacy === undefined) {
+    for (const topic of byTopic) {
+      topics[topic.id] = {
+        topicId: topic.id,
+        courseId: topicCourses.get(topic.id) ?? "",
+        answered: FieldValue.increment(topic.total),
+        correct: FieldValue.increment(topic.correct),
+        updatedAtMs: now
+      };
+    }
+    return { schemaVersion: 1, topics, updatedAtMs: now };
+  }
+  const base = new Map<string, { courseId: string; answered: number; correct: number }>();
+  for (const [id, data] of legacy) {
+    base.set(id, {
+      courseId: typeof data.courseId === "string" ? data.courseId : "",
+      answered: integer(data.answered) ?? 0,
+      correct: integer(data.correct) ?? 0
+    });
+  }
+  for (const topic of byTopic) {
+    const previous = base.get(topic.id);
+    base.set(topic.id, {
+      courseId: topicCourses.get(topic.id) ?? previous?.courseId ?? "",
+      answered: (previous?.answered ?? 0) + topic.total,
+      correct: (previous?.correct ?? 0) + topic.correct
+    });
+  }
+  for (const [id, value] of base) topics[id] = { topicId: id, ...value, updatedAtMs: now };
+  return { schemaVersion: 1, topics, migratedAtMs: now, updatedAtMs: now };
 }
 
 function simulatorResponse(

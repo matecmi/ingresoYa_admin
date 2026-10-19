@@ -10,6 +10,7 @@ class ExamSettings {
     this.maxCandidatesPerStart = 40,
     this.recentQuestionLimit = 60,
     this.simulatorSeenLimit = 100,
+    this.attemptRetentionDays = 180,
   });
 
   static const defaults = ExamSettings();
@@ -26,6 +27,8 @@ class ExamSettings {
   static const maxRecentQuestions = 200;
   static const minSimulatorSeen = 20;
   static const maxSimulatorSeen = 500;
+  static const minRetentionDays = 30;
+  static const maxRetentionDays = 730;
 
   /// Respuestas nuevas que acumula la app antes de guardarlas en el servidor.
   /// 1 = como antes (una llamada por respuesta).
@@ -49,6 +52,11 @@ class ExamSettings {
 
   /// Preguntas vistas que revisa el Simulador en su ventana de repetición.
   final int simulatorSeenLimit;
+
+  /// Días que un intento enviado queda en Firestore antes de que la TTL lo
+  /// borre (Fase 4A). El resumen del alumno (resultados, mejores puntajes) no
+  /// se borra.
+  final int attemptRetentionDays;
 
   factory ExamSettings.fromMap(Map<String, dynamic>? data) {
     if (data == null) return defaults;
@@ -76,6 +84,10 @@ class ExamSettings {
         'simulatorSeenLimit',
         defaults.simulatorSeenLimit,
       ),
+      attemptRetentionDays: number(
+        'attemptRetentionDays',
+        defaults.attemptRetentionDays,
+      ),
     );
   }
 
@@ -87,6 +99,7 @@ class ExamSettings {
     'maxCandidatesPerStart': maxCandidatesPerStart,
     'recentQuestionLimit': recentQuestionLimit,
     'simulatorSeenLimit': simulatorSeenLimit,
+    'attemptRetentionDays': attemptRetentionDays,
   };
 
   /// El primer problema, en español para el editor, o `null` si está bien.
@@ -120,6 +133,11 @@ class ExamSettings {
         simulatorSeenLimit > maxSimulatorSeen) {
       return 'Preguntas vistas del Simulador: entre $minSimulatorSeen y '
           '$maxSimulatorSeen.';
+    }
+    if (attemptRetentionDays < minRetentionDays ||
+        attemptRetentionDays > maxRetentionDays) {
+      return 'Días que se guarda un intento: entre $minRetentionDays y '
+          '$maxRetentionDays.';
     }
     return null;
   }

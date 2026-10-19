@@ -286,6 +286,7 @@ service cloud.firestore {
           && subcollection != 'pastExamBest'
           && subcollection != 'learningEvents'
           && subcollection != 'simulatorTopicStats'
+          && subcollection != 'simulatorSummary'
           && subcollection != 'xp'
           && subcollection != 'xpEvents'
           && subcollection != 'ranking';
@@ -296,7 +297,7 @@ service cloud.firestore {
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isOwner(userId)
         && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents',
-          'simulatorTopicStats', 'xp', 'xpEvents', 'ranking'];
+          'simulatorTopicStats', 'simulatorSummary', 'xp', 'xpEvents', 'ranking'];
     }
 
     // Admin XP tool (docs/xp_contract.md): find a student, read the XP

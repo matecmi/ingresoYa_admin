@@ -225,9 +225,12 @@ aprobaciones.
 
 - `recentQuestions` se lee ordenado por `lastSeenAt` descendente (las más
   recientes de verdad), con el límite `EXAM_RECENT_QUESTION_LIMIT`.
-- `recentQuestions` y `examRequestKeys` guardan `expireAt` (120 y 30 días). Las
-  políticas TTL están en `firestore.indexes.json` (`fieldOverrides`) y se
-  despliegan con `firebase deploy --only firestore:indexes`.
+- `recentQuestions` y `examRequestKeys` guardan `expireAt` (120 y 30 días) y,
+  desde la Fase 4A de costos, también los intentos enviados (`attempts`,
+  `{config}/exam.attemptRetentionDays`, 180 de fábrica). Las políticas TTL y las
+  exenciones de índice de `questionSnapshots`, `questionMeta` y `answers` están
+  en `firestore.indexes.json` (`fieldOverrides`) y se despliegan con
+  `firebase deploy --only firestore:indexes`.
 - `FUNCTIONS_MIN_INSTANCES` (0 a 3; 0 por defecto en todos los entornos desde
   la Fase 1A de costos) mantiene calientes `createExamAttempt`,
   `submitExamAttempt` y `recordPartSectionCompletion`. Cada instancia caliente

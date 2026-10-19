@@ -1897,6 +1897,69 @@
       "fieldPath": "expireAt",
       "ttl": true,
       "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-test",
+      "fieldPath": "questionSnapshots",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-test",
+      "fieldPath": "questionMeta",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-test",
+      "fieldPath": "answers",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-test",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-staging",
+      "fieldPath": "questionSnapshots",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-staging",
+      "fieldPath": "questionMeta",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-staging",
+      "fieldPath": "answers",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts-staging",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts",
+      "fieldPath": "questionSnapshots",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts",
+      "fieldPath": "questionMeta",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts",
+      "fieldPath": "answers",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iya-exam-attempts",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
     }
   ]
 }
