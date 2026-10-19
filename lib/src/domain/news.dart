@@ -98,9 +98,16 @@ class NewsImage {
     required this.height,
     this.alt = '',
     this.onlyImage = false,
+    this.thumbPath = '',
+    this.thumbUrl = '',
   });
 
   final String storagePath;
+
+  /// Miniatura JPEG de ~480 px (`news-public/thumbs/`), Fase 2D de costos:
+  /// la app la usa en historias, lista y aviso en vez de la imagen completa.
+  final String thumbPath;
+  final String thumbUrl;
 
   /// URL de descarga; la app la muestra sin pedir permisos de Storage.
   final String url;
@@ -124,6 +131,8 @@ class NewsImage {
       height: (raw['height'] as num?)?.toInt() ?? 0,
       alt: '${raw['alt'] ?? ''}',
       onlyImage: raw['mode'] == 'only',
+      thumbPath: '${raw['thumbPath'] ?? ''}',
+      thumbUrl: '${raw['thumbUrl'] ?? ''}',
     );
   }
 
@@ -134,6 +143,8 @@ class NewsImage {
     'height': height,
     'alt': alt.trim(),
     'mode': onlyImage ? 'only' : 'withText',
+    if (thumbUrl.isNotEmpty) 'thumbPath': thumbPath,
+    if (thumbUrl.isNotEmpty) 'thumbUrl': thumbUrl,
   };
 
   NewsImage copyWith({String? alt, bool? onlyImage}) => NewsImage(
@@ -143,6 +154,8 @@ class NewsImage {
     height: height,
     alt: alt ?? this.alt,
     onlyImage: onlyImage ?? this.onlyImage,
+    thumbPath: thumbPath,
+    thumbUrl: thumbUrl,
   );
 }
 

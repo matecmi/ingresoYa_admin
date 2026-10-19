@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 
 import '../../domain/news.dart';
@@ -82,20 +83,64 @@ class NewsRepo {
     final height = frame.image.height;
     frame.image.dispose();
     codec.dispose();
-    final ref = FirebaseStorage.instance.ref(
-      'news-public/${const Uuid().v4()}.$ext',
-    );
+    final id = const Uuid().v4();
+    final ref = FirebaseStorage.instance.ref('news-public/$id.$ext');
     await ref.putData(
       bytes,
-      SettableMetadata(contentType: mime, cacheControl: 'public,max-age=604800'),
+      SettableMetadata(
+        contentType: mime,
+        cacheControl: 'public,max-age=604800',
+      ),
     );
+    // Miniatura para historias, lista y aviso (Fase 2D de costos): la app
+    // descarga ~40 KB en vez de la imagen completa en cada arranque.
+    var thumbPath = '';
+    var thumbUrl = '';
+    final thumb = thumbnailJpeg(bytes, width: width);
+    if (thumb != null) {
+      final thumbRef = FirebaseStorage.instance.ref(
+        'news-public/thumbs/$id.jpg',
+      );
+      await thumbRef.putData(
+        thumb,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          cacheControl: 'public,max-age=604800',
+        ),
+      );
+      thumbPath = thumbRef.fullPath;
+      thumbUrl = await thumbRef.getDownloadURL();
+    }
     return NewsImage(
       storagePath: ref.fullPath,
       url: await ref.getDownloadURL(),
       width: width,
       height: height,
+      thumbPath: thumbPath,
+      thumbUrl: thumbUrl,
     );
   }
 
   static const maxImageBytes = 2 * 1024 * 1024;
+  static const thumbWidth = 480;
+
+  /// JPEG de [thumbWidth] px de ancho (calidad 80); null si no se pudo
+  /// decodificar. Una imagen ya pequeña se recodifica igual para que la app
+  /// siempre tenga un JPEG liviano.
+  static Uint8List? thumbnailJpeg(Uint8List bytes, {required int width}) {
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      final resized = width > thumbWidth
+          ? img.copyResize(
+              decoded,
+              width: thumbWidth,
+              interpolation: img.Interpolation.average,
+            )
+          : decoded;
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 80));
+    } catch (_) {
+      return null;
+    }
+  }
 }
