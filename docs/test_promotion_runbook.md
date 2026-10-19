@@ -53,4 +53,29 @@ Repetir el flujo completo, medir eventos de `*_completed`, revisar errores, p95/
 
 ## 6. Promover a producción
 
-Requiere autorización explícita del responsable, confirmación de App Check, backup/plan de reversión, índices listos y validación satisfactoria en test. Entonces seleccionar conscientemente el proyecto de producción y ejecutar el mismo despliegue manual. La migración productiva sigue siendo un proceso separado: primero dry-run, revisión de casos manuales y autorización final.
+Requiere autorización explícita del responsable, confirmación de App Check, backup/plan de reversión, índices listos y validación satisfactoria en test. Entonces seleccionar conscientemente el proyecto de producción (alias `production` = `ingresoya-prod`) y ejecutar el mismo despliegue manual. La migración productiva sigue siendo un proceso separado: primero dry-run, revisión de casos manuales y autorización final.
+
+## 7. Primer despliegue a `ingresoya-prod` (Fase 1B de costos, 2026-10-19)
+
+Producción nace en una sola región: proyecto `ingresoya-prod` (número `790256878690`), Firestore nativo en **us-central1**, Functions en us-central1 (`functions/.env.production`, `FUNCTIONS_REGION=us-central1`, `FUNCTIONS_MIN_INSTANCES=0`). Nada se publica hasta Play Console.
+
+Ya hecho por CLI: proyecto, Firebase, base de datos, app Android `com.ingresoya.app` (`1:790256878690:android:d8d2956d3d5b02c6b0bd3b`) con huellas SHA-1/SHA-256 de debug y release, API de Firestore / Auth / Rules / App Check / FCM / Storage, `google-services.json` de producción en la app, alias `production` en ambos `.firebaserc`.
+
+**Antes del despliegue (Kevin, acciones de pago o de consola):**
+
+1. Facturación Blaze: `gcloud billing projects link ingresoya-prod --billing-account=015523-06CE55-5C0BD1`.
+2. Presupuesto de $50: `gcloud billing budgets create --billing-account=015523-06CE55-5C0BD1 --display-name=IngresoYa-PROD-50USD --budget-amount=50USD --filter-projects=projects/790256878690 --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0`.
+3. Storage: consola de Firebase → Storage → Comenzar → ubicación **us-central1** (bucket `ingresoya-prod.firebasestorage.app`).
+4. Authentication → Método de acceso → Google (y la pantalla de consentimiento OAuth). Después, regenerar el `google-services.json` de producción (`firebase apps:sdkconfig ANDROID 1:790256878690:android:d8d2956d3d5b02c6b0bd3b --project ingresoya-prod`) para que traiga los clientes OAuth.
+5. App Check: registrar la app Android con Play Integrity (recordatorio de la recta final).
+
+**Despliegue (Claude, con autorización):**
+
+```powershell
+gcloud services enable cloudfunctions.googleapis.com run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com eventarc.googleapis.com cloudscheduler.googleapis.com secretmanager.googleapis.com --project=ingresoya-prod
+firebase --project production deploy --only firestore:rules,firestore:indexes,storage
+firebase --project production deploy --only functions
+firebase functions:list --project production   # todo en us-central1
+```
+
+Luego, desde el admin apuntando a producción, la configuración inicial: `{config}/exam`, `xp`, `rankings` (apagados), `simulator`, `news`, `ads` (apagado hasta tener los ID reales), `sync`, `study`; el disparador `auditConfig` arma `{config}/app`. Verificar en la consola que base, bucket y Functions estén en us-central1 y que las políticas TTL de `iya-exam-attempts`, `recentQuestions` y `examRequestKeys` queden activas.

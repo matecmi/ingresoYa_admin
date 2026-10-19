@@ -13,7 +13,7 @@ En cada desarrollo, commit o PR, actualizar `PROGRESO.md` (y este `CLAUDE.md` si
 Si el cambio es funcional o de diseño, actualizar también las **guías vivas** (`docs/guias/`): la Guía de IngresoYa (pantallas y mensajes) y la Arquitectura (servicios, datos, flujos). Cómo hacerlo y sus direcciones publicadas: `docs/guias/README.md`.
 
 ## Flujo Git
-- `main` = producción, `desarrollo` = integración estable.
+- `main` = producción, `desarrollo` = integración estable. Proyecto Firebase de producción: `ingresoya-prod` (alias `production`, us-central1, Fase 1B de costos; `docs/test_promotion_runbook.md` §7). TEST/staging: `ingresoya-e5115` (alias `test`). Nunca desplegar a `production` sin autorización de Kevin.
 - Cada cambio en rama nueva desde `desarrollo` con prefijo `codex/`. PR hacia `desarrollo`; release con PR `desarrollo` → `main`.
 - No trabajar directamente en `main` ni `desarrollo`. No fusionar PRs automáticamente.
 
