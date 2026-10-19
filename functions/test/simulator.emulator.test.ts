@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { WriteBatch } from "firebase-admin/firestore";
+import { Timestamp, type WriteBatch } from "firebase-admin/firestore";
 
 import { db } from "../src/admin";
 import { ExamAttemptService, type AttemptQuestionSnapshot } from "../src/attempt_service";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { ChallengeService } from "../src/challenge";
+import { examMemoryRef, parseExamMemory } from "../src/exam_memory";
+import { OperationMetrics } from "../src/operation_metrics";
+import { loadQuestionIndex, syncQuestionIndex } from "../src/question_index";
 import { peruDay, XpService } from "../src/xp";
 
 const config = readBackendConfig({ INGRESOYA_ENV: "test" });
@@ -328,9 +331,49 @@ test("reto del día: same questions for the university, one attempt, answers hid
   await rankings.delete();
 });
 
+test("con el índice del curso la práctica lee solo lo que usa y recuerda lo visto en un documento", async () => {
+  await seed();
+  const user = db.collection(config.collections.users).doc(uid);
+  // Alumno de antes del cambio: su historial está en recentQuestions.
+  await user.collection("recentQuestions").doc("sim-course-b-1").set({ lastSeenAt: Timestamp.now(), exposureCount: 2 });
+  const bank = await db.collection(config.collections.questions).where("courseId", "==", "sim-course-b").get();
+  await db.collection(config.collections.questionIndex).doc("sim-course-b").delete();
+  for (const document of bank.docs) await syncQuestionIndex(db, config, document.id, undefined, document.data());
+  assert.equal((await loadQuestionIndex(db, config, "sim-course-b"))?.length, 30);
+
+  const metrics = new OperationMetrics();
+  const input = (requestId: string) => ({
+    requestId, purpose: "practice" as const, mode: "course" as const, courseIds: ["sim-course-b"], topicIds: [] as string[], size: "short" as const, timed: true
+  });
+  const first = await service.create(uid, input("idx-1"), metrics);
+  assert.equal(first.questions.length, 10);
+  const fields = metrics.logFields();
+  // Antes: hasta 100 vistas + 80 candidatas + 10 de XP. Ahora: el índice y las 12 que se leen.
+  assert.ok(fields.observedDocumentReads! <= 25, `lecturas: ${fields.observedDocumentReads}`);
+  assert.equal(fields.plannedDocumentWrites, 3);
+  assert.equal(first.questions.some((question) => question.questionId === "sim-course-b-1"), false);
+  const memory = parseExamMemory((await examMemoryRef(db, config, uid).get()).data());
+  assert.equal(memory.size, 11);
+  assert.equal(memory.get("sim-course-b-1")?.n, 2);
+
+  // La segunda práctica ya no repite las vistas y sigue leyendo poco.
+  const again = new OperationMetrics();
+  const second = await service.create(uid, input("idx-2"), again);
+  const firstIds = new Set(first.questions.map((question) => question.questionId));
+  assert.equal(second.questions.some((question) => firstIds.has(question.questionId)), false);
+  assert.ok(again.logFields().observedDocumentReads! <= 25);
+  assert.equal(parseExamMemory((await examMemoryRef(db, config, uid).get()).data()).size, 21);
+
+  // Retirar una pregunta la saca del índice.
+  const retired = bank.docs[1]!;
+  await syncQuestionIndex(db, config, retired.id, retired.data(), { ...retired.data(), status: "retired" });
+  assert.equal((await loadQuestionIndex(db, config, "sim-course-b"))?.some((entry) => entry.id === retired.id), false);
+  await db.collection(config.collections.questionIndex).doc("sim-course-b").delete();
+});
+
 async function seed(): Promise<void> {
   const user = db.collection(config.collections.users).doc(uid);
-  for (const name of ["recentQuestions", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats", "simulatorSummary", "xp", "xpEvents", "simulatorPlan"]) {
+  for (const name of ["recentQuestions", "examMemory", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats", "simulatorSummary", "xp", "xpEvents", "simulatorPlan"]) {
     const docs = await user.collection(name).get();
     const cleanup = db.batch();
     docs.docs.forEach((doc) => cleanup.delete(doc.ref));

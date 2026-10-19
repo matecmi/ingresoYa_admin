@@ -3,6 +3,8 @@ export type DeploymentEnvironment = "test" | "staging" | "production";
 export interface BackendCollections {
   questions: string;
   answerKeys: string;
+  /** Índice de preguntas publicadas por curso (question_index.ts); server-only. */
+  questionIndex: string;
   templates: string;
   attempts: string;
   users: string;
@@ -72,6 +74,7 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
   test: {
     questions: "iya-questions-test",
     answerKeys: "iya-question-answer-keys-test",
+    questionIndex: "iya-question-index-test",
     templates: "iya-exam-templates-test",
     attempts: "iya-exam-attempts-test",
     users: "iya-profile-test",
@@ -96,6 +99,7 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
   staging: {
     questions: "iya-questions-staging",
     answerKeys: "iya-question-answer-keys-staging",
+    questionIndex: "iya-question-index-staging",
     templates: "iya-exam-templates-staging",
     attempts: "iya-exam-attempts-staging",
     users: "iya-profile-staging",
@@ -120,6 +124,7 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
   production: {
     questions: "iya-questions",
     answerKeys: "iya-question-answer-keys",
+    questionIndex: "iya-question-index",
     templates: "iya-exam-templates",
     attempts: "iya-exam-attempts",
     users: "iya-profile",

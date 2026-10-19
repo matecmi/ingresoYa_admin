@@ -16,6 +16,7 @@ import { createAuditHandlers, onlyMetaChanged, recordWrite } from "./audit";
 import { CATALOG_DOC, bumpCatalogVersion, catalogKindOf, courseIdFromParams } from "./catalog_version";
 import { APP_CONFIG_DOC, publishAppConfig } from "./app_config";
 import { db } from "./admin";
+import { syncQuestionIndex } from "./question_index";
 import { createQuestionStatsHandlers } from "./question_stats";
 import { sendDueNewsPushes, sendNewsPush, shouldSendPush } from "./news_push";
 
@@ -139,6 +140,21 @@ function auditTrigger(document: string, kindKey: string) {
   );
 }
 export const auditQuestions = auditTrigger(`${col.questions}/{id}`, "questions");
+// Índice de preguntas por curso para el Simulador (question_index.ts).
+export const indexQuestions = onDocumentWritten(
+  { document: `${col.questions}/{id}`, region: "us-central1", timeoutSeconds: 30, memory: "256MiB" },
+  async (event) => {
+    const before = event.data?.before;
+    const after = event.data?.after;
+    await syncQuestionIndex(
+      db,
+      config,
+      event.params.id,
+      before?.exists ? (before.data() as Record<string, unknown>) : undefined,
+      after?.exists ? (after.data() as Record<string, unknown>) : undefined
+    );
+  }
+);
 export const auditCourses = auditTrigger(`${col.courses}/{id}`, "courses");
 export const auditTopics = auditTrigger(`${col.courses}/{c}/topics/{id}`, "topics");
 export const auditSubtopics = auditTrigger(`${col.courses}/{c}/topics/{t}/subtopics/{id}`, "subtopics");
