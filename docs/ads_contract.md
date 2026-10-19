@@ -7,14 +7,21 @@ la reestructuración de costos (2026-10-18). El porqué y las cifras:
 
 ## Reglas de producto
 
-- Nunca hay anuncios dentro de una lección, un examen, el simulador ni las
+- Nunca hay anuncios dentro de una lección, un examen en curso ni las
   historias. El alumno que estudia no se interrumpe.
-- Banner adaptable al pie de **Inicio**, **lista de noticias** y **Rankings**
-  (cada pantalla se enciende por separado).
-- Anuncio de pantalla completa (intersticial) **al salir del resultado** de un
-  examen de parte, de dominio o del Simulador: el primer resultado del día
-  (día del Perú) va libre si el admin lo pide, y entre dos anuncios pasan al
-  menos `interstitialMinMinutes`.
+- Banner adaptable al pie de las cinco pestañas (**Inicio**, **Cursos**,
+  **portada del Simulador**, **Stats**, **Perfil**), de la **lista de
+  noticias** y de **Rankings**; cada pantalla se enciende por separado. Un
+  mismo banner cargado se comparte entre pestañas: al cambiar de pestaña
+  aparece al instante (la primera carga tarda unos segundos).
+- Anuncio de pantalla completa (intersticial) **al terminar un examen** (de
+  parte, de dominio o del Simulador): en cuanto el servidor acepta la entrega
+  y **antes del resultado**, para que el alumno lo vea haga lo que haga
+  después. De fábrica sale en cada examen; el admin puede liberar el primer
+  resultado del día (día del Perú, `firstExamOfDayFree`) y exigir
+  `interstitialMinMinutes` entre dos. Se precarga al abrir el examen; si no
+  está listo se espera hasta 5 s y se sigue sin él; si caducó (exámenes de
+  más de 50 min) se pide otro.
 - Video recompensado para **ver la explicación de una pregunta fallada** en la
   revisión de un examen; las acertadas se ven directo. Si no hay video
   disponible (sin relleno, sin red, tiempo agotado) la explicación se abre
@@ -33,9 +40,9 @@ lectura por sesión.
 | Campo | Tipo | Límites | Fábrica | Efecto |
 | --- | --- | --- | --- | --- |
 | `enabled` | bool | | false | Interruptor general. |
-| `bannerScreens` | map | `home`, `news`, `rankings` → bool | las tres en true | Dónde va el banner al pie. |
-| `interstitialMinMinutes` | number | 1 a 240 | 10 | Minutos mínimos entre dos anuncios de pantalla completa. |
-| `firstExamOfDayFree` | bool | | true | El primer resultado del día no muestra el anuncio. |
+| `bannerScreens` | map | `home`, `courses`, `simulator`, `stats`, `profile`, `news`, `rankings` → bool | las siete en true | Dónde va el banner al pie. |
+| `interstitialMinMinutes` | number | 0 a 240 | 0 | Minutos mínimos entre dos anuncios de pantalla completa; 0 = al terminar cada examen. |
+| `firstExamOfDayFree` | bool | | false | El primer resultado del día no muestra el anuncio. |
 | `rewardedEnabled` | bool | | true | Video a cambio de la explicación de una pregunta fallada. |
 | `schemaVersion`, `updatedAt`, `updatedBy` | | | | Metadatos del admin (no viajan en `{config}/app`). |
 
@@ -63,11 +70,17 @@ Antes de publicar: reemplazar las unidades de `production` por las reales
   inicializa el SDK en el primer uso, no en el arranque), providers
   (`adsSettingsProvider` desde `ConfigDocs`, `premiumActiveProvider`,
   `adsActiveProvider` = ajustes vigentes o null), `AdBannerSlot(screen)`,
-  `InterstitialCoordinator` (`preload()` al enviar el examen,
-  `showAfterResult()` al salir del resultado) y `RewardedUnlock` (+
+  `InterstitialCoordinator` (`preload()` al abrir el examen,
+  `showAfterExam()` al aceptarse la entrega, antes del resultado; espera
+  `freshLoadWait` = 5 s si no había precarga y descarta anuncios de más de
+  `maxAge` = 50 min) y `RewardedUnlock` (+
   `unlockedExplanationsProvider` para no pedir dos videos por la misma
   pregunta en la sesión).
 - Frecuencia guardada en SharedPreferences (`ads.interstitial.*`).
+- `MobileAdsRuntime` comparte un banner cargado por unidad y ancho entre
+  pantallas (el `AdWidget` se vuelve a montar en la pestaña nueva); si otra
+  pantalla viva ya lo tiene (una ruta encima de otra), la segunda carga uno
+  propio.
 - Pruebas: `test/ads_policy_test.dart`, `test/ads_widgets_test.dart`.
 
 ## Admin

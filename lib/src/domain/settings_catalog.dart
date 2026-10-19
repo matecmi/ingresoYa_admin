@@ -1311,10 +1311,11 @@ final List<SettingsTopic> settingsTopics = [
     label: 'Anuncios',
     icon: Icons.ads_click_outlined,
     intro:
-        'Anuncios de AdMob en la app: dónde va el banner, cada cuánto sale un '
-        'anuncio de pantalla completa y si hay videos a cambio de una ayuda. '
-        'Los alumnos premium no ven ninguno. Nunca hay anuncios dentro de una '
-        'lección, un examen, el simulador ni las historias.',
+        'Anuncios de AdMob en la app: en qué pantallas va el banner, si el '
+        'anuncio de pantalla completa de cada examen espera algo y si hay '
+        'videos a cambio de una ayuda. Los alumnos premium no ven ninguno. '
+        'Nunca hay anuncios dentro de una lección, un examen en curso ni las '
+        'historias.',
     specs: [
       SettingSpec(
         doc: SettingsDoc.ads,
@@ -1342,6 +1343,48 @@ final List<SettingsTopic> settingsTopics = [
       ),
       SettingSpec(
         doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'courses'],
+        question: '¿Banner al pie de Cursos?',
+        label: 'Banner en Cursos',
+        kind: SettingKind.toggle,
+        help: 'Solo en la lista de cursos; nunca dentro de una lección.',
+        keywords: 'banner cursos guía franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'simulator'],
+        question: '¿Banner al pie del inicio del Simulador?',
+        label: 'Banner en Simulador',
+        kind: SettingKind.toggle,
+        help:
+            'En la portada del Simulador (accesos y resumen); nunca durante '
+            'un examen.',
+        keywords: 'banner simulador franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'stats'],
+        question: '¿Banner al pie de Stats?',
+        label: 'Banner en Stats',
+        kind: SettingKind.toggle,
+        help: 'En las estadísticas del alumno.',
+        keywords: 'banner stats estadísticas franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'profile'],
+        question: '¿Banner al pie del Perfil?',
+        label: 'Banner en Perfil',
+        kind: SettingKind.toggle,
+        help: 'En el Perfil del alumno (donde también está la tarjeta Premium).',
+        keywords: 'banner perfil franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
         path: const ['bannerScreens', 'news'],
         question: '¿Banner al pie de la lista de noticias?',
         label: 'Banner en Noticias',
@@ -1365,22 +1408,17 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['interstitialMinMinutes'],
         question:
             '¿Cuántos minutos como mínimo pasan entre dos anuncios de pantalla '
-            'completa?',
+            'completa? (0 = en cada examen)',
         label: 'Minutos entre anuncios completos',
         min: AdsSettings.minInterstitialMinutes,
         max: AdsSettings.maxInterstitialMinutes,
         unit: 'min',
         help:
-            'El anuncio de pantalla completa sale al cerrar el resultado de un '
-            'examen o simulacro. Con 10, un alumno que encadena simulacros ve '
-            'uno cada 10 minutos como mucho.',
-        keywords: 'intersticial pantalla completa frecuencia resultado',
-        inPractice: (v) =>
-            'Tras cerrar un resultado, el siguiente anuncio de pantalla '
-            'completa espera al menos '
-            '${_int(v, SettingsDoc.ads, ['interstitialMinMinutes'], 10)} '
-            'minutos'
-            '${_on(v, SettingsDoc.ads, ['firstExamOfDayFree'], true) ? '; el primer examen del día nunca lo muestra.' : '.'}',
+            'El anuncio de pantalla completa sale al terminar un examen, antes '
+            'del resultado. Con 0 sale en cada examen; con 10, un alumno que '
+            'encadena simulacros ve uno cada 10 minutos como mucho.',
+        keywords: 'intersticial pantalla completa frecuencia resultado siempre',
+        inPractice: (v) => _interstitialPractice(v),
       ),
       SettingSpec(
         doc: SettingsDoc.ads,
@@ -1390,9 +1428,10 @@ final List<SettingsTopic> settingsTopics = [
         label: 'Primer examen del día sin anuncio',
         kind: SettingKind.toggle,
         help:
-            'Recomendado: el alumno que entra a estudiar no se topa con un '
-            'anuncio en su primer resultado del día.',
+            'Apagado (fábrica), el anuncio sale desde el primer examen del '
+            'día. Encendido, el primer resultado del día va sin anuncio.',
         keywords: 'primer examen día gratis intersticial',
+        inPractice: (v) => _interstitialPractice(v),
       ),
       SettingSpec(
         doc: SettingsDoc.ads,
@@ -1465,6 +1504,18 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
 ];
+
+String _interstitialPractice(SettingsValues v) {
+  final minutes = _int(v, SettingsDoc.ads, ['interstitialMinMinutes'], 0);
+  final firstFree = _on(v, SettingsDoc.ads, ['firstExamOfDayFree'], false);
+  final when = minutes == 0
+      ? 'Al terminar cada examen sale el anuncio de pantalla completa'
+      : 'Al terminar un examen sale el anuncio de pantalla completa si pasaron '
+            'al menos $minutes minutos desde el anterior';
+  return firstFree
+      ? '$when; el primer examen del día va sin anuncio.'
+      : '$when.';
+}
 
 String _bannerPractice(SettingsValues v) {
   final on = AdsSettings.bannerScreenIds

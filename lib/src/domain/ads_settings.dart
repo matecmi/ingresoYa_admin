@@ -6,37 +6,56 @@ class AdsSettings {
   const AdsSettings({
     this.enabled = false,
     this.bannerScreens = defaultBannerScreens,
-    this.interstitialMinMinutes = 10,
-    this.firstExamOfDayFree = true,
+    this.interstitialMinMinutes = 0,
+    this.firstExamOfDayFree = false,
     this.rewardedEnabled = true,
   });
 
   static const defaults = AdsSettings();
 
-  /// Pantallas donde puede ir el banner al pie. Nunca en lección, examen,
-  /// simulador ni historias.
-  static const bannerScreenIds = ['home', 'news', 'rankings'];
+  /// Pantallas donde puede ir el banner al pie: las cinco pestañas, la lista
+  /// de noticias y Rankings. Nunca en una lección, un examen en curso ni las
+  /// historias.
+  static const bannerScreenIds = [
+    'home',
+    'courses',
+    'simulator',
+    'stats',
+    'profile',
+    'news',
+    'rankings',
+  ];
   static const bannerScreenLabels = {
     'home': 'Inicio',
+    'courses': 'Cursos',
+    'simulator': 'Simulador (inicio)',
+    'stats': 'Stats',
+    'profile': 'Perfil',
     'news': 'Lista de noticias',
     'rankings': 'Rankings',
   };
   static const defaultBannerScreens = {
     'home': true,
+    'courses': true,
+    'simulator': true,
+    'stats': true,
+    'profile': true,
     'news': true,
     'rankings': true,
   };
 
-  static const minInterstitialMinutes = 1;
+  /// 0 = el anuncio de pantalla completa sale al terminar cada examen.
+  static const minInterstitialMinutes = 0;
   static const maxInterstitialMinutes = 240;
 
   /// Interruptor general: en false la app no carga ningún anuncio.
   final bool enabled;
 
-  /// Pantalla → si lleva banner (`home`, `news`, `rankings`).
+  /// Pantalla → si lleva banner ([bannerScreenIds]).
   final Map<String, bool> bannerScreens;
 
-  /// Minutos mínimos entre dos intersticiales (al salir de un resultado).
+  /// Minutos mínimos entre dos intersticiales (al terminar un examen);
+  /// 0 = siempre.
   final int interstitialMinMinutes;
 
   /// El primer examen del día (hora del Perú) no muestra intersticial.
