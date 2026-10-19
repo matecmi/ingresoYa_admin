@@ -287,6 +287,7 @@ service cloud.firestore {
         if isProfileCollection(profiles) && isOwner(userId)
           && subcollection != 'examRequestKeys'
           && subcollection != 'recentQuestions'
+          && subcollection != 'examMemory'
           && subcollection != 'learningProgress'
           && subcollection != 'simulatorResults'
           && subcollection != 'pastExamBest'
@@ -409,6 +410,11 @@ service cloud.firestore {
     }
 
     match /{profiles}/{userId}/recentQuestions/{questionId} {
+      allow read, write: if false;
+    }
+
+    // Preguntas vistas en un solo documento (functions/src/exam_memory.ts).
+    match /{profiles}/{userId}/examMemory/{document} {
       allow read, write: if false;
     }
 

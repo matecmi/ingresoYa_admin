@@ -138,6 +138,23 @@ no despliega ninguno de esos artefactos.
 - **Tope de 100 preguntas por examen pasado:** `questionCount` 1–100 en el admin
   (`ExamSimulatorRules.validate`) y en `parsePastExamRules`.
 
+## Lecturas de una práctica del Simulador (2026-10-19)
+
+Una práctica por curso de 20 preguntas costaba 234 lecturas y 27 escrituras del servidor: 100 para leer las preguntas vistas (un documento por pregunta en `recentQuestions`), 80 de dos muestras de 40 candidatas y 20 para repasar las vistas por el XP; y 20 escrituras, una por pregunta vista. Dos cambios (PR admin #111):
+
+- **Preguntas vistas en un documento** `{perfil}/{uid}/examMemory/recent` (`exam_memory.ts`): `q[questionId] = {t, n}`, las últimas 600, una lectura y una escritura por examen. Lo usan el Simulador (ventana de repetición y XP de respuesta nueva) y el examen de parte (`recentQuestionLimit`). Migración sola: si el documento no existe, se leen una vez los `recentQuestions` antiguos y se copian; esos documentos ya no se escriben y caducan por TTL.
+- **Índice de preguntas por curso** `{questionIndex}/{courseId}` (`question_index.ts`): `q[questionId] = {v, t, s, d, o, u}` de las preguntas publicadas, mantenido por el disparador `indexQuestions`; carga inicial con `node tools/build_question_index.js --env <env> --project <id>`. `coursePool` ordena el índice con la semilla, deja las vistas al final, filtra origen y dificultad y lee solo las que usará + 2; sin índice usa las consultas de antes. Sirve a práctica, plan, diagnóstico y reto del día. Límite: un curso cabe hasta unas 5 000 preguntas por documento.
+
+| Medido en TEST | Antes | Después |
+| --- | ---: | ---: |
+| Crear una práctica de 20: lecturas / escrituras | 208 / 22 | 28 / 3 |
+| Crear: duración | 1,5 a 3,4 s | 0,6 s |
+| Entregar: lecturas | 25 | 23 |
+
+La primera práctica de un alumno de antes del cambio lee una vez su historial antiguo (hasta 600 documentos) para migrarlo.
+
+No se hizo «claves congeladas en el intento»: las preguntas publicadas no llevan respuesta ni explicación (contrato v2), así que congelarlas al crear exige leer las mismas 20 claves al crear; solo cambia el momento de la lectura.
+
 ## Fase 5B de costos: plan premium (2026-10-19)
 
 - `premium` y `usage` viven en el documento del perfil que la app ya lee al entrar: saber si el alumno

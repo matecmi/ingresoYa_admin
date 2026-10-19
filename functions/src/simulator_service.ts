@@ -1,5 +1,5 @@
 import type { DocumentReference, Firestore, Transaction } from "firebase-admin/firestore";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 import {
   gradeFrozenAttempt,
@@ -14,6 +14,8 @@ import {
   type SubmittedAttemptResponse
 } from "./attempt_service";
 import { activeCourseIds } from "./catalog_cache";
+import { type ExamMemoryState, loadExamMemory, recordExposure, seenSince as memorySeenSince } from "./exam_memory";
+import { type IndexEntry, loadQuestionIndex } from "./question_index";
 import type { BackendConfig } from "./config";
 import { readConfigDoc } from "./config_cache";
 import { attemptExpireAt, loadExamSelection } from "./exam_config";
@@ -213,7 +215,6 @@ export const submitGraceMs = 2 * 60 * 1000;
 export const practicePenaltyPoints = -0.25;
 const realSources = new Set(["admission_exam", "official_practice"]);
 const requestKeyRetentionMs = 30 * 24 * 60 * 60 * 1000;
-const recentQuestionRetentionMs = 120 * 24 * 60 * 60 * 1000;
 const dayMs = 24 * 60 * 60 * 1000;
 
 export function parsePastExamRules(value: unknown): PastExamRules | undefined {
@@ -365,11 +366,59 @@ export function pickFresh(
   return [...fresh, ...repeated].slice(0, count);
 }
 
+/** Lo que se pide a [SimulatorService.coursePool] además del tamaño de la muestra. */
+interface PoolOptions {
+  /** Preguntas que de verdad se van a usar de este curso (con el índice se leen estas + 2). */
+  need?: number;
+  /** Filtro previo sobre el índice (origen y dificultad de la práctica). */
+  accept?: (entry: IndexEntry) => boolean;
+  /** Vistas en la ventana: con el índice van al final, como en [pickFresh]. */
+  seen?: ReadonlySet<string>;
+}
+
+/** Muestra de un curso armada desde el índice; crece si hace falta completar. */
+interface PoolCursor {
+  order: IndexEntry[];
+  next: number;
+  loaded: CandidateQuestion[];
+}
+
+const poolMargin = 2;
+
 export class SimulatorService {
   public constructor(
     private readonly db: Firestore,
     private readonly config: BackendConfig
   ) {}
+
+  // Estado de una sola llamada (cada llamada trae su propio OperationMetrics):
+  // las preguntas vistas se leen una vez y los índices de curso también.
+  private readonly memories = new WeakMap<OperationMetrics, Promise<ExamMemoryState>>();
+  private readonly indexes = new WeakMap<OperationMetrics, Map<string, Promise<IndexEntry[] | undefined>>>();
+  private readonly cursors = new WeakMap<OperationMetrics, Map<string, PoolCursor>>();
+
+  private memory(uid: string, metrics: OperationMetrics): Promise<ExamMemoryState> {
+    let memory = this.memories.get(metrics);
+    if (memory === undefined) {
+      memory = loadExamMemory(this.db, this.config, uid, metrics);
+      this.memories.set(metrics, memory);
+    }
+    return memory;
+  }
+
+  private questionIndex(courseId: string, metrics: OperationMetrics): Promise<IndexEntry[] | undefined> {
+    let byCourse = this.indexes.get(metrics);
+    if (byCourse === undefined) {
+      byCourse = new Map();
+      this.indexes.set(metrics, byCourse);
+    }
+    let index = byCourse.get(courseId);
+    if (index === undefined) {
+      index = loadQuestionIndex(this.db, this.config, courseId, metrics);
+      byCourse.set(courseId, index);
+    }
+    return index;
+  }
 
   public async create(
     uid: string,
@@ -438,6 +487,7 @@ export class SimulatorService {
     };
     const publicContext = publicSimulatorContext(simulator, plan.picked.map(({ question }) => question.courseId));
     const freshQuestionIds = await this.freshForXp(uid, questions.map(({ questionId }) => questionId), now, metrics);
+    const memory = await this.memory(uid, metrics);
     const created = await this.db.runTransaction(async (transaction): Promise<boolean | string> => {
       metrics.transactionAttempt();
       const existing = await transaction.get(requestRef);
@@ -498,17 +548,8 @@ export class SimulatorService {
         expireAt: new Date(now + requestKeyRetentionMs)
       });
       if (usage !== undefined) transaction.set(this.userRef(uid), { usage }, { merge: true });
-      for (const question of questions) {
-        transaction.set(
-          this.userRef(uid).collection("recentQuestions").doc(question.questionId),
-          {
-            exposureCount: FieldValue.increment(1),
-            lastSeenAt: FieldValue.serverTimestamp(),
-            expireAt: new Date(now + recentQuestionRetentionMs)
-          },
-          { merge: true }
-        );
-      }
+      // Preguntas vistas: un solo documento (exam_memory.ts), no uno por pregunta.
+      recordExposure(transaction, this.db, this.config, uid, memory, questions.map(({ questionId }) => questionId), now);
       return true;
     });
     if (typeof created === "string") {
@@ -521,7 +562,7 @@ export class SimulatorService {
       metrics.readDocument();
       return this.existing(uid, request.data()?.attemptId, input, metrics);
     }
-    metrics.writeDocument(2 + questions.length);
+    metrics.writeDocument(3);
     return {
       attemptId: attemptRef.id,
       status: "in_progress",
@@ -929,7 +970,7 @@ export class SimulatorService {
     const perTopic = splitEvenly(focus.map((topic) => topic.topicId), weakWanted);
     for (const topic of focus) {
       const pool = await this.coursePool(topic.courseId, [topic.topicId], (perTopic.get(topic.topicId) ?? 0) * 3,
-        `${seed}:${topic.topicId}`, metrics);
+        `${seed}:${topic.topicId}`, metrics, { need: perTopic.get(topic.topicId) ?? 0, seen });
       const chosen = pickFresh(pool, perTopic.get(topic.topicId) ?? 0, seen, taken, `${seed}:${topic.topicId}:pick`);
       chosen.forEach((question) => taken.add(question.questionId));
       picked.push(...chosen);
@@ -939,7 +980,8 @@ export class SimulatorService {
     const want = splitEvenly(courseIds, missing);
     const pools = new Map<string, CandidateQuestion[]>();
     for (const courseId of courseIds) {
-      pools.set(courseId, await this.coursePool(courseId, [], (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics));
+      pools.set(courseId, await this.coursePool(courseId, [], (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics,
+        { need: want.get(courseId) ?? 0, seen }));
     }
     for (const courseId of courseIds) {
       const chosen = pickFresh(pools.get(courseId) ?? [], want.get(courseId) ?? 0, seen, taken, `${seed}:${courseId}:pick`);
@@ -949,6 +991,8 @@ export class SimulatorService {
     missing = plan.dailyQuestions - picked.length;
     for (const courseId of courseIds) {
       if (missing <= 0) break;
+      pools.set(courseId, await this.coursePool(courseId, [], (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics,
+        { need: (want.get(courseId) ?? 0) + missing, seen }));
       const extra = pickFresh(pools.get(courseId) ?? [], missing, seen, taken, `${seed}:${courseId}:extra`);
       extra.forEach((question) => taken.add(question.questionId));
       picked.push(...extra);
@@ -1084,7 +1128,8 @@ export class SimulatorService {
     const pools = new Map<string, CandidateQuestion[]>();
     for (const courseId of courseIds) {
       if ((want.get(courseId) ?? 0) === 0 && missing <= courseIds.length) continue;
-      const pool = await this.coursePool(courseId, [], Math.max(6, (want.get(courseId) ?? 1) * 4), `${seed}:${courseId}`, metrics);
+      const pool = await this.coursePool(courseId, [], Math.max(6, (want.get(courseId) ?? 1) * 4), `${seed}:${courseId}`, metrics,
+        { need: (want.get(courseId) ?? 1) + used.size });
       pools.set(courseId, pool.filter((question) => !used.has(question.questionId)));
     }
     for (const courseId of courseIds) {
@@ -1142,7 +1187,8 @@ export class SimulatorService {
     const picked: CandidateQuestion[] = [];
     const courseIds: string[] = [];
     for (const courseId of await activeCourseIds(this.db, this.config, metrics)) {
-      const pool = await this.coursePool(courseId, [], plan.diagnosticPerCourse * 3, `${seed}:${courseId}`, metrics);
+      const pool = await this.coursePool(courseId, [], plan.diagnosticPerCourse * 3, `${seed}:${courseId}`, metrics,
+        { need: plan.diagnosticPerCourse });
       // Only courses with enough questions (contract §4).
       if (pool.length < plan.diagnosticPerCourse) continue;
       const chosen = pickFresh(pool, plan.diagnosticPerCourse, new Set(), taken, `${seed}:${courseId}:pick`);
@@ -1217,9 +1263,12 @@ export class SimulatorService {
     // with too few questions hands its remainder to the others.
     const pools = new Map<string, CandidateQuestion[]>();
     const want = splitEvenly(courseIds, size.questions);
+    const accept = (entry: IndexEntry) => matchesPractice(entry, source, difficulty);
+    const practicePool = async (courseId: string, need: number) =>
+      (await this.coursePool(courseId, topicIds, (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics, { need, accept, seen }))
+        .filter((question) => matchesPractice(question, source, difficulty));
     for (const courseId of courseIds) {
-      const pool = await this.coursePool(courseId, topicIds, (want.get(courseId) ?? 0) * 3, `${seed}:${courseId}`, metrics);
-      pools.set(courseId, pool.filter((question) => matchesPractice(question, source, difficulty)));
+      pools.set(courseId, await practicePool(courseId, want.get(courseId) ?? 0));
     }
     const taken = new Set<string>();
     const picked: CandidateQuestion[] = [];
@@ -1232,6 +1281,8 @@ export class SimulatorService {
     }
     for (const courseId of courseIds) {
       if (missing === 0) break;
+      // Con el índice la muestra trae lo justo: se amplía solo si hay que completar.
+      pools.set(courseId, await practicePool(courseId, (want.get(courseId) ?? 0) + missing));
       const extra = pickFresh(pools.get(courseId) ?? [], missing, seen, taken, `${seed}:${courseId}:extra`);
       extra.forEach((question) => taken.add(question.questionId));
       picked.push(...extra);
@@ -1272,7 +1323,58 @@ export class SimulatorService {
     };
   }
 
+  /**
+   * Muestra de preguntas de un curso (o de sus [topicIds]). Con el índice del
+   * curso (question_index.ts) ordena todo el banco con la semilla, deja las
+   * vistas al final y lee solo [PoolOptions.need] + 2 preguntas; sin índice
+   * usa las dos consultas al azar de antes.
+   */
   private async coursePool(
+    courseId: string,
+    topicIds: readonly string[],
+    wanted: number,
+    seed: string,
+    metrics: OperationMetrics,
+    options: PoolOptions = {}
+  ): Promise<CandidateQuestion[]> {
+    const index = await this.questionIndex(courseId, metrics);
+    if (index === undefined) return this.coursePoolByQuery(courseId, topicIds, wanted, seed, metrics);
+    let cursors = this.cursors.get(metrics);
+    if (cursors === undefined) {
+      cursors = new Map();
+      this.cursors.set(metrics, cursors);
+    }
+    const key = `${courseId}|${topicIds.join(",")}|${seed}`;
+    let cursor = cursors.get(key);
+    if (cursor === undefined) {
+      const scoped = index.filter((entry) =>
+        (topicIds.length === 0 || topicIds.includes(entry.topicId)) && (options.accept?.(entry) ?? true));
+      const mixed = shuffle(scoped, `${seed}:index`);
+      const seen = options.seen ?? new Set<string>();
+      cursor = {
+        order: [...mixed.filter((entry) => !seen.has(entry.id)), ...mixed.filter((entry) => seen.has(entry.id))],
+        next: 0,
+        loaded: []
+      };
+      cursors.set(key, cursor);
+    }
+    const target = (options.need ?? wanted) + poolMargin;
+    while (cursor.loaded.length < target && cursor.next < cursor.order.length) {
+      const batch = cursor.order.slice(cursor.next, cursor.next + target - cursor.loaded.length);
+      cursor.next += batch.length;
+      const docs = await this.db.getAll(...batch.map((entry) => this.db.collection(this.config.collections.questions).doc(entry.id)));
+      metrics.readDocument(docs.length);
+      for (const document of docs) {
+        // El índice puede ir un instante detrás: la pregunta se vuelve a validar.
+        const parsed = document.exists ? parseCandidateQuestion(document.id, document.data() ?? {}) : undefined;
+        if (parsed !== undefined && parsed.courseId === courseId) cursor.loaded.push(parsed);
+      }
+    }
+    return [...cursor.loaded];
+  }
+
+  /** Muestra sin índice: dos arranques al azar de `maxCandidatesPerStart` (antes de los índices). */
+  private async coursePoolByQuery(
     courseId: string,
     topicIds: readonly string[],
     wanted: number,
@@ -1340,15 +1442,14 @@ export class SimulatorService {
   /** Picked questions the student did not see in the XP repeat window. */
   private async freshForXp(uid: string, questionIds: readonly string[], now: number, metrics: OperationMetrics): Promise<string[]> {
     if (questionIds.length === 0) return [];
-    const [xpConfig, seen] = await Promise.all([
+    // Sale del mismo documento de preguntas vistas: sin lecturas extra.
+    const [xpConfig, memory] = await Promise.all([
       readConfigDoc(this.db, this.config, "xp", metrics),
-      this.db.getAll(...questionIds.map((id) => this.userRef(uid).collection("recentQuestions").doc(id)))
+      this.memory(uid, metrics)
     ]);
-    metrics.readDocument(seen.length);
     const windowMs = parseXpSettings(xpConfig).repeatWindowDays * dayMs;
-    return questionIds.filter((_, index) => {
-      const last = seen[index]?.data()?.lastSeenAt;
-      const lastMs = last instanceof Timestamp ? last.toMillis() : undefined;
+    return questionIds.filter((id) => {
+      const lastMs = memory.seen.get(id)?.t;
       return lastMs === undefined || now - lastMs >= windowMs;
     });
   }
@@ -1356,14 +1457,8 @@ export class SimulatorService {
   private async seenSince(uid: string, days: number, metrics: OperationMetrics): Promise<Set<string>> {
     if (days === 0) return new Set();
     const selection = await loadExamSelection(this.db, this.config, metrics);
-    const recent = await this.userRef(uid)
-      .collection("recentQuestions")
-      .where("lastSeenAt", ">=", new Date(Date.now() - days * dayMs))
-      .orderBy("lastSeenAt", "desc")
-      .limit(selection.simulatorSeenLimit)
-      .get();
-    metrics.readQuery(recent.size);
-    return new Set(recent.docs.map((document) => document.id));
+    const memory = await this.memory(uid, metrics);
+    return memorySeenSince(memory, Date.now() - days * dayMs, selection.simulatorSeenLimit);
   }
 
   private async profile(

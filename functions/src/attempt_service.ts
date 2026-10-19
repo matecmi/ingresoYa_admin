@@ -26,6 +26,7 @@ import {
   parseTemplate
 } from "./exam_contracts";
 import { failedPrecondition, invalidArgument, notFound, resourceExhausted } from "./errors";
+import { type ExamMemoryState, loadExamMemory, recordExposure, recentExposure as memoryExposure } from "./exam_memory";
 import {
   assessExamApproval,
   assessSectionsCompletion,
@@ -252,12 +253,13 @@ export class ExamAttemptService {
     const contextPromise = input.purpose === "part_completion"
       ? this.partContext(uid, input.partId, metrics, input.templateId, input.catalog)
       : this.masteryContext(uid, input, metrics);
-    const [profile, context, template, recentExposure] = await Promise.all([
+    const [profile, context, template, memory] = await Promise.all([
       this.profileUniversity(uid, metrics),
       contextPromise,
       this.template(input.templateId, metrics),
-      this.recentExposure(uid, metrics)
+      this.examMemory(uid, metrics)
     ]);
+    const recentExposure = await this.recentExposure(memory, metrics);
     if (template.purpose !== input.purpose || template.mode !== "dynamic") {
       throw failedPrecondition("The template cannot create this type of attempt.", {
         reason: "template_incompatible"
@@ -335,27 +337,13 @@ export class ExamAttemptService {
         // Idempotency only matters for retries; TTL removes old keys.
         expireAt: new Date(now + requestKeyRetentionMs)
       });
-      for (const question of response.questions) {
-        transaction.set(
-          this.db
-            .collection(this.config.collections.users)
-            .doc(uid)
-            .collection("recentQuestions")
-            .doc(question.questionId),
-          {
-            exposureCount: FieldValue.increment(1),
-            lastSeenAt: FieldValue.serverTimestamp(),
-            // Firestore TTL (firestore.indexes.json) deletes old exposure.
-            expireAt: new Date(now + recentQuestionRetentionMs)
-          },
-          { merge: true }
-        );
-      }
+      // Preguntas vistas: un solo documento (exam_memory.ts), no uno por pregunta.
+      recordExposure(transaction, this.db, this.config, uid, memory, response.questions.map((question) => question.questionId), now);
       return true;
     });
     if (!created) return this.responseForRequest(uid, input, metrics);
-    // Attempt, idempotency key and one recent-question record per selected item.
-    metrics.writeDocument(2 + response.questions.length);
+    // Attempt, idempotency key and the seen-questions document.
+    metrics.writeDocument(3);
     return response;
   }
 
@@ -1368,23 +1356,15 @@ export class ExamAttemptService {
     return parseTemplate(snapshot.data()!, templateId);
   }
 
-  private async recentExposure(uid: string, metrics: OperationMetrics): Promise<Map<string, number>> {
+  /** Preguntas vistas (exam_memory.ts): un documento en vez de `recentQuestionLimit`. */
+  private async examMemory(uid: string, metrics: OperationMetrics): Promise<ExamMemoryState> {
+    return loadExamMemory(this.db, this.config, uid, metrics);
+  }
+
+  private async recentExposure(memory: ExamMemoryState, metrics: OperationMetrics): Promise<Map<string, number>> {
     const selection = await loadExamSelection(this.db, this.config, metrics);
-    const snapshots = await this.db
-      .collection(this.config.collections.users)
-      .doc(uid)
-      .collection("recentQuestions")
-      // The most recently seen questions, not the first IDs alphabetically.
-      .orderBy("lastSeenAt", "desc")
-      .limit(selection.recentQuestionLimit)
-      .get();
-    metrics.readQuery(snapshots.size);
-    return new Map(
-      snapshots.docs.map((document) => [
-        document.id,
-        typeof document.data().exposureCount === "number" ? document.data().exposureCount : 0
-      ])
-    );
+    // The most recently seen questions, not the first IDs alphabetically.
+    return memoryExposure(memory, selection.recentQuestionLimit);
   }
 
   private async select(
@@ -1729,7 +1709,6 @@ function hasPassed(result: StoredExamResult): boolean {
 }
 
 /** How long a seen question keeps lowering its chance of selection. */
-const recentQuestionRetentionMs = 120 * 24 * 60 * 60 * 1000;
 /** Idempotency keys only protect retries of the same request. */
 const requestKeyRetentionMs = 30 * 24 * 60 * 60 * 1000;
 
