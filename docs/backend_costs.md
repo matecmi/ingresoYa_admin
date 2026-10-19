@@ -75,8 +75,9 @@ impedir una consulta accidentalmente abierta:
 | `EXAM_RECENT_QUESTION_LIMIT` | 200 (TEST usa 60) | 1–200 |
 
 Desde la Fase 1A de la reestructuración de costos (2026-10-18) TEST corre con
-2 / 40 / 60: la mitad de escaneos de candidatos y menos preguntas recientes por
-examen. La Fase 3C los pasa a `{config}/exam` para ajustarlos desde el admin.
+2 / 40 / 60. Desde la Fase 3C los límites vigentes salen de `{config}/exam`
+(Configuración → Exámenes, `docs/exam_config_contract.md`); las variables de
+entorno son solo el respaldo.
 La medición antes y después está en `docs/cost_baseline.md`.
 
 `firestore.rules`, `storage.rules`, `firestore.indexes.json`, `firebase.json`,

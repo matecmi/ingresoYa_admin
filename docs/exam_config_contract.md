@@ -20,6 +20,10 @@ rechequeaba la XP.
 | --- | --- | --- | --- | --- |
 | `saveEveryAnswers` | number | 1 a 20 | 5 | Respuestas nuevas que la app acumula antes de guardarlas en el servidor. 1 = una llamada por respuesta, como antes. |
 | `saveEverySeconds` | number | 5 a 300 | 30 | Segundos como máximo entre un cambio y su guardado cuando no se llega a `saveEveryAnswers`. |
+| `candidateStartsPerBlock` | number | 1 a 8 | 2 | Fase 3C. Escaneos aleatorios del banco por bloque al armar un examen de la guía. Más = más variedad y más lecturas. |
+| `maxCandidatesPerStart` | number | 20 a 80 | 40 | Fase 3C. Candidatas por escaneo; también tope de cada pool por curso del Simulador. |
+| `recentQuestionLimit` | number | 1 a 200 | 60 | Fase 3C. Preguntas recientes del alumno que la guía revisa para no repetir. |
+| `simulatorSeenLimit` | number | 20 a 500 | 100 | Fase 3C. Preguntas vistas que el Simulador revisa dentro de sus «días sin repetir». |
 | `schemaVersion`, `updatedAt`, `updatedBy` | — | — | — | Los escribe el admin al guardar. |
 
 Lectura: como el resto del catálogo (reglas `isCatalog`). Escritura: solo el
@@ -51,6 +55,32 @@ admin (`AppConfigRepo.saveExamSettings`).
   examen de la parte se envían también (ya existía).
 - La XP de las secciones llega con ese envío; la barra de progreso es local y
   no espera.
+
+
+## Selección de preguntas (Fase 3C, 2026-10-18)
+
+Las Functions leen `{config}/exam` (`functions/src/exam_config.ts`) en vez
+de las variables de entorno `EXAM_*`, que quedan como respaldo cuando el
+documento no existe o un valor está fuera de rango. El documento se lee una
+vez por instancia y se recuerda 5 minutos (`config_cache.ts`); un cambio del
+admin tarda a lo sumo eso en aplicarse.
+
+- Examen de la guía (`attempt_service.ts`): `recentQuestionLimit` preguntas
+  recientes y `candidateStartsPerBlock × maxCandidatesPerStart` candidatas
+  como máximo por bloque.
+- Simulador (`simulator_service.ts`): `simulatorSeenLimit` vistas en la
+  ventana de repetición (antes 500 fijas) y pools por curso acotados por
+  `maxCandidatesPerStart`.
+- La lista de cursos activos se recuerda 5 minutos por instancia
+  (`catalog_cache.ts`): el modo aleatorio, el diagnóstico y el reto del día
+  ya no leen la colección completa en cada llamada.
+- **Reto del día de noche:** `generateDailyChallenges` (00:05 Lima) arma el
+  reto de cada universidad activa; el primer alumno del día ya no paga las
+  ~1.400 lecturas de construirlo. Si la tarea falló, `createExamAttempt` lo
+  arma al pedirlo, como antes.
+
+Preajustes en Configuración → Exámenes: Económico (1 / 20 / 30 / 50),
+Recomendado (2 / 40 / 60 / 100) y Variado (4 / 80 / 200 / 300).
 
 ## Costo esperado
 

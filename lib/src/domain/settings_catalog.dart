@@ -1025,10 +1025,31 @@ final List<SettingsTopic> settingsTopics = [
     label: 'Exámenes',
     icon: Icons.save_outlined,
     intro:
-        'Cómo guarda la app las respuestas mientras el alumno rinde un examen. '
-        'Las respuestas nunca se pierden en el teléfono; esto decide cada '
-        'cuánto viajan al servidor (cada viaje es una llamada y una lectura y '
-        'escritura del intento completo).',
+        'Cómo guarda la app las respuestas mientras el alumno rinde un examen '
+        'y cuántas preguntas revisa el servidor para armar cada examen. Las '
+        'respuestas nunca se pierden en el teléfono; esto decide cada cuánto '
+        'viajan y cuánto cuesta cada examen en lecturas.',
+    presetQuestion: '¿Cuánta variedad quieres al armar los exámenes?',
+    presets: const [
+      SettingsPreset('Económico', {
+        'candidateStartsPerBlock': 1,
+        'maxCandidatesPerStart': 20,
+        'recentQuestionLimit': 30,
+        'simulatorSeenLimit': 50,
+      }),
+      SettingsPreset('Recomendado', {
+        'candidateStartsPerBlock': 2,
+        'maxCandidatesPerStart': 40,
+        'recentQuestionLimit': 60,
+        'simulatorSeenLimit': 100,
+      }, recommended: true),
+      SettingsPreset('Variado', {
+        'candidateStartsPerBlock': 4,
+        'maxCandidatesPerStart': 80,
+        'recentQuestionLimit': 200,
+        'simulatorSeenLimit': 300,
+      }),
+    ],
     specs: [
       SettingSpec(
         doc: SettingsDoc.exam,
@@ -1061,6 +1082,70 @@ final List<SettingsTopic> settingsTopics = [
         unit: 's',
         help: 'Aunque no se llegue al número de respuestas.',
         keywords: 'guardar respuestas costo segundos examen',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['candidateStartsPerBlock'],
+        question: '¿Cuántos escaneos del banco hace el servidor por bloque?',
+        label: 'Escaneos por bloque',
+        min: ExamSettings.minCandidateStarts,
+        max: ExamSettings.maxCandidateStarts,
+        unit: 'escaneos',
+        help:
+            'Cada escaneo trae candidatas desde un punto aleatorio del banco. '
+            'Más escaneos = más variedad y más lecturas por examen.',
+        keywords: 'lecturas costo variedad seleccion banco',
+        advanced: true,
+        inPractice: (v) {
+          final starts = _int(v, SettingsDoc.exam, [
+            'candidateStartsPerBlock',
+          ], 2);
+          final per = _int(v, SettingsDoc.exam, ['maxCandidatesPerStart'], 40);
+          final recent = _int(v, SettingsDoc.exam, ['recentQuestionLimit'], 60);
+          return 'Un examen de parte de 10 preguntas lee hasta '
+              '${starts * per} candidatas y $recent preguntas recientes del '
+              'alumno (más unas 10 lecturas fijas).';
+        },
+      ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['maxCandidatesPerStart'],
+        question: '¿Cuántas candidatas trae cada escaneo?',
+        label: 'Candidatas por escaneo',
+        min: ExamSettings.candidatesPerStartMin,
+        max: ExamSettings.candidatesPerStartMax,
+        unit: 'preguntas',
+        help: 'También es el tope de cada pool por curso del Simulador.',
+        keywords: 'lecturas costo candidatas seleccion',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['recentQuestionLimit'],
+        question:
+            '¿Cuántas preguntas recientes del alumno se revisan para no repetir (guía)?',
+        label: 'Recientes revisadas (guía)',
+        min: ExamSettings.minRecentQuestions,
+        max: ExamSettings.maxRecentQuestions,
+        unit: 'preguntas',
+        help: 'Las más recientes. Cada una es una lectura al crear el examen.',
+        keywords: 'lecturas costo repetir recientes',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.exam,
+        path: const ['simulatorSeenLimit'],
+        question:
+            '¿Cuántas preguntas vistas revisa el Simulador en su ventana de repetición?',
+        label: 'Vistas revisadas (Simulador)',
+        min: ExamSettings.minSimulatorSeen,
+        max: ExamSettings.maxSimulatorSeen,
+        unit: 'preguntas',
+        help:
+            'Dentro de los «días sin repetir» del Simulador. Cada una es una '
+            'lectura al crear la práctica o «Hoy te toca».',
+        keywords: 'lecturas costo repetir simulador vistas',
         advanced: true,
       ),
     ],
