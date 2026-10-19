@@ -17,7 +17,9 @@ class ExamSettings {
 
   static const minSaveEveryAnswers = 1;
   static const maxSaveEveryAnswers = 20;
-  static const minSaveEverySeconds = 5;
+
+  /// 0 = sin guardado por tiempo (solo por respuestas, al salir y al enviar).
+  static const minSaveEverySeconds = 0;
   static const maxSaveEverySeconds = 300;
   static const minCandidateStarts = 1;
   static const maxCandidateStarts = 8;

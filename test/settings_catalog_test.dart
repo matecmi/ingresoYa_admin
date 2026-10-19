@@ -10,6 +10,24 @@ void main() {
     }
   });
 
+  test('cada ajuste explica para qué sirve', () {
+    // Kevin (2026-10-19): toda opción de Configuración lleva su descripción.
+    for (final spec in allSettingSpecs) {
+      expect(spec.help.trim(), isNotEmpty, reason: spec.id);
+    }
+  });
+
+  test('guardar por tiempo se puede apagar con 0', () {
+    final spec = allSettingSpecs.firstWhere(
+      (s) => s.id == 'exam.saveEverySeconds',
+    );
+    expect(spec.min, 0);
+    expect(
+      validateDoc(spec.doc, writePath(factoryValues(spec.doc), spec.path, 0)),
+      isNull,
+    );
+  });
+
   test('los ids no se repiten', () {
     final ids = allSettingSpecs.map((s) => s.id).toList();
     expect(ids.toSet().length, ids.length);

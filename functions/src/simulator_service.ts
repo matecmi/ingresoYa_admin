@@ -674,6 +674,15 @@ export class SimulatorService {
         ? undefined
         : await transaction.get(this.userRef(uid).collection("simulatorTopicStats"));
       if (legacyTopics !== undefined) metrics.readQuery(legacyTopics.size);
+      // Últimos resultados dentro del mismo resumen: la app los lee con esa
+      // única lectura en vez de hasta `resultsLimit` documentos. La primera
+      // vez se copian de `simulatorResults`.
+      const storedRecent = summaryDoc.data()?.recentResults;
+      const legacyResults = Array.isArray(storedRecent)
+        ? undefined
+        : await transaction.get(this.userRef(uid).collection("simulatorResults")
+          .orderBy("submittedAtMs", "desc").limit(recentResultsMax));
+      if (legacyResults !== undefined) metrics.readQuery(legacyResults.size);
       // «+N vs. anterior»: the score of the previous try at the same exam.
       const previousScore = best?.data()?.lastScore;
       if (typeof previousScore === "number") result.previousScore = previousScore;
@@ -744,14 +753,20 @@ export class SimulatorService {
       for (const info of meta.values()) {
         if (info.topicId.length > 0) topicCourses.set(info.topicId, info.courseId);
       }
-      if (result.byTopic.length > 0) {
-        transaction.set(
-          summaryRef,
-          summaryUpdate(legacyTopics?.docs.map((doc) => [doc.id, doc.data()]), result.byTopic, topicCourses, now),
-          { merge: true }
-        );
-        metrics.writeDocument();
-      }
+      const previousRecent = Array.isArray(storedRecent)
+        ? storedRecent
+        : (legacyResults?.docs ?? []).map((doc) => ({ ...doc.data(), attemptId: doc.id }));
+      transaction.set(
+        summaryRef,
+        {
+          ...(result.byTopic.length > 0
+            ? summaryUpdate(legacyTopics?.docs.map((doc) => [doc.id, doc.data()]), result.byTopic, topicCourses, now)
+            : { schemaVersion: 1, updatedAtMs: now }),
+          recentResults: recentResultsUpdate(previousRecent, summary)
+        },
+        { merge: true }
+      );
+      metrics.writeDocument();
       transaction.set(
         this.userRef(uid).collection("learningEvents").doc(`${purpose}_completed_${input.attemptId}`),
         learningEvent(`${purpose}_completed`, {
@@ -1593,6 +1608,26 @@ export function publicSimulatorContext(
 export function questionCourseIds(data: Record<string, unknown>, questions: readonly AttemptQuestionSnapshot[]): string[] {
   const meta = parseQuestionMeta(data.questionMeta);
   return questions.map((question) => meta.get(question.questionId)?.courseId ?? "");
+}
+
+/** Cuántos resultados recientes guarda el resumen (el máximo de `resultsLimit`). */
+export const recentResultsMax = 200;
+
+/** Lo que la app necesita de un resultado (`resultSummaryFromMap`), sin los campos del servidor. */
+export function recentResultEntry(value: Record<string, unknown>): Record<string, unknown> {
+  const keys = ["attemptId", "purpose", "title", "examId", "mode", "total", "correct", "incorrect", "blank", "score",
+    "maxScore", "percentage", "timeUsedSeconds", "byCourse", "cutoffScore", "reachedCutoff", "submittedAtMs"];
+  return Object.fromEntries(keys.filter((key) => value[key] !== undefined).map((key) => [key, value[key]]));
+}
+
+/** El resultado nuevo primero, sin duplicar el intento, hasta [recentResultsMax]. */
+export function recentResultsUpdate(previous: readonly unknown[], latest: Record<string, unknown>): Record<string, unknown>[] {
+  const entry = recentResultEntry(latest);
+  const rest = previous
+    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
+    .filter((item) => item.attemptId !== entry.attemptId)
+    .map(recentResultEntry);
+  return [entry, ...rest].slice(0, recentResultsMax);
 }
 
 /**

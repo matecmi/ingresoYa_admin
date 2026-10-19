@@ -212,6 +212,14 @@ tolerando `streakGraceDays` días sin práctica.
   `simulatorTopicStats` (que deja de escribirse). Lectura: el dueño. La app y
   el plan «Hoy te toca» lo leen con una lectura; si falta, caen a la
   subcolección antigua.
+- Desde el 2026-10-19 el mismo documento lleva `recentResults`: los últimos
+  200 resultados (el más nuevo primero) con los campos que la app muestra
+  (`attemptId`, `purpose`, `title`, `examId`, `mode`, `total`, `correct`,
+  `incorrect`, `blank`, `score`, `maxScore`, `percentage`, `timeUsedSeconds`,
+  `byCourse`, `cutoffScore`, `reachedCutoff`, `submittedAtMs`). Lo reescribe
+  cada envío; la primera vez copia los de `simulatorResults` (que se sigue
+  escribiendo para la ficha del alumno en el admin). La app lee de aquí los
+  `resultsLimit` más recientes con una lectura en vez de uno por resultado.
 - Los intentos (`attempts`) enviados llevan `expireAt` = fecha de envío +
   `{config}/exam.attemptRetentionDays` (180 de fábrica) y una política TTL los
   borra. `questionSnapshots`, `questionMeta` y `answers` quedan exentos de
