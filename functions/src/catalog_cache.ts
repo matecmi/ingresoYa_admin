@@ -25,7 +25,8 @@ export async function activeCourseIds(
   nowMs: number = Date.now()
 ): Promise<string[]> {
   const key = config.collections.courses;
-  if (cached !== undefined && cached.key === key && nowMs - cached.atMs < CATALOG_CACHE_TTL_MS) {
+  const ttl = process.env.FIRESTORE_EMULATOR_HOST ? 0 : CATALOG_CACHE_TTL_MS;
+  if (cached !== undefined && cached.key === key && nowMs - cached.atMs < ttl) {
     return cached.ids;
   }
   const courses = await db.collection(key).get();

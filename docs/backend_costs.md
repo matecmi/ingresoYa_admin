@@ -95,3 +95,28 @@ no despliega ninguno de esos artefactos.
    por evento; revisar p50/p95/p99 y errores estructurados.
 4. Confirmar con el panel de uso/facturación de Firebase para el proyecto de
    staging. No extrapolar métricas del emulador a costos de producción.
+
+## Fase 3B de la reestructuración de costos (2026-10-18): menos trabajo por llamada
+
+- **Configuración en caché por instancia** (`config_cache.ts`, 5 minutos):
+  `{config}/xp`, `rankings`, `simulator` y `exam` ya no se leen en cada
+  llamada. Un envío de reto del día leía `xp` tres veces; ahora cero en una
+  instancia caliente.
+- **El intento se lee una vez por envío:** `submit` devuelve el documento tal
+  como quedó (`attemptData`, interno) y `afterAttempt`,
+  `afterSimulatorAttempt` y `recordEntry` lo reutilizan. Antes el mismo
+  intento (25 a 250 KB) se leía 2 o 3 veces en la misma llamada.
+- **Sin rechequeo de XP cuando no hay nada nuevo:**
+  `recordPartSectionCompletion` devuelve `changed: false` si la llamada no
+  registró ninguna sección ni completó la parte, y el handler no llama a
+  `afterGuide` (que leía el avance, hasta 3 eventos y hasta 8 movimientos de
+  XP para no conceder nada).
+- **Tarjeta pública solo con rankings encendidos:** `XpService.grant` deja de
+  escribir `leaderboard/{uid}` mientras `{config}/rankings.enabled` es false;
+  la siguiente concesión tras encenderlos la reescribe.
+
+| Operación | Antes (lecturas) | Después |
+| --- | ---: | ---: |
+| Sección repetida (`recordPartSectionCompletion`) | 5 + 10 a 15 | 5 |
+| Envío de examen de parte (incluida la XP) | n + 3 + 1 + 15 | n + 3 + 10 |
+| Envío de reto del día | n + 4 + 3 lecturas de `xp` + 2 del intento | n + 4 |
