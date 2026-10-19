@@ -5,6 +5,7 @@ import {
   applyXpGrants,
   defaultXpSettings,
   emptyXpState,
+  explanationGrant,
   guideGrants,
   parseRanks,
   parseXpSettings,
@@ -69,6 +70,25 @@ test("the daily cap limits only repeatable events and resets the next Peru day",
   assert.equal(state.today.capped, 10);
   assert.equal(state.week.xp, 75);
   assert.equal(state.week.sessionDays.length, 2);
+});
+
+test("explanation videos give XP once per question, with their own daily cap", () => {
+  const grants = ["q1", "q2", "q3", "q4", "q5", "q6"].flatMap((question) => explanationGrant("att1", question, wednesday, settings));
+  assert.equal(grants[0]?.id, "explanation_att1_q1");
+  assert.equal(grants[0]?.xp, 5);
+  const { state, applied } = applyXpGrants(emptyXpState(), grants, settings);
+  assert.deepEqual(applied.map((event) => event.xp), [5, 5, 5, 5, 5, 0]);
+  assert.equal(state.today.explained, 25);
+  assert.equal(state.today.capped, 0); // the general cap is not touched
+  const tomorrow = applyXpGrants(state, explanationGrant("att2", "q1", wednesday + 24 * hour, settings), settings);
+  assert.equal(tomorrow.applied[0]?.xp, 5);
+  assert.equal(tomorrow.state.today.explained, 5);
+  assert.deepEqual(explanationGrant("att1", "q1", wednesday, { ...settings, amounts: { ...settings.amounts, explanationVideo: 0 } }), []);
+  assert.deepEqual(explanationGrant("att1", "q1", wednesday, { ...settings, explanationVideoDailyCap: 0 }), []);
+  const custom = parseXpSettings({ amounts: { explanationVideo: 8 }, explanationVideoDailyCap: 40 });
+  assert.equal(custom.amounts.explanationVideo, 8);
+  assert.equal(custom.explanationVideoDailyCap, 40);
+  assert.equal(parseXpSettings({ explanationVideoDailyCap: -1 }).explanationVideoDailyCap, 25);
 });
 
 test("the rank never goes down, even if thresholds rise", () => {

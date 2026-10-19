@@ -631,6 +631,33 @@ final List<SettingsTopic> settingsTopics = [
       ),
       SettingSpec(
         doc: SettingsDoc.xp,
+        path: const ['explanationVideoDailyCap'],
+        question:
+            '¿Cuánto XP como máximo por día por ver explicaciones con video?',
+        label: 'Tope diario de explicaciones con video',
+        min: 0,
+        max: 1000,
+        unit: 'XP',
+        help:
+            'Tope propio, aparte del tope diario. 0 = el video abre la '
+            'explicación sin dar XP. Cada pregunta fallada da XP una sola vez.',
+        inPractice: (v) {
+          final cap = _int(v, SettingsDoc.xp, ['explanationVideoDailyCap'], 25);
+          final each = _int(v, SettingsDoc.xp, [
+            'amounts',
+            'explanationVideo',
+          ], 5);
+          if (cap == 0 || each == 0) {
+            return 'El video abre la explicación sin dar XP: «Desbloquea la explicación».';
+          }
+          final videos = (cap + each - 1) ~/ each;
+          return '«Ver video · +$each XP» hasta $videos videos al día; '
+              'después: «Hoy ya ganaste tus $cap XP».';
+        },
+        keywords: 'xp video anuncio recompensado explicación candado',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.xp,
         path: const ['minQuestionsPerSession'],
         question: '¿Cuántas preguntas como mínimo para que una sesión dé XP?',
         label: 'Mínimo por sesión (XP)',
@@ -1379,7 +1406,8 @@ final List<SettingsTopic> settingsTopics = [
         question: '¿Banner al pie del Perfil?',
         label: 'Banner en Perfil',
         kind: SettingKind.toggle,
-        help: 'En el Perfil del alumno (donde también está la tarjeta Premium).',
+        help:
+            'En el Perfil del alumno (donde también está la tarjeta Premium).',
         keywords: 'banner perfil franja',
         inPractice: (v) => _bannerPractice(v),
       ),

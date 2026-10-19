@@ -216,6 +216,9 @@ class XpRepo {
       if (today['day'] == data['day'] && capped.contains(data['type'])) {
         today['capped'] = ((today['capped'] as num?)?.toInt() ?? 0) - xp;
       }
+      if (today['day'] == data['day'] && data['type'] == 'explanation_video') {
+        today['explained'] = ((today['explained'] as num?)?.toInt() ?? 0) - xp;
+      }
       transaction.update(eventRef, {
         'reverted': true,
         'revertedXp': xp,

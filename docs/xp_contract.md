@@ -25,26 +25,29 @@ Compartido por el admin, Functions y la app (`iya-app/docs/xp_contract.md` es un
 | `streak_day` | `streak_{día}` | 5 por día con sesión que cuenta | sí |
 | `weekly_goal` | `weekly_goal_{lunes}` | 50 al llegar a las sesiones por semana de la meta (`simulatorPlan/current.sessionsPerWeek`) | no |
 | `daily_challenge` | `daily_challenge_{día}` | Bono del reto del día (`{config}/rankings.challenge.bonusXp`, 20), además de la sesión | no |
+| `explanation_video` | `explanation_{attemptId}_{questionId}` | 5 (`amounts.explanationVideo`) al ver completo el video de la explicación de una pregunta fallada o en blanco | propio: `explanationVideoDailyCap` (25) |
 
 **Respuesta correcta nueva:** al crear el intento, el servidor anota en `xpFreshQuestionIds` las preguntas que el alumno no vio en `repeatWindowDays`. Al entregar, guarda en `xpBasis.freshCorrect` cuántas de esas acertó.
 
 **Juego limpio:**
 - Una sesión del Simulador respondida a menos de `minSecondsPerQuestion` segundos por pregunta en promedio no da XP.
 - El tope diario (`dailyCap`) limita solo los tipos marcados con «sí» en la tabla.
+- `explanation_video` tiene su propio tope por día de Perú (`explanationVideoDailyCap`, se suma en `today.explained`) y no cuenta para `dailyCap`. Con el monto o el tope en 0 el video abre la explicación sin dar XP.
 
 **Cuándo se otorga:**
 - `submitExamAttempt`: Simulador, o parte, subtema y dominio de la guía.
 - `recordPartSectionCompletion`: secciones, parte y subtema.
 - `reconcileSubtopicAchievement`: subtema.
+- `claimExplanationXp({attemptId, questionId})`: explicación con video. La app la llama solo cuando el alumno vio el video completo (no si no había video). El servidor exige que el intento sea del alumno, esté entregado y que la pregunta no haya sido correcta; responde `{xp?}` y no da nada si el evento ya existe o se llegó al tope.
 
-Las tres respuestas incluyen `xp` (§4) cuando algo se otorgó.
+Las respuestas incluyen `xp` (§4) cuando algo se otorgó.
 
 ## 3. Datos
 
 | Ruta | Contenido | Escribe | Lee |
 |---|---|---|---|
-| `{config}/xp` | `ranks[{name, minXp, image}]`, `starsEnabled`, `xpPerStar`, `amounts{…}`, `dailyCap`, `minQuestionsPerSession`, `repeatWindowDays`, `minSecondsPerQuestion`, `pastExamEveryDays` | Admin | Functions, app |
-| `{profile}/{uid}/xp/current` | `total`, `rankStep` (el más alto alcanzado), `today{day, capped}`, `week{key, xp, sessionDays[]}`, `pastExamDays{examId: día}`, `updatedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
+| `{config}/xp` | `ranks[{name, minXp, image}]`, `starsEnabled`, `xpPerStar`, `amounts{…}`, `dailyCap`, `minQuestionsPerSession`, `repeatWindowDays`, `minSecondsPerQuestion`, `pastExamEveryDays`, `explanationVideoDailyCap` | Admin | Functions, app |
+| `{profile}/{uid}/xp/current` | `total`, `rankStep` (el más alto alcanzado), `today{day, capped, explained}`, `week{key, xp, sessionDays[]}`, `pastExamDays{examId: día}`, `updatedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
 | `{profile}/{uid}/xpEvents/{id}` | `type`, `xp`, `requested`, `count?`, `day`, `week`, `atMs`, `source{…}`, `createdAt`; si se revirtió: `reverted`, `revertedXp`, `revertReason`, `revertedBy`, `revertedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
 | `{profile}/{uid}/ranking/current` | `alias`, `visible`, `moderatedReason`, `updatedAtMs` (fase 2) | Functions (y el admin al retirar un alias) | Dueño, admin |
 | `iya-leaderboard-{env}/{uid}` | `alias`, `total`, `rankStep`, `stars`, `universityId`, `universityAcronym`, `professionId`, `professionName`, `updatedAtMs` (fase 2) | Functions (el admin actualiza al revertir y borra al moderar) | Cualquier alumno con sesión |
@@ -60,7 +63,7 @@ Las tres respuestas incluyen `xp` (§4) cuando algo se otorgó.
   - Maestro I-III: 9 000 · 10 500 · 12 000
 - **Imágenes:** `{bronze|silver|platinum|sapphire|amethyst|master}_{1|6|12}`. Son las que trae la app en `assets/ranks/`.
 - **Estrellas:** activadas, una cada 2 000 XP después del último escalón.
-- **Límites:** `dailyCap` 300, `minQuestionsPerSession` 10, `repeatWindowDays` 14, `minSecondsPerQuestion` 5, `pastExamEveryDays` 7.
+- **Límites:** `dailyCap` 300, `minQuestionsPerSession` 10, `repeatWindowDays` 14, `minSecondsPerQuestion` 5, `pastExamEveryDays` 7, `explanationVideoDailyCap` 25 (`amounts.explanationVideo` 5).
 
 **Reglas de la escalera:** debe empezar en 0, crecer siempre y usar imágenes de la lista. Si no cumple, se usa la de fábrica.
 
@@ -68,7 +71,7 @@ Las tres respuestas incluyen `xp` (§4) cuando algo se otorgó.
 
 ## 4. Respuesta `xp` (`XpAward`)
 
-`{gained, items[{type, xp, requested, count?}], totalBefore, total, rankStepBefore, rankStep, starsBefore, stars, todayCapped, dailyCap}`
+`{gained, items[{type, xp, requested, count?}], totalBefore, total, rankStepBefore, rankStep, starsBefore, stars, todayCapped, dailyCap, todayExplained, explanationDailyCap}`
 
 La app la usa para mostrar «+N XP» con su desglose y celebrar si `rankStep` o `stars` subieron.
 
@@ -76,7 +79,7 @@ La app la usa para mostrar «+N XP» con su desglose y celebrar si `rankStep` o 
 
 En Configuración → XP de un alumno se busca al alumno por correo o uid, se ve su libro de XP y se revierte un evento indicando el motivo. Todo ocurre en una transacción:
 - El evento queda `reverted: true` con su motivo.
-- Se restan sus XP de `total`, y de `week.xp` si es de la semana actual.
+- Se restan sus XP de `total`, y de `week.xp` si es de la semana actual (y de `today.capped` o `today.explained` si es de hoy y cuenta para ese tope).
 - `rankStep` se recalcula con el nuevo total. Es la única forma en que un rango puede bajar.
 
 El evento revertido no se vuelve a otorgar, porque su id sigue existiendo.

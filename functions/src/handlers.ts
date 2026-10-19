@@ -17,6 +17,7 @@ import { ChallengeService } from "./challenge";
 import { RankingService, parseUpdateRankingProfile, type RankingProfileResponse } from "./ranking";
 import { XpService, type XpAward } from "./xp";
 import {
+  parseClaimExplanationXp,
   parseCreateExamAttempt,
   parseGetAchievementSummary,
   parseGetExamAttempt,
@@ -94,6 +95,23 @@ export function createCallableHandlers(config: BackendConfig) {
         return { ...response, ...await grantXp(uid, () => xp.afterGuide(uid, { subtopicId: input.subtopicId }, metrics), metrics) };
       } catch (error) {
         safeError("subtopic_achievement_reconcile_rejected", error, metrics.logFields(), {
+          environment: config.environment,
+          uid: request.auth?.uid
+        });
+        throw asHttpsError(error);
+      }
+    },
+    /** XP for the explanation opened with a video (docs/xp_contract.md). */
+    async claimExplanationXp(request: CallableRequest<unknown>): Promise<{ xp?: XpAward }> {
+      const metrics = new OperationMetrics();
+      try {
+        const uid = requireUid(request);
+        const input = parseClaimExplanationXp(request.data);
+        const award = await xp.afterExplanationVideo(uid, input.attemptId, input.questionId, metrics);
+        safeLog("explanation_xp_claimed", uid, { ...metrics.logFields(), gained: award?.gained ?? 0 });
+        return award === undefined ? {} : { xp: award };
+      } catch (error) {
+        safeError("explanation_xp_rejected", error, metrics.logFields(), {
           environment: config.environment,
           uid: request.auth?.uid
         });

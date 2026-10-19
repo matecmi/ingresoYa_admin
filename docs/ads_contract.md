@@ -25,7 +25,12 @@ la reestructuración de costos (2026-10-18). El porqué y las cifras:
 - Video recompensado para **ver la explicación de una pregunta fallada** en la
   revisión de un examen; las acertadas se ven directo. Si no hay video
   disponible (sin relleno, sin red, tiempo agotado) la explicación se abre
-  igual: el anuncio nunca bloquea el estudio.
+  igual: el anuncio nunca bloquea el estudio. La tarjeta (degradado de la
+  cabecera, búho guiñando, «Desbloquea la explicación», «Ver video · +5 XP»,
+  «Premium») ofrece XP: si el alumno ve el video completo, la app llama a
+  `claimExplanationXp` y el servidor da `amounts.explanationVideo` (5) con su
+  tope diario `explanationVideoDailyCap` (25), una vez por pregunta
+  (docs/xp_contract.md). Sin video disponible no hay XP.
 - Los alumnos **premium** (Fase 5B, `premium.until` en el perfil) no ven
   ningún anuncio.
 - Apagar `enabled` quita todos los anuncios en la siguiente sesión de cada

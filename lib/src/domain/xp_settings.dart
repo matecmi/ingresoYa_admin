@@ -44,6 +44,7 @@ const xpAmountFields = <(String, String, int)>[
   ('improvementMax', 'Mejora de mejor puntaje (máximo)', 50),
   ('weeklyGoal', 'Meta semanal cumplida', 50),
   ('streakDay', 'Día de racha', 5),
+  ('explanationVideo', 'Explicación vista con video', 5),
 ];
 
 const _names = ['Bronce', 'Plata', 'Platino', 'Zafiro', 'Amatista', 'Maestro'];
@@ -79,6 +80,7 @@ class XpSettings {
     this.repeatWindowDays = 14,
     this.minSecondsPerQuestion = 5,
     this.pastExamEveryDays = 7,
+    this.explanationVideoDailyCap = 25,
   });
 
   final List<RankStep> ranks;
@@ -90,6 +92,9 @@ class XpSettings {
   final int repeatWindowDays;
   final int minSecondsPerQuestion;
   final int pastExamEveryDays;
+
+  /// XP máximo por día de las explicaciones vistas con video (tope propio).
+  final int explanationVideoDailyCap;
 
   static final XpSettings defaults = XpSettings(
     ranks: [
@@ -175,6 +180,12 @@ class XpSettings {
         0,
         365,
       ),
+      explanationVideoDailyCap: _bounded(
+        data['explanationVideoDailyCap'],
+        d.explanationVideoDailyCap,
+        0,
+        1000,
+      ),
     );
   }
 
@@ -188,6 +199,7 @@ class XpSettings {
     'repeatWindowDays': repeatWindowDays,
     'minSecondsPerQuestion': minSecondsPerQuestion,
     'pastExamEveryDays': pastExamEveryDays,
+    'explanationVideoDailyCap': explanationVideoDailyCap,
   };
 
   static String? validateRanks(List<RankStep> ranks) {
@@ -232,6 +244,9 @@ class XpSettings {
     if (pastExamEveryDays < 0 || pastExamEveryDays > 365) {
       return 'Examen pasado cada: entre 0 y 365 días.';
     }
+    if (explanationVideoDailyCap < 0 || explanationVideoDailyCap > 1000) {
+      return 'Tope diario de explicaciones con video: entre 0 y 1000.';
+    }
     return null;
   }
 
@@ -265,4 +280,6 @@ const xpEventLabels = {
   'past_exam_improvement': 'Mejora de puntaje',
   'weekly_goal': 'Meta semanal',
   'streak_day': 'Día de racha',
+  'daily_challenge': 'Reto del día',
+  'explanation_video': 'Explicación vista con video',
 };
