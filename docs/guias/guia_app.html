@@ -364,7 +364,7 @@ flowchart LR
       <tr><td class="msg">«El tiempo del examen terminó.» / «Se terminó el tiempo. Ya no puedes cambiar tus respuestas.»</td><td>Se acabó el tiempo. <b>En la guía no se entrega solo</b>: el siguiente «Rendir» crea un examen nuevo.</td></tr>
       <tr><td class="msg">«¡Aprobaste!» / «Aún no aprobaste»</td><td>Resultado. Se aprueba con más aciertos que el % de la plantilla (estricto).</td></tr>
       <tr><td class="msg">«¡Buen trabajo! Revisa las secciones pendientes de esta parte para completar tu avance.»</td><td>Aprobaste pero falta alguna sección por confirmar.</td></tr>
-      <tr><td class="msg">«Revisión por pregunta»: «Correcta / Incorrecta / Sin responder», «Tu respuesta», «Respuesta correcta», «Explicación»</td><td>Siempre después de entregar.</td></tr>
+      <tr><td class="msg">«Revisión por pregunta»: «Falladas {n} · En blanco {n} · Correctas {n} · Todas», mapa de casillas numeradas, «Pregunta {n} · Incorrecta / Sin responder / Correcta», «Marcaste B · era C», «TU RESPUESTA», «CORRECTA», «Explicación»</td><td>Siempre después de entregar. Abre en «Falladas» (si no hay, en «En blanco»; si tampoco, en «Todas»); la tarjeta cerrada ya muestra el enunciado y las letras; abierta muestra todas las alternativas como en el examen, la tuya en rojo y la correcta en verde. Tocar una casilla del mapa abre esa pregunta.</td></tr>
       <tr><td class="msg">«Volver a la parte» · «Continuar a la siguiente parte»</td><td>El segundo, si aprobaste y no es la última parte.</td></tr>
       <tr><td class="msg">«Tu resultado está listo, pero aún no pudimos actualizar tu avance. Inténtalo de nuevo más tarde.»</td><td>El servidor no devolvió el progreso de la parte.</td></tr>
     </table></div>
@@ -665,7 +665,7 @@ flowchart LR
   <div class="body">
     <h3>Revisión, Mis errores, historial y estadísticas</h3>
     <ul>
-      <li><b>Revisión por pregunta</b>: «Correcta», «Incorrecta» o «Sin responder», tu respuesta, la correcta y la «Explicación» (se oculta si el admin apaga las explicaciones <span class="chip info">ADMIN</span>).</li>
+      <li><b>Revisión por pregunta</b>: filtros «Falladas · En blanco · Correctas · Todas» con su número (abre en Falladas), un mapa con una casilla por pregunta (roja fallada, gris en blanco, verde correcta; al tocarla abre esa pregunta) y una tarjeta por pregunta. Cerrada muestra «Pregunta {n} · Incorrecta», el inicio del enunciado y «Marcaste B · era C»; abierta, el enunciado, todas las alternativas con su letra («TU RESPUESTA» en rojo, «CORRECTA» en verde), la «Explicación» (se oculta si el admin apaga las explicaciones <span class="chip info">ADMIN</span>; en una fallada puede pedir el video) y «Ver en la guía», que cierra el resultado y abre el subtema y la parte de esa pregunta.</li>
       <li><b>Practicar mis errores</b>: examen «Mis errores» con lo que fallaste o dejaste en blanco, hasta 100 preguntas, mezcladas y en la misma versión. Lleva reloj (90 s por pregunta) solo si el original lo tenía.</li>
       <li><b>Tu progreso e historial</b>:
         <ul>
@@ -1074,6 +1074,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>19-oct-2026</b> · Revisión por pregunta renovada (examen de parte, de dominio y Simulador): filtros «Falladas · En blanco · Correctas · Todas», mapa de casillas para saltar a cualquier pregunta, tarjeta que se entiende cerrada («Marcaste B · era C» y el inicio del enunciado), todas las alternativas marcadas al abrirla (rojo la tuya, verde la correcta, gris en blanco) y, en el Simulador, «Ver en la guía» por pregunta.</li>
   <li><b>19-oct-2026</b> · Anuncios: el banner va también en Cursos, Simulador (portada), Stats y Perfil (siete pantallas, cada una con su interruptor en Configuración → Anuncios) y se comparte entre pestañas para aparecer al instante; el anuncio de pantalla completa sale al terminar cada examen, antes del resultado (de fábrica sin espera ni primer examen libre; ambos siguen siendo ajustes del admin). App #123, admin #107.</li>
   <li><b>19-oct-2026</b> · Probado en el teléfono (TEST): banner de prueba en el Inicio, pantalla Premium, tarjeta del Perfil, premium regalado (sin banner), «Restaurar compras» y el aviso del tope diario de exámenes pasados; capturas reales en «Anuncios» y «Plan Premium». Corregido el banner que tomaba media pantalla y dejaba el Inicio vacío (app #122).</li>
   <li><b>19-oct-2026</b> · Plan Premium (Fase 5B de costos): tarjeta en el Perfil, pantalla <code>/profile/premium</code> con los dos planes de Google Play, restaurar compras y estado vigente; tope diario de exámenes pasados para la cuenta gratuita con aviso «Exámenes pasados de hoy»; «O hazte Premium» bajo el candado del video; el premium apaga anuncios, candados y topes. En TEST las compras siguen deshabilitadas (sin Play Console); el admin regala premium desde la ficha del alumno.</li>
