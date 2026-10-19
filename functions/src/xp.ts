@@ -690,9 +690,15 @@ export class XpService {
     metrics?.readDocument();
     const data = attempt.data();
     if (data?.userId !== uid || data?.status !== "submitted") return undefined;
-    const reviews = Array.isArray(data.review) ? data.review : [];
-    const item = reviews.map(record).find((review) => review?.questionId === questionId);
-    if (item === undefined || item.isCorrect === true) return undefined;
+    // The review is not stored with the attempt: correctness comes from the
+    // frozen answer key of that question (one more read, once per question).
+    const snapshots = Array.isArray(data.questionSnapshots) ? data.questionSnapshots.map(record) : [];
+    const version = snapshots.find((question) => question?.questionId === questionId)?.version;
+    if (typeof version !== "number") return undefined;
+    const key = await this.db.collection(this.config.collections.answerKeys).doc(`${questionId}_${version}`).get();
+    metrics?.readDocument();
+    const correct = key.data()?.correctAlternativeId;
+    if (typeof correct !== "string" || record(data.answers)?.[questionId] === correct) return undefined;
     const atMs = Date.now();
     return this.grant(uid, (_, settings) => explanationGrant(attemptId, questionId, atMs, settings), metrics);
   }

@@ -96,3 +96,33 @@ test("the league seats students by arrival in groups of their stage and closes t
   assert.equal(await closeLeagueWeek(db, config, week, on), 0);
   await rankingsDoc.delete();
 });
+
+test("explanation videos give XP once per failed question of an owned, submitted attempt", async () => {
+  const uid = "expl-u1";
+  await student(uid, "Eva", "eva@example.com");
+  const attempts = db.collection(config.collections.attempts);
+  const keys = db.collection(config.collections.answerKeys);
+  await attempts.doc("expl-att").set({
+    userId: uid,
+    status: "submitted",
+    questionSnapshots: [{ questionId: "eq1", version: 1 }, { questionId: "eq2", version: 1 }, { questionId: "eq3", version: 2 }],
+    answers: { eq1: "B", eq2: "A" }
+  });
+  await keys.doc("eq1_1").set({ questionId: "eq1", version: 1, correctAlternativeId: "A" });
+  await keys.doc("eq2_1").set({ questionId: "eq2", version: 1, correctAlternativeId: "A" });
+  await keys.doc("eq3_2").set({ questionId: "eq3", version: 2, correctAlternativeId: "C" });
+  // Wrong answer: XP once.
+  const first = await xp.afterExplanationVideo(uid, "expl-att", "eq1");
+  assert.equal(first?.gained, 5);
+  assert.equal(first?.todayExplained, 5);
+  assert.equal(first?.explanationDailyCap, 25);
+  assert.equal(await xp.afterExplanationVideo(uid, "expl-att", "eq1"), undefined);
+  // Blank also counts; a correct answer, an unknown question or another student does not.
+  assert.equal((await xp.afterExplanationVideo(uid, "expl-att", "eq3"))?.gained, 5);
+  assert.equal(await xp.afterExplanationVideo(uid, "expl-att", "eq2"), undefined);
+  assert.equal(await xp.afterExplanationVideo(uid, "expl-att", "nope"), undefined);
+  assert.equal(await xp.afterExplanationVideo("expl-u2", "expl-att", "eq1"), undefined);
+  const state = (await users.doc(uid).collection("xp").doc("current").get()).data();
+  assert.equal(state?.today?.explained, 10);
+  assert.equal(state?.total, 10);
+});
