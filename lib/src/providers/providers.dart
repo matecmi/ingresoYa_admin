@@ -161,6 +161,7 @@ final studentRepoProvider = Provider<StudentRepo>(
     ref.watch(firestoreProvider),
     ref.watch(xpRepoProvider),
     ref.watch(rankingsRepoProvider),
+    ref.watch(functionsProvider),
   ),
 );
 

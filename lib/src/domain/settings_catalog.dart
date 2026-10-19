@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'ads_settings.dart';
 import 'exam_settings.dart';
 import 'plan_settings.dart';
+import 'premium_settings.dart';
 import 'news.dart';
 import 'quality_settings.dart';
 import 'rankings_settings.dart';
@@ -31,6 +32,7 @@ enum SettingsDoc {
   news,
   exam,
   ads,
+  premium,
 }
 
 enum SettingKind { integer, toggle, choice, time }
@@ -1410,6 +1412,58 @@ final List<SettingsTopic> settingsTopics = [
       ),
     ],
   ),
+  SettingsTopic(
+    id: 'premium',
+    label: 'Plan Premium',
+    icon: Icons.workspace_premium_outlined,
+    intro:
+        'Suscripción mensual o anual que quita los anuncios y abre los '
+        'exámenes pasados sin límite. Las compras pasan por Google Play y '
+        'las verifica el servidor; desde la ficha del alumno también se '
+        'puede regalar o cortar el premium con motivo.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.premium,
+        path: const ['enabled'],
+        question: '¿Se ofrece el plan Premium en la app?',
+        label: 'Premium encendido',
+        kind: SettingKind.toggle,
+        help:
+            'Apagado, la app no muestra la pantalla Premium ni limita a la '
+            'cuenta gratuita. Enciéndelo cuando las suscripciones estén '
+            'activas en Play Console.',
+        keywords: 'premium suscripcion pago play encender apagar',
+        inPractice: (v) => _on(v, SettingsDoc.premium, ['enabled'], false)
+            ? 'El alumno ve «Premium» en su perfil y la cuenta gratuita tiene '
+                  'los límites de abajo.'
+            : 'Nadie ve Premium; la cuenta gratuita no tiene límites.',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.premium,
+        path: const ['freePastExamsPerDay'],
+        question:
+            '¿Cuántos exámenes pasados por día puede empezar la cuenta '
+            'gratuita?',
+        label: 'Exámenes pasados gratis por día',
+        min: PremiumSettings.minFreePastExamsPerDay,
+        max: PremiumSettings.maxFreePastExamsPerDay,
+        help:
+            'Se cuenta por día del Perú al empezar el examen. Con 0 no hay '
+            'límite. Los alumnos premium nunca lo tienen.',
+        keywords: 'examenes pasados limite diario gratis premium',
+        inPractice: (v) {
+          final n = _int(v, SettingsDoc.premium, ['freePastExamsPerDay'], 3);
+          if (!_on(v, SettingsDoc.premium, ['enabled'], false)) {
+            return 'Sin efecto mientras Premium esté apagado.';
+          }
+          return n == 0
+              ? 'La cuenta gratuita empieza los exámenes pasados que quiera.'
+              : 'Al intentar el examen pasado número ${n + 1} del día, la app '
+                    'le ofrece Premium.';
+        },
+      ),
+    ],
+  ),
 ];
 
 String _bannerPractice(SettingsValues v) {
@@ -1466,6 +1520,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.news => NewsSettings.defaults.toMap(),
   SettingsDoc.exam => ExamSettings.defaults.toMap(),
   SettingsDoc.ads => AdsSettings.defaults.toMap(),
+  SettingsDoc.premium => PremiumSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1481,6 +1536,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.news => NewsSettings.fromMap(map).validate(),
   SettingsDoc.exam => ExamSettings.fromMap(map).validate(),
   SettingsDoc.ads => AdsSettings.fromMap(map).validate(),
+  SettingsDoc.premium => PremiumSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1499,4 +1555,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.news => NewsSettings.fromMap(map).toMap(),
   SettingsDoc.exam => ExamSettings.fromMap(map).toMap(),
   SettingsDoc.ads => AdsSettings.fromMap(map).toMap(),
+  SettingsDoc.premium => PremiumSettings.fromMap(map).toMap(),
 };

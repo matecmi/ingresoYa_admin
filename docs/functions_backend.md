@@ -244,3 +244,13 @@ aprobaciones.
 - El admin no deja borrar una parte, subtema, tema o curso con preguntas no
   retiradas o plantillas activas que lo usen; para una parte, se recomienda
   desactivarla.
+
+## Plan premium (Fase 5B de costos, 2026-10-19)
+
+`functions/src/premium.ts` (contrato `docs/premium_contract.md`): callable `verifyPurchase`
+(alumno), `setStudentPremium` (admin con `students:e`) y el disparador de Pub/Sub
+`onPlayNotification`. Variables: `PLAY_VERIFIER` (`off` por defecto; `google` activa la
+verificación con la API de Play usando la cuenta de servicio de Functions), `PLAY_PACKAGE_NAME`
+(`com.ingresoya.app`) y `PLAY_RTDN_TOPIC` (`play-rtdn-{env}`). Con `off` las compras responden
+`purchases_unavailable` y el premium solo se otorga desde la ficha del alumno. `createExamAttempt`
+aplica el tope diario de exámenes pasados a la cuenta gratuita (`pastExamGate`, `usage` del perfil).
