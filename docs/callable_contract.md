@@ -107,3 +107,11 @@ cuando el admin desactivó o quitó la única parte que faltaba). Devuelve
 `{complete, awarded, missingPartIds}`. Idempotente: un segundo llamado no crea
 otro logro. La app lo llama una vez por visita cuando todas las partes están
 verificadas en el teléfono pero el resumen no tiene el logro.
+
+## `verifyPurchase` y `setStudentPremium` (Fase 5B, 2026-10-19)
+
+Ver `docs/premium_contract.md`. `verifyPurchase({productId, purchaseToken})` devuelve
+`{productId, untilMs, source}`; errores `purchases_unavailable`, `purchase_not_found`,
+`purchase_invalid`, `purchase_owned_elsewhere`. `setStudentPremium({uid, action, days?, reason})`
+es solo del admin (`students:e`). `createExamAttempt` con `purpose: "past_exam"` puede responder
+`resource-exhausted` / `past_exam_daily_limit` (`limit`) para la cuenta gratuita.

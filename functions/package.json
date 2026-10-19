@@ -8,18 +8,19 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint --max-warnings=0 src test",
-    "test": "npm run build && node --test lib/test/validation.test.js lib/test/simulator.test.js lib/test/xp.test.js lib/test/ranking.test.js lib/test/staff.test.js lib/test/audit.test.js lib/test/question_stats.test.js lib/test/news_push.test.js lib/test/catalog_version.test.js lib/test/exam_config.test.js lib/test/app_config.test.js lib/test/simulator_summary.test.js",
+    "test": "npm run build && node --test lib/test/validation.test.js lib/test/simulator.test.js lib/test/xp.test.js lib/test/ranking.test.js lib/test/staff.test.js lib/test/audit.test.js lib/test/question_stats.test.js lib/test/news_push.test.js lib/test/catalog_version.test.js lib/test/exam_config.test.js lib/test/app_config.test.js lib/test/simulator_summary.test.js lib/test/premium.test.js",
     "admin:claim": "npm run build && node lib/scripts/manage_admin_claim.js",
     "xp:retro": "npm run build && node lib/scripts/xp_retroactive.js",
     "rankings:aliases": "npm run build && node lib/scripts/rankings_aliases.js",
     "fixtures:emulators": "npm run build && node lib/scripts/load_emulator_fixtures.js",
     "emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:start --only auth,firestore,storage,functions",
-    "test:emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:exec --only auth,firestore,storage \"node --test --test-concurrency=1 lib/test/rules.emulator.test.js lib/test/attempt_service.emulator.test.js lib/test/simulator.emulator.test.js lib/test/ranking.emulator.test.js lib/test/audit.emulator.test.js lib/test/question_stats.emulator.test.js\""
+    "test:emulators": "npm run build && firebase --config ../firebase.json --project ingresoya-security-rules emulators:exec --only auth,firestore,storage \"node --test --test-concurrency=1 lib/test/rules.emulator.test.js lib/test/attempt_service.emulator.test.js lib/test/simulator.emulator.test.js lib/test/ranking.emulator.test.js lib/test/audit.emulator.test.js lib/test/question_stats.emulator.test.js lib/test/premium.emulator.test.js\""
   },
   "dependencies": {
     "dotenv": "^16.6.1",
     "firebase-admin": "13.6.0",
-    "firebase-functions": "7.4.0"
+    "firebase-functions": "7.4.0",
+    "google-auth-library": "^9.15.1"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",

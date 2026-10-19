@@ -56,6 +56,9 @@ class AppEnv {
   /// Anuncios de AdMob en la app (docs/ads_contract.md).
   static const String adsSettingsDocument = 'ads';
 
+  /// Plan premium (docs/premium_contract.md).
+  static const String premiumSettingsDocument = 'premium';
+
   /// Historial de cambios del admin (lo escriben disparadores del servidor).
   static const String auditCollection = 'iya-admin-audit-test';
 

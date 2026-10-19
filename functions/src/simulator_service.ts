@@ -22,6 +22,7 @@ import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
 import { parseXpSettings, peruDay } from "./xp";
+import { parsePremiumSettings, pastExamGate, type PastExamUsage } from "./premium";
 import { parseRankingsSettings, type ChallengeSettings } from "./leaderboard";
 import type {
   MistakesAttemptInput,
@@ -399,6 +400,10 @@ export class SimulatorService {
       this.profile(uid, metrics),
       this.settings(metrics)
     ]);
+    // Cuenta gratuita: tope diario de exámenes pasados (docs/premium_contract.md).
+    const usage: PastExamUsage | undefined = input.purpose === "past_exam"
+      ? pastExamGate({ settings: await this.premiumSettings(metrics), profile: profile.data, nowMs: Date.now() })
+      : undefined;
     const plan = input.purpose === "past_exam"
       ? await this.pastExamPlan(uid, input, profile, settings, metrics)
       : input.mode === "mistakes"
@@ -492,6 +497,7 @@ export class SimulatorService {
         createdAt: FieldValue.serverTimestamp(),
         expireAt: new Date(now + requestKeyRetentionMs)
       });
+      if (usage !== undefined) transaction.set(this.userRef(uid), { usage }, { merge: true });
       for (const question of questions) {
         transaction.set(
           this.userRef(uid).collection("recentQuestions").doc(question.questionId),
@@ -1363,7 +1369,7 @@ export class SimulatorService {
   private async profile(
     uid: string,
     metrics: OperationMetrics
-  ): Promise<{ universityId: string; professionId?: string }> {
+  ): Promise<{ universityId: string; professionId?: string; data: Record<string, unknown> | undefined }> {
     const profile = await this.userRef(uid).get();
     metrics.readDocument();
     const data = profile.data();
@@ -1373,7 +1379,11 @@ export class SimulatorService {
       throw failedPrecondition("The profile needs a selected university.", { reason: "profile_incomplete" });
     }
     const professionId = firstId(data?.professionIdDoc, data?.professionId, nested?.professionIdDoc, nested?.professionId);
-    return { universityId, ...(professionId === undefined ? {} : { professionId }) };
+    return { universityId, ...(professionId === undefined ? {} : { professionId }), data };
+  }
+
+  private async premiumSettings(metrics: OperationMetrics) {
+    return parsePremiumSettings(await readConfigDoc(this.db, this.config, "premium", metrics));
   }
 
   private async settings(metrics: OperationMetrics): Promise<SimulatorSettings> {

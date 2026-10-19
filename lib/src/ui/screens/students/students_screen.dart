@@ -199,6 +199,79 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
     return reason;
   }
 
+  /// «Regalar premium»: días a sumar y motivo; lo escribe el servidor.
+  Future<void> _grantPremium(StudentProfile p) async {
+    var days = 30;
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Regalar premium'),
+          content: SizedBox(
+            width: 440,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  p.isPremiumAt(DateTime.now())
+                      ? 'Se suman al premium vigente (hasta '
+                            '${_shortDate(p.premiumUntil!)}).'
+                      : 'Sin anuncios y exámenes pasados sin límite desde hoy.',
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final d in const [7, 30, 90, 365])
+                      ChoiceChip(
+                        label: Text('$d días'),
+                        selected: days == d,
+                        onSelected: (_) => setState(() => days = d),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: 'Motivo'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Regalar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final reason = ctrl.text.trim();
+    ctrl.dispose();
+    if (ok != true) return;
+    if (reason.length < 3) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Escribe el motivo.')));
+      return;
+    }
+    await _run(
+      () => ref
+          .read(studentRepoProvider)
+          .setPremium(_uid, days: days, reason: reason),
+      'Premium regalado por $days días.',
+    );
+  }
+
   Future<void> _run(Future<void> Function() action, String done) async {
     try {
       await action();
@@ -337,7 +410,12 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                           StatusPill('Liga: $stage', tone: Tone.success),
                         if (p.isPremiumAt(DateTime.now()))
                           StatusPill(
-                            'Premium hasta ${_shortDate(p.premiumUntil!)}',
+                            'Premium hasta ${_shortDate(p.premiumUntil!)}'
+                            '${p.premiumSource == 'admin'
+                                ? ' · regalo'
+                                : p.premiumSource == 'play'
+                                ? ' · Google Play'
+                                : ''}',
                             tone: Tone.brand,
                           )
                         else
@@ -354,6 +432,31 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                   ],
                 ),
               ),
+              if (canEdit)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+                  onPressed: () => _grantPremium(p),
+                  label: const Text('Regalar premium'),
+                ),
+              if (canEdit && p.isPremiumAt(DateTime.now()))
+                OutlinedButton(
+                  onPressed: () async {
+                    final reason = await _askReason(
+                      'Quitar el premium',
+                      'El alumno vuelve a ver anuncios y a los límites de la '
+                          'cuenta gratuita desde ahora. Una suscripción de '
+                          'Google Play vuelve sola en su próxima renovación.',
+                    );
+                    if (reason == null || reason.isEmpty) return;
+                    await _run(
+                      () => ref
+                          .read(studentRepoProvider)
+                          .setPremium(_uid, reason: reason),
+                      'Premium retirado.',
+                    );
+                  },
+                  child: const Text('Quitar premium'),
+                ),
               if (canEdit && ranking.alias != null)
                 OutlinedButton(
                   onPressed: () async {

@@ -4,6 +4,7 @@ import '../../domain/ads_settings.dart';
 import '../../domain/exam_settings.dart';
 import '../../domain/news.dart';
 import '../../domain/plan_settings.dart';
+import '../../domain/premium_settings.dart';
 import '../../domain/quality_settings.dart';
 import '../../domain/rankings_settings.dart';
 import '../../domain/settings_catalog.dart';
@@ -42,6 +43,7 @@ class SettingsStore {
     SettingsDoc.news => _config.watchNewsSettings().map((s) => s.toMap()),
     SettingsDoc.exam => _config.watchExamSettings().map((s) => s.toMap()),
     SettingsDoc.ads => _config.watchAdsSettings().map((s) => s.toMap()),
+    SettingsDoc.premium => _config.watchPremiumSettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.
@@ -111,6 +113,10 @@ class SettingsStore {
     ),
     SettingsDoc.ads => _config.saveAdsSettings(
       AdsSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.premium => _config.savePremiumSettings(
+      PremiumSettings.fromMap(map),
       editor: editor,
     ),
   };

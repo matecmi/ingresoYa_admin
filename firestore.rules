@@ -270,10 +270,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // El UID del documento raíz es dueño de su perfil y de todo su árbol.
+    // El UID del documento raíz es dueño de su perfil y de todo su árbol,
+    // salvo `premium` y `usage`, que solo escriben las Functions
+    // (docs/premium_contract.md).
     match /{profiles}/{userId} {
-      allow read, create, update, delete:
-        if isProfileCollection(profiles) && isOwner(userId);
+      allow read, delete: if isProfileCollection(profiles) && isOwner(userId);
+      allow create: if isProfileCollection(profiles) && isOwner(userId)
+        && !request.resource.data.keys().hasAny(['premium', 'usage']);
+      allow update: if isProfileCollection(profiles) && isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['premium', 'usage']);
     }
 
     match /{profiles}/{userId}/{subcollection}/{document=**} {
@@ -289,7 +295,8 @@ service cloud.firestore {
           && subcollection != 'simulatorSummary'
           && subcollection != 'xp'
           && subcollection != 'xpEvents'
-          && subcollection != 'ranking';
+          && subcollection != 'ranking'
+          && subcollection != 'premiumEvents';
     }
 
     // Simulator results, best score per past exam and learning events are
@@ -297,7 +304,8 @@ service cloud.firestore {
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && isOwner(userId)
         && subcollection in ['simulatorResults', 'pastExamBest', 'learningEvents',
-          'simulatorTopicStats', 'simulatorSummary', 'xp', 'xpEvents', 'ranking'];
+          'simulatorTopicStats', 'simulatorSummary', 'xp', 'xpEvents', 'ranking',
+          'premiumEvents'];
     }
 
     // Admin XP tool (docs/xp_contract.md): find a student, read the XP
@@ -309,7 +317,7 @@ service cloud.firestore {
     match /{profiles}/{userId}/{subcollection}/{document} {
       allow read: if isProfileCollection(profiles) && can('students', 'v')
         && subcollection in ['xp', 'xpEvents', 'ranking', 'simulatorResults',
-          'pastExamBest', 'simulatorTopicStats', 'learningEvents'];
+          'pastExamBest', 'simulatorTopicStats', 'learningEvents', 'premiumEvents'];
       allow update: if isProfileCollection(profiles) && can('students', 'e')
         && subcollection in ['xp', 'xpEvents', 'ranking'];
     }

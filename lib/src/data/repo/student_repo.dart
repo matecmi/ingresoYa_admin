@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../env/app_env.dart';
 import 'rankings_repo.dart';
@@ -14,6 +15,7 @@ class StudentProfile {
     required this.career,
     this.createdAt,
     this.premiumUntil,
+    this.premiumSource = '',
   });
 
   final String uid;
@@ -26,6 +28,9 @@ class StudentProfile {
   /// Fin del plan premium (`premium.until`, lo escribe el servidor en la Fase
   /// 5B); null si nunca lo tuvo.
   final DateTime? premiumUntil;
+
+  /// `play` (suscripción) o `admin` (regalo desde la ficha).
+  final String premiumSource;
 
   bool isPremiumAt(DateTime now) =>
       premiumUntil != null && premiumUntil!.isAfter(now);
@@ -71,9 +76,10 @@ class SimulatorResultRow {
 /// Datos de un alumno para la ficha; las escrituras (revertir XP, retirar el
 /// nombre de usuario) van por `XpRepo` y `RankingsRepo`.
 class StudentRepo {
-  StudentRepo(this._db, this._xp, this._rankings);
+  StudentRepo(this._db, this._xp, this._rankings, [this._functions]);
 
   final FirebaseFirestore _db;
+  final FirebaseFunctions? _functions;
   final XpRepo _xp;
   final RankingsRepo _rankings;
 
@@ -112,8 +118,43 @@ class StudentRepo {
               : until is num
               ? DateTime.fromMillisecondsSinceEpoch(until.toInt())
               : null,
+          premiumSource: '${premium?['source'] ?? ''}',
         );
       });
+
+  /// Regala [days] de premium o lo corta ([days] == null), con motivo;
+  /// lo escribe el servidor (`setStudentPremium`, docs/premium_contract.md).
+  Future<DateTime> setPremium(
+    String uid, {
+    int? days,
+    required String reason,
+  }) async {
+    final why = reason.trim();
+    if (why.length < 3) throw StateError('Escribe el motivo.');
+    final functions = _functions;
+    if (functions == null) throw StateError('Functions no disponible.');
+    try {
+      final result = await functions
+          .httpsCallable('setStudentPremium')
+          .call<dynamic>({
+            'uid': uid,
+            'action': days == null ? 'revoke' : 'grant',
+            if (days != null) 'days': days,
+            'reason': why,
+          });
+      final data = result.data is Map ? result.data as Map : const {};
+      final until = data['untilMs'];
+      return DateTime.fromMillisecondsSinceEpoch(
+        until is num ? until.toInt() : 0,
+      );
+    } on FirebaseFunctionsException catch (e) {
+      throw StateError(switch (e.code) {
+        'permission-denied' => 'No tienes permiso para cambiar el premium.',
+        'not-found' => 'El alumno ya no existe.',
+        _ => e.message ?? 'No se pudo guardar.',
+      });
+    }
+  }
 
   Stream<StudentRanking> watchRanking(String uid) =>
       _user(uid).collection('ranking').doc('current').snapshots().map((s) {

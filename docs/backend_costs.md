@@ -137,3 +137,14 @@ no despliega ninguno de esos artefactos.
   campos cambiados y `tooLarge`.
 - **Tope de 100 preguntas por examen pasado:** `questionCount` 1–100 en el admin
   (`ExamSimulatorRules.validate`) y en `parsePastExamRules`.
+
+## Fase 5B de costos: plan premium (2026-10-19)
+
+- `premium` y `usage` viven en el documento del perfil que la app ya lee al entrar: saber si el alumno
+  es premium no cuesta lecturas extra; el tope diario de exámenes pasados usa el mismo perfil que
+  `createExamAttempt` ya carga y se escribe en la misma transacción del intento (+1 escritura solo
+  en exámenes pasados de cuentas gratuitas).
+- `verifyPurchase`: 1 llamada a la API de Play + 1 lectura del índice de tokens + 3 escrituras
+  (índice, perfil, bitácora), una vez por compra o restauración. Las renovaciones llegan por Pub/Sub
+  (`onPlayNotification`), sin sondeos.
+- `{config}/premium` viaja dentro de `{config}/app` (ninguna lectura adicional).

@@ -1,6 +1,7 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { onDocumentWritten, onDocumentWrittenWithAuthContext } from "firebase-functions/v2/firestore";
 import { config as loadDotenv } from "dotenv";
 
@@ -10,6 +11,7 @@ import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
 import { prepareDailyChallenges } from "./challenge_job";
 import { createStaffHandlers } from "./staff";
+import { createPremiumHandlers } from "./premium";
 import { createAuditHandlers, onlyMetaChanged, recordWrite } from "./audit";
 import { CATALOG_DOC, bumpCatalogVersion, catalogKindOf, courseIdFromParams } from "./catalog_version";
 import { APP_CONFIG_DOC, publishAppConfig } from "./app_config";
@@ -62,6 +64,16 @@ export const syncAdminAccess = onCall(adminCallableOptions, staffHandlers.syncAd
 export const manageAdminStaff = onCall(adminCallableOptions, staffHandlers.manageAdminStaff);
 const auditHandlers = createAuditHandlers(config);
 export const restoreAuditEntry = onCall(adminCallableOptions, auditHandlers.restoreAuditEntry);
+
+// Plan premium (docs/premium_contract.md): la app verifica su compra de Play,
+// el admin regala o corta días, y Play avisa renovaciones por Pub/Sub.
+const premiumHandlers = createPremiumHandlers(config);
+export const verifyPurchase = onCall(callableOptions, premiumHandlers.verifyPurchase);
+export const setStudentPremium = onCall(adminCallableOptions, premiumHandlers.setStudentPremium);
+export const onPlayNotification = onMessagePublished(
+  { topic: config.premium.rtdnTopic, retry: false },
+  premiumHandlers.onPlayNotification
+);
 
 // Estadísticas por pregunta para «Preguntas a revisar»
 // (docs/question_stats_contract.md): cada noche y con «Actualizar ahora».

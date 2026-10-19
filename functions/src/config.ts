@@ -34,6 +34,18 @@ export interface BackendCollections {
   questionStats: string;
   /** Noticias del alumno (docs/news_contract.md). */
   news: string;
+  /** Token de compra de Play (sha256) → uid (docs/premium_contract.md); server-only. */
+  purchaseTokens: string;
+}
+
+/** Plan premium (docs/premium_contract.md). */
+export interface PremiumBackendConfig {
+  /** Paquete Android registrado en Play Console. */
+  packageName: string;
+  /** `google`: verificar compras con la API de Play; `off`: compras deshabilitadas. */
+  verifier: "google" | "off";
+  /** Tema de Pub/Sub con las notificaciones en tiempo real de Play. */
+  rtdnTopic: string;
 }
 
 export interface BackendConfig {
@@ -53,6 +65,7 @@ export interface BackendConfig {
     recentQuestionLimit: number;
   };
   collections: BackendCollections;
+  premium: PremiumBackendConfig;
 }
 
 const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections> = {
@@ -77,7 +90,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     audit: "iya-admin-audit-test",
     professions: "iya-professions-test",
     questionStats: "iya-question-stats-test",
-    news: "iya-news-test"
+    news: "iya-news-test",
+    purchaseTokens: "iya-purchase-tokens-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -100,7 +114,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     audit: "iya-admin-audit-staging",
     professions: "iya-professions-staging",
     questionStats: "iya-question-stats-staging",
-    news: "iya-news-staging"
+    news: "iya-news-staging",
+    purchaseTokens: "iya-purchase-tokens-staging"
   },
   production: {
     questions: "iya-questions",
@@ -123,7 +138,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     audit: "iya-admin-audit",
     professions: "iya-professions",
     questionStats: "iya-question-stats",
-    news: "iya-news"
+    news: "iya-news",
+    purchaseTokens: "iya-purchase-tokens"
   }
 };
 
@@ -132,6 +148,13 @@ const allowedEnvironments = new Set<DeploymentEnvironment>([
   "staging",
   "production"
 ]);
+
+function readPlayVerifier(value: string | undefined): "google" | "off" {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  if (normalized === "" || normalized === "off") return "off";
+  if (normalized === "google") return "google";
+  throw new Error("PLAY_VERIFIER must be google or off when set.");
+}
 
 function readOptionalBoolean(value: string | undefined, name: string): boolean | undefined {
   if (value === undefined || value.trim() === "") return undefined;
@@ -224,6 +247,11 @@ export function readBackendConfig(
         200
       )
     },
-    collections: collectionsByEnvironment[environment as DeploymentEnvironment]
+    collections: collectionsByEnvironment[environment as DeploymentEnvironment],
+    premium: {
+      packageName: env.PLAY_PACKAGE_NAME?.trim() || "com.ingresoya.app",
+      verifier: readPlayVerifier(env.PLAY_VERIFIER),
+      rtdnTopic: env.PLAY_RTDN_TOPIC?.trim() || `play-rtdn-${environment}`
+    }
   };
 }

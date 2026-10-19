@@ -79,3 +79,19 @@ firebase functions:list --project production   # todo en us-central1
 ```
 
 Luego, desde el admin apuntando a producción, la configuración inicial: `{config}/exam`, `xp`, `rankings` (apagados), `simulator`, `news`, `ads` (apagado hasta tener los ID reales), `sync`, `study`; el disparador `auditConfig` arma `{config}/app`. Verificar en la consola que base, bucket y Functions estén en us-central1 y que las políticas TTL de `iya-exam-attempts`, `recentQuestions` y `examRequestKeys` queden activas.
+
+## 8. Suscripciones de Google Play (Fase 5B de costos, 2026-10-19)
+
+**Kevin, en Play Console:** crear las suscripciones `premium_monthly` (S/ 9.90) y `premium_yearly`
+(S/ 59) con un plan base auto-renovable cada una; en Usuarios y permisos invitar la cuenta de
+servicio de las Functions del proyecto (`<número>-compute@developer.gserviceaccount.com`) con
+«Ver datos financieros» y «Administrar pedidos y suscripciones»; en Monetización → Configuración de
+monetización apuntar las notificaciones en tiempo real al tema `projects/<id>/topics/play-rtdn-<env>`;
+agregar su cuenta como tester de licencias y subir el AAB al canal interno.
+
+**Claude, después:** `PLAY_VERIFIER=google` (y `PLAY_PACKAGE_NAME` si cambia) en el `.env` del
+entorno, `firebase deploy --only functions:verifyPurchase,functions:onPlayNotification`, dar a Play
+permiso de publicar en el tema (`gcloud pubsub topics add-iam-policy-binding play-rtdn-<env>
+--member=serviceAccount:google-play-developer-notifications@system.gserviceaccount.com
+--role=roles/pubsub.publisher`) y una compra de prueba con la cuenta de tester. Hasta entonces el
+premium se prueba con «Regalar premium» desde la ficha del alumno.

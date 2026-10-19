@@ -464,3 +464,28 @@ test("news images: admins upload small images, students read them", async () => 
 test("rule test environment is initialized", () => {
   assert.ok(testEnv);
 });
+
+test("premium y usage del perfil solo los escribe el servidor (docs/premium_contract.md)", async () => {
+  const learner = firestoreFor("student-1");
+  const support = staffFor("support-1", SUPPORT);
+  await assertFails(
+    learner.doc("iya-profile-test/student-1").set({ profile: { email: "s@test.pe" }, premium: { until: 1 } })
+  );
+  await assertSucceeds(learner.doc("iya-profile-test/student-1").set({ profile: { email: "s@test.pe" } }));
+  await assertFails(learner.doc("iya-profile-test/student-1").set({ premium: { until: 1 } }, { merge: true }));
+  await assertFails(learner.doc("iya-profile-test/student-1").update({ "usage.pastExamStarts": 0 }));
+  await assertSucceeds(learner.doc("iya-profile-test/student-1").update({ "profile.userName": "Ana" }));
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().doc("iya-profile-test/student-1").set({ premium: { until: 1 } }, { merge: true });
+    await context.firestore().doc("iya-profile-test/student-1/premiumEvents/e1").set({ type: "admin_grant" });
+  });
+  // Con premium ya escrito, el alumno sigue editando lo suyo sin tocarlo.
+  await assertSucceeds(learner.doc("iya-profile-test/student-1").update({ "profile.userName": "Ana M." }));
+  await assertFails(learner.doc("iya-profile-test/student-1").update({ premium: { until: 99 } }));
+  await assertSucceeds(learner.doc("iya-profile-test/student-1/premiumEvents/e1").get());
+  await assertFails(learner.doc("iya-profile-test/student-1/premiumEvents/e2").set({ type: "x" }));
+  await assertSucceeds(support.doc("iya-profile-test/student-1/premiumEvents/e1").get());
+  await assertFails(learner.doc("iya-purchase-tokens-test/abc").get());
+  await assertFails(support.doc("iya-purchase-tokens-test/abc").get());
+});

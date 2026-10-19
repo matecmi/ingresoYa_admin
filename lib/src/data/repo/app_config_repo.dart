@@ -5,6 +5,7 @@ import 'package:ingresoya_admin/src/domain/news.dart';
 import 'package:ingresoya_admin/src/domain/quality_settings.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
 import 'package:ingresoya_admin/src/domain/plan_settings.dart';
+import 'package:ingresoya_admin/src/domain/premium_settings.dart';
 import 'package:ingresoya_admin/src/domain/study_review_rules.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -177,6 +178,26 @@ class AppConfigRepo {
     final problem = settings.validate();
     if (problem != null) throw StateError(problem);
     await _ads.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  DocumentReference<Map<String, dynamic>> get _premium => db
+      .collection(AppEnv.configCollection)
+      .doc(AppEnv.premiumSettingsDocument);
+
+  Stream<PremiumSettings> watchPremiumSettings() =>
+      _premium.snapshots().map((s) => PremiumSettings.fromMap(s.data()));
+
+  Future<void> savePremiumSettings(
+    PremiumSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _premium.set({
       ...settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
