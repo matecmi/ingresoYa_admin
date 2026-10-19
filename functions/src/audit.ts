@@ -165,7 +165,9 @@ const CONFIG_LABEL: Record<string, string> = {
   study: "Guía de estudio",
   sync: "Sincronización",
   news: "Noticias",
-  quality: "Preguntas a revisar"
+  quality: "Preguntas a revisar",
+  exam: "Exámenes",
+  ads: "Anuncios"
 };
 
 /** «Pregunta «Simplifica (2/3)…»», «Configuración · Rankings…». */

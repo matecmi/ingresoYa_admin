@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ingresoya_admin/src/domain/ads_settings.dart';
 import 'package:ingresoya_admin/src/domain/exam_settings.dart';
 import 'package:ingresoya_admin/src/domain/news.dart';
 import 'package:ingresoya_admin/src/domain/quality_settings.dart';
@@ -157,6 +158,25 @@ class AppConfigRepo {
     final problem = settings.validate();
     if (problem != null) throw StateError(problem);
     await _quality.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  DocumentReference<Map<String, dynamic>> get _ads =>
+      db.collection(AppEnv.configCollection).doc(AppEnv.adsSettingsDocument);
+
+  Stream<AdsSettings> watchAdsSettings() =>
+      _ads.snapshots().map((s) => AdsSettings.fromMap(s.data()));
+
+  Future<void> saveAdsSettings(
+    AdsSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _ads.set({
       ...settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,

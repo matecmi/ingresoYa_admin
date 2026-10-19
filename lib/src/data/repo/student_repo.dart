@@ -13,6 +13,7 @@ class StudentProfile {
     required this.university,
     required this.career,
     this.createdAt,
+    this.premiumUntil,
   });
 
   final String uid;
@@ -21,6 +22,13 @@ class StudentProfile {
   final String university;
   final String career;
   final DateTime? createdAt;
+
+  /// Fin del plan premium (`premium.until`, lo escribe el servidor en la Fase
+  /// 5B); null si nunca lo tuvo.
+  final DateTime? premiumUntil;
+
+  bool isPremiumAt(DateTime now) =>
+      premiumUntil != null && premiumUntil!.isAfter(now);
 
   String get displayName =>
       name.isNotEmpty ? name : (email.isNotEmpty ? email : uid);
@@ -90,6 +98,8 @@ class StudentRepo {
         final p = data['profile'] is Map ? data['profile'] as Map : const {};
         String f(String k) => '${p[k] ?? ''}';
         final created = data['createdAt'] ?? p['createdAt'];
+        final premium = data['premium'] is Map ? data['premium'] as Map : null;
+        final until = premium?['until'];
         return StudentProfile(
           uid: uid,
           name: f('userName'),
@@ -97,6 +107,11 @@ class StudentRepo {
           university: f('universityAcronym'),
           career: f('professionName'),
           createdAt: created is Timestamp ? created.toDate() : null,
+          premiumUntil: until is Timestamp
+              ? until.toDate()
+              : until is num
+              ? DateTime.fromMillisecondsSinceEpoch(until.toInt())
+              : null,
         );
       });
 

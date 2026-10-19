@@ -18,7 +18,7 @@ resto del catálogo (reglas `isCatalog`). Escritura: solo el servidor.
 
 | Campo | Contenido |
 | --- | --- |
-| `xp`, `rankings`, `news`, `simulator`, `sync`, `study`, `exam`, `catalog` | Copia del documento homónimo de `{config}`, sin `updatedAt`, `updatedBy` ni `schemaVersion`. Una sección ausente va como mapa vacío (la app aplica sus valores de fábrica). |
+| `xp`, `rankings`, `news`, `simulator`, `sync`, `study`, `exam`, `ads`, `catalog` | Copia del documento homónimo de `{config}`, sin `updatedAt`, `updatedBy` ni `schemaVersion`. Una sección ausente va como mapa vacío (la app aplica sus valores de fábrica). |
 | `version` | Sube en 1 en cada reescritura. |
 | `updatedAt` | Última reescritura. |
 

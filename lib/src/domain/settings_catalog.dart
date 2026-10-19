@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'ads_settings.dart';
 import 'exam_settings.dart';
 import 'plan_settings.dart';
 import 'news.dart';
@@ -29,6 +30,7 @@ enum SettingsDoc {
   quality,
   news,
   exam,
+  ads,
 }
 
 enum SettingKind { integer, toggle, choice, time }
@@ -288,6 +290,11 @@ const _leccion = AppScreenShot(
 );
 
 // ------------------------------------------------------------- ayudas
+
+bool _on(SettingsValues v, SettingsDoc d, List<String> p, bool f) {
+  final x = readPath(v[d], p);
+  return x is bool ? x : f;
+}
 
 int _int(SettingsValues v, SettingsDoc d, List<String> p, int f) {
   final x = readPath(v[d], p);
@@ -1297,7 +1304,121 @@ final List<SettingsTopic> settingsTopics = [
       ),
     ],
   ),
+  SettingsTopic(
+    id: 'ads',
+    label: 'Anuncios',
+    icon: Icons.ads_click_outlined,
+    intro:
+        'Anuncios de AdMob en la app: dónde va el banner, cada cuánto sale un '
+        'anuncio de pantalla completa y si hay videos a cambio de una ayuda. '
+        'Los alumnos premium no ven ninguno. Nunca hay anuncios dentro de una '
+        'lección, un examen, el simulador ni las historias.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['enabled'],
+        question: '¿Se muestran anuncios en la app?',
+        label: 'Anuncios encendidos',
+        kind: SettingKind.toggle,
+        help:
+            'Apagado, la app no carga ningún anuncio (sin publicar una versión '
+            'nueva). Enciéndelo cuando la cuenta de AdMob esté aprobada.',
+        keywords: 'admob publicidad encender apagar monetizar',
+        inPractice: (v) => _on(v, SettingsDoc.ads, ['enabled'], false)
+            ? 'Los alumnos sin premium ven anuncios donde se indica abajo.'
+            : 'Nadie ve anuncios. Lo demás de esta sección no tiene efecto.',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'home'],
+        question: '¿Banner al pie del Inicio?',
+        label: 'Banner en Inicio',
+        kind: SettingKind.toggle,
+        help: 'Una franja pequeña sobre la barra de pestañas.',
+        keywords: 'banner inicio franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'news'],
+        question: '¿Banner al pie de la lista de noticias?',
+        label: 'Banner en Noticias',
+        kind: SettingKind.toggle,
+        help: 'Solo en la lista; nunca dentro de una noticia ni en historias.',
+        keywords: 'banner noticias franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['bannerScreens', 'rankings'],
+        question: '¿Banner al pie de Rankings?',
+        label: 'Banner en Rankings',
+        kind: SettingKind.toggle,
+        help: 'En «Mi liga» y las tablas.',
+        keywords: 'banner rankings liga franja',
+        inPractice: (v) => _bannerPractice(v),
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['interstitialMinMinutes'],
+        question:
+            '¿Cuántos minutos como mínimo pasan entre dos anuncios de pantalla '
+            'completa?',
+        label: 'Minutos entre anuncios completos',
+        min: AdsSettings.minInterstitialMinutes,
+        max: AdsSettings.maxInterstitialMinutes,
+        unit: 'min',
+        help:
+            'El anuncio de pantalla completa sale al cerrar el resultado de un '
+            'examen o simulacro. Con 10, un alumno que encadena simulacros ve '
+            'uno cada 10 minutos como mucho.',
+        keywords: 'intersticial pantalla completa frecuencia resultado',
+        inPractice: (v) =>
+            'Tras cerrar un resultado, el siguiente anuncio de pantalla '
+            'completa espera al menos '
+            '${_int(v, SettingsDoc.ads, ['interstitialMinMinutes'], 10)} '
+            'minutos'
+            '${_on(v, SettingsDoc.ads, ['firstExamOfDayFree'], true) ? '; el primer examen del día nunca lo muestra.' : '.'}',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['firstExamOfDayFree'],
+        question:
+            '¿El primer examen del día va sin anuncio de pantalla completa?',
+        label: 'Primer examen del día sin anuncio',
+        kind: SettingKind.toggle,
+        help:
+            'Recomendado: el alumno que entra a estudiar no se topa con un '
+            'anuncio en su primer resultado del día.',
+        keywords: 'primer examen día gratis intersticial',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.ads,
+        path: const ['rewardedEnabled'],
+        question:
+            '¿Se ofrecen videos a cambio de ver la explicación de una pregunta fallada?',
+        label: 'Videos recompensados',
+        kind: SettingKind.toggle,
+        help:
+            'En la revisión de un examen, la explicación de una pregunta '
+            'fallada se abre tras un video corto (las acertadas se ven '
+            'directo). Si el video no carga, la explicación se abre igual.',
+        keywords: 'video recompensado explicación fallada rewarded',
+        inPractice: (v) => _on(v, SettingsDoc.ads, ['rewardedEnabled'], true)
+            ? 'Explicación de una pregunta fallada: tras un video corto.'
+            : 'Las explicaciones se ven directo, sin video.',
+      ),
+    ],
+  ),
 ];
+
+String _bannerPractice(SettingsValues v) {
+  final on = AdsSettings.bannerScreenIds
+      .where((id) => _on(v, SettingsDoc.ads, ['bannerScreens', id], false))
+      .map((id) => AdsSettings.bannerScreenLabels[id] ?? id)
+      .toList();
+  return on.isEmpty ? 'Ningún banner.' : 'Banner al pie de: ${on.join(', ')}.';
+}
 
 List<SettingSpec> get allSettingSpecs => [
   for (final t in settingsTopics) ...t.specs,
@@ -1344,6 +1465,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.quality => QualitySettings.defaults.toMap(),
   SettingsDoc.news => NewsSettings.defaults.toMap(),
   SettingsDoc.exam => ExamSettings.defaults.toMap(),
+  SettingsDoc.ads => AdsSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1358,6 +1480,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.quality => QualitySettings.fromMap(map).validate(),
   SettingsDoc.news => NewsSettings.fromMap(map).validate(),
   SettingsDoc.exam => ExamSettings.fromMap(map).validate(),
+  SettingsDoc.ads => AdsSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1375,4 +1498,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.quality => QualitySettings.fromMap(map).toMap(),
   SettingsDoc.news => NewsSettings.fromMap(map).toMap(),
   SettingsDoc.exam => ExamSettings.fromMap(map).toMap(),
+  SettingsDoc.ads => AdsSettings.fromMap(map).toMap(),
 };
