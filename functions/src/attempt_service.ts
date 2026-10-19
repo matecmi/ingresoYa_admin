@@ -8,7 +8,7 @@ import type {
 import { FieldValue } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
-import { loadExamSelection } from "./exam_config";
+import { attemptExpireAt, loadExamSelection } from "./exam_config";
 import {
   emptyAchievementSummary,
   includeAchievement,
@@ -493,6 +493,7 @@ export class ExamAttemptService {
         ? frozenContext
         : await this.partContext(uid, partId, metrics)
       : undefined;
+    const selection = await loadExamSelection(this.db, this.config, metrics);
     return this.db.runTransaction(async (transaction) => {
       metrics.transactionAttempt();
       const attempt = await transaction.get(attemptRef);
@@ -561,6 +562,8 @@ export class ExamAttemptService {
         status: "submitted",
         submittedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+        // La política TTL de `attempts` lo borra pasada la retención (Fase 4A).
+        expireAt: attemptExpireAt(result.gradedAtMs, selection.attemptRetentionDays),
         result: {
           schemaVersion: 2,
           attemptId: input.attemptId,

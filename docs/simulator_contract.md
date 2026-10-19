@@ -201,3 +201,19 @@ tolerando `streakGraceDays` días sin práctica.
   **una vez** (sin listener) y la app los vuelve a pedir al enviar un examen o
   al guardar la meta. `{config}/simulator` se lee una vez y se recuerda 5
   minutos; la lista de universidades, por versión del catálogo.
+
+## Resumen por tema y retención de intentos (Fase 4A de la reestructuración de costos, 2026-10-18)
+
+- `{perfil}/simulatorSummary/current`: un solo documento con
+  `topics: { [topicId]: { topicId, courseId, answered, correct, updatedAtMs } }`,
+  `updatedAtMs` y, la primera vez, `migratedAtMs`. Lo escribe
+  `submitExamAttempt` con incrementos (merge); si el documento no existe
+  todavía, migra en esa misma transacción lo que hubiera en
+  `simulatorTopicStats` (que deja de escribirse). Lectura: el dueño. La app y
+  el plan «Hoy te toca» lo leen con una lectura; si falta, caen a la
+  subcolección antigua.
+- Los intentos (`attempts`) enviados llevan `expireAt` = fecha de envío +
+  `{config}/exam.attemptRetentionDays` (180 de fábrica) y una política TTL los
+  borra. `questionSnapshots`, `questionMeta` y `answers` quedan exentos de
+  índices (`firestore.indexes.json`): no se consultan y pesaban más que el
+  propio documento.

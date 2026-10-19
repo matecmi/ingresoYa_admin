@@ -200,16 +200,21 @@ test("submitting builds topic stats; the plan focuses on the weak topic", async 
   assert.equal(perCourse.get("sim-course-b"), 4);
   assert.equal(diagnostic.simulator?.timed, false);
   await service.submit(uid, { attemptId: diagnostic.attemptId, answers: {} });
-  const topicA = (await user.collection("simulatorTopicStats").doc("sim-course-a-topic").get()).data();
+  // Fase 4A: un solo documento resumen en vez de una subcolección por tema.
+  const summaryRef = user.collection("simulatorSummary").doc("current");
+  const topics = (await summaryRef.get()).data()?.topics as Record<string, Record<string, unknown>>;
+  const topicA = topics["sim-course-a-topic"];
   assert.equal(topicA?.answered, 4);
   assert.equal(topicA?.correct, 0);
   assert.equal(topicA?.courseId, "sim-course-a");
 
   // Course B gets right answers so only course A's topic is weak.
-  await user.collection("simulatorTopicStats").doc("sim-course-b-topic")
-    .set({ topicId: "sim-course-b-topic", courseId: "sim-course-b", answered: 10, correct: 9 });
-  await user.collection("simulatorTopicStats").doc("sim-course-a-topic")
-    .set({ topicId: "sim-course-a-topic", courseId: "sim-course-a", answered: 10, correct: 2 });
+  await summaryRef.set({
+    topics: {
+      "sim-course-b-topic": { topicId: "sim-course-b-topic", courseId: "sim-course-b", answered: 10, correct: 9 },
+      "sim-course-a-topic": { topicId: "sim-course-a-topic", courseId: "sim-course-a", answered: 10, correct: 2 }
+    }
+  }, { merge: true });
   const daily = await service.create(uid, { requestId: "sim-daily", purpose: "practice", mode: "plan", timed: true });
   assert.equal(daily.questions.length, 10);
   assert.equal(daily.durationSeconds, 15 * 60);
@@ -325,7 +330,7 @@ test("reto del día: same questions for the university, one attempt, answers hid
 
 async function seed(): Promise<void> {
   const user = db.collection(config.collections.users).doc(uid);
-  for (const name of ["recentQuestions", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats", "xp", "xpEvents", "simulatorPlan"]) {
+  for (const name of ["recentQuestions", "examRequestKeys", "pastExamBest", "simulatorResults", "learningEvents", "simulatorTopicStats", "simulatorSummary", "xp", "xpEvents", "simulatorPlan"]) {
     const docs = await user.collection(name).get();
     const cleanup = db.batch();
     docs.docs.forEach((doc) => cleanup.delete(doc.ref));

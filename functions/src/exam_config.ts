@@ -4,7 +4,7 @@
  * entorno de `config.ts` quedan como respaldo cuando el documento no existe o
  * trae un valor fuera de rango.
  */
-import type { Firestore } from "firebase-admin/firestore";
+import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
 import { readConfigDoc } from "./config_cache";
@@ -19,9 +19,19 @@ export interface ExamSelectionSettings {
   recentQuestionLimit: number;
   /** Preguntas vistas en la ventana de repetición que consulta el Simulador (20 a 500). */
   simulatorSeenLimit: number;
+  /** Días que un intento enviado permanece en Firestore (30 a 730); después lo borra la TTL. */
+  attemptRetentionDays: number;
 }
 
 export const SIMULATOR_SEEN_LIMIT_DEFAULT = 100;
+export const ATTEMPT_RETENTION_DAYS_DEFAULT = 180;
+
+const dayMs = 24 * 60 * 60 * 1000;
+
+/** `expireAt` de un intento enviado (política TTL de `attempts`, Fase 4A). */
+export function attemptExpireAt(nowMs: number, retentionDays: number): Timestamp {
+  return Timestamp.fromMillis(nowMs + retentionDays * dayMs);
+}
 
 function bounded(value: unknown, fallback: number, min: number, max: number): number {
   return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max
@@ -38,7 +48,8 @@ export function parseExamSelection(
     candidateStartsPerBlock: bounded(raw.candidateStartsPerBlock, fallback.candidateStartsPerBlock, 1, 8),
     maxCandidatesPerStart: bounded(raw.maxCandidatesPerStart, fallback.maxCandidatesPerStart, 20, 80),
     recentQuestionLimit: bounded(raw.recentQuestionLimit, fallback.recentQuestionLimit, 1, 200),
-    simulatorSeenLimit: bounded(raw.simulatorSeenLimit, SIMULATOR_SEEN_LIMIT_DEFAULT, 20, 500)
+    simulatorSeenLimit: bounded(raw.simulatorSeenLimit, SIMULATOR_SEEN_LIMIT_DEFAULT, 20, 500),
+    attemptRetentionDays: bounded(raw.attemptRetentionDays, ATTEMPT_RETENTION_DAYS_DEFAULT, 30, 730)
   };
 }
 

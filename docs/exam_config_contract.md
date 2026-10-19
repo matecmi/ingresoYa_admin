@@ -24,6 +24,7 @@ rechequeaba la XP.
 | `maxCandidatesPerStart` | number | 20 a 80 | 40 | Fase 3C. Candidatas por escaneo; también tope de cada pool por curso del Simulador. |
 | `recentQuestionLimit` | number | 1 a 200 | 60 | Fase 3C. Preguntas recientes del alumno que la guía revisa para no repetir. |
 | `simulatorSeenLimit` | number | 20 a 500 | 100 | Fase 3C. Preguntas vistas que el Simulador revisa dentro de sus «días sin repetir». |
+| `attemptRetentionDays` | number | 30 a 730 | 180 | Fase 4A. Días que un intento enviado permanece en Firestore (`expireAt`, política TTL de `attempts`). El historial, las estadísticas y los mejores puntajes viven en resúmenes aparte y no se borran. |
 | `schemaVersion`, `updatedAt`, `updatedBy` | — | — | — | Los escribe el admin al guardar. |
 
 Lectura: como el resto del catálogo (reglas `isCatalog`). Escritura: solo el
