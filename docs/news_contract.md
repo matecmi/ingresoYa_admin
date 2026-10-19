@@ -79,3 +79,18 @@ Temas de FCM: `news-all-{env}` (todos) y `news-uni-{universityId}-{env}`. La app
   otra si el alumno refresca. `{config}/news` se lee una vez y se recuerda 5
   minutos. Una noticia nueva aparece en la siguiente de esas lecturas o al
   tocar su notificación.
+
+## Miniaturas y caché de imágenes (Fase 2D de la reestructuración de costos, 2026-10-18)
+
+- Al subir la imagen de una noticia, el admin genera además una **miniatura
+  JPEG de 480 px** (calidad 80) en `news-public/thumbs/{uuid}.jpg` y guarda
+  `image.thumbPath` e `image.thumbUrl`. Las noticias anteriores no la tienen
+  y la app usa la imagen completa.
+- La app muestra `thumbUrl` (si existe) en las historias del Inicio, la lista
+  de Noticias y la tarjeta del aviso urgente; el detalle, el visor y la
+  historia abierta usan la imagen completa.
+- Todas las imágenes de red de la app (noticias, recursos de una parte,
+  portada de la lección, miniatura del video, avatar) pasan por
+  `cached_network_image`: quedan en la caché de disco del teléfono y la
+  siguiente apertura no las descarga; además se decodifican al ancho que se
+  muestra (`memCacheWidth`).
