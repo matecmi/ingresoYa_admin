@@ -13,7 +13,10 @@ import {
   type FrozenAnswerKey,
   type SubmittedAttemptResponse
 } from "./attempt_service";
+import { activeCourseIds } from "./catalog_cache";
 import type { BackendConfig } from "./config";
+import { readConfigDoc } from "./config_cache";
+import { loadExamSelection } from "./exam_config";
 import { type CandidateQuestion, parseCandidateQuestion } from "./exam_contracts";
 import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
@@ -946,9 +949,7 @@ export class SimulatorService {
     settings: SimulatorSettings,
     metrics: OperationMetrics
   ) {
-    const rankingsDoc = await this.db.collection(this.config.collections.config).doc("rankings").get();
-    metrics.readDocument();
-    const rankings = parseRankingsSettings(rankingsDoc.data());
+    const rankings = parseRankingsSettings(await readConfigDoc(this.db, this.config, "rankings", metrics));
     if (!rankings.enabled || !rankings.challenge.enabled) {
       throw failedPrecondition("The daily challenge is not enabled.", { reason: "challenge_disabled" });
     }
@@ -982,6 +983,21 @@ export class SimulatorService {
         courseIds: [...new Set(questions.map((question) => question.courseId))]
       }
     };
+  }
+
+  /**
+   * Arma el reto de [day] para [universityId] si todavía no existe (lo llama
+   * el trabajo nocturno `generateDailyChallenges`); false con el reto apagado.
+   */
+  public async prepareDailyChallenge(
+    universityId: string,
+    day: string,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<boolean> {
+    const rankings = parseRankingsSettings(await readConfigDoc(this.db, this.config, "rankings", metrics));
+    if (!rankings.enabled || !rankings.challenge.enabled) return false;
+    await this.dailyChallengeQuestions(universityId, day, rankings.challenge, metrics);
+    return true;
   }
 
   /**
@@ -1024,9 +1040,7 @@ export class SimulatorService {
     const picked = challengeOwnPick(own, settings, seed);
     const taken = new Set(picked.map((question) => question.questionId));
 
-    const courses = await this.db.collection(this.config.collections.courses).get();
-    metrics.readQuery(courses.size);
-    const courseIds = shuffle(courses.docs.filter((course) => isActive(course.data())).map((course) => course.id), `${seed}:courses`);
+    const courseIds = shuffle(await activeCourseIds(this.db, this.config, metrics), `${seed}:courses`);
     let missing = settings.questionCount - picked.length;
     const want = splitEvenly(courseIds, missing);
     const pools = new Map<string, CandidateQuestion[]>();
@@ -1085,21 +1099,18 @@ export class SimulatorService {
     metrics: OperationMetrics
   ) {
     const plan = settings.plan;
-    const courses = await this.db.collection(this.config.collections.courses).get();
-    metrics.readQuery(courses.size);
     const seed = `${uid}:${input.requestId}`;
     const taken = new Set<string>();
     const picked: CandidateQuestion[] = [];
     const courseIds: string[] = [];
-    for (const course of courses.docs) {
-      if (!isActive(course.data())) continue;
-      const pool = await this.coursePool(course.id, [], plan.diagnosticPerCourse * 3, `${seed}:${course.id}`, metrics);
+    for (const courseId of await activeCourseIds(this.db, this.config, metrics)) {
+      const pool = await this.coursePool(courseId, [], plan.diagnosticPerCourse * 3, `${seed}:${courseId}`, metrics);
       // Only courses with enough questions (contract §4).
       if (pool.length < plan.diagnosticPerCourse) continue;
-      const chosen = pickFresh(pool, plan.diagnosticPerCourse, new Set(), taken, `${seed}:${course.id}:pick`);
+      const chosen = pickFresh(pool, plan.diagnosticPerCourse, new Set(), taken, `${seed}:${courseId}:pick`);
       chosen.forEach((question) => taken.add(question.questionId));
       picked.push(...chosen);
-      courseIds.push(course.id);
+      courseIds.push(courseId);
     }
     if (picked.length === 0) {
       throw failedPrecondition("There are no questions for a diagnostic yet.", {
@@ -1224,7 +1235,8 @@ export class SimulatorService {
     seed: string,
     metrics: OperationMetrics
   ): Promise<CandidateQuestion[]> {
-    const limit = Math.min(this.config.selection.maxCandidatesPerStart, Math.max(20, wanted));
+    const selection = await loadExamSelection(this.db, this.config, metrics);
+    const limit = Math.min(selection.maxCandidatesPerStart, Math.max(20, wanted));
     const found = new Map<string, CandidateQuestion>();
     const scopes = topicIds.length > 0 ? topicIds : [undefined];
     for (const [index, topicId] of scopes.entries()) {
@@ -1263,9 +1275,7 @@ export class SimulatorService {
   }
 
   private async randomCourses(uid: string, requestId: string, metrics: OperationMetrics): Promise<string[]> {
-    const courses = await this.db.collection(this.config.collections.courses).get();
-    metrics.readQuery(courses.size);
-    const active = courses.docs.filter((course) => isActive(course.data())).map((course) => course.id);
+    const active = await activeCourseIds(this.db, this.config, metrics);
     if (active.length === 0) {
       throw failedPrecondition("There are no courses to practice.", { reason: "course_not_available" });
     }
@@ -1301,11 +1311,12 @@ export class SimulatorService {
 
   private async seenSince(uid: string, days: number, metrics: OperationMetrics): Promise<Set<string>> {
     if (days === 0) return new Set();
+    const selection = await loadExamSelection(this.db, this.config, metrics);
     const recent = await this.userRef(uid)
       .collection("recentQuestions")
       .where("lastSeenAt", ">=", new Date(Date.now() - days * dayMs))
       .orderBy("lastSeenAt", "desc")
-      .limit(500)
+      .limit(selection.simulatorSeenLimit)
       .get();
     metrics.readQuery(recent.size);
     return new Set(recent.docs.map((document) => document.id));

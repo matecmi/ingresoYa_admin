@@ -8,6 +8,7 @@ import "./admin";
 import { readBackendConfig } from "./config";
 import { createCallableHandlers } from "./handlers";
 import { closeLastLeagueWeek } from "./league_job";
+import { prepareDailyChallenges } from "./challenge_job";
 import { createStaffHandlers } from "./staff";
 import { createAuditHandlers, onlyMetaChanged, recordWrite } from "./audit";
 import { CATALOG_DOC, bumpCatalogVersion, catalogKindOf, courseIdFromParams } from "./catalog_version";
@@ -136,6 +137,18 @@ export const sendScheduledNewsPush = onSchedule(
   { schedule: "*/15 * * * *", timeZone: "America/Lima", timeoutSeconds: 120 },
   async () => {
     await sendDueNewsPushes(config);
+  }
+);
+
+/**
+ * Reto del día armado de noche (docs/exam_config_contract.md, Fase 3C):
+ * 00:05 en Lima para cada universidad activa, así ningún alumno paga las
+ * lecturas de construirlo al pedirlo.
+ */
+export const generateDailyChallenges = onSchedule(
+  { schedule: "5 0 * * *", timeZone: "America/Lima", timeoutSeconds: 540, memory: "512MiB" },
+  async () => {
+    await prepareDailyChallenges(config);
   }
 );
 

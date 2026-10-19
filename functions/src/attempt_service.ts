@@ -8,6 +8,7 @@ import type {
 import { FieldValue } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
+import { loadExamSelection } from "./exam_config";
 import {
   emptyAchievementSummary,
   includeAchievement,
@@ -1331,13 +1332,14 @@ export class ExamAttemptService {
   }
 
   private async recentExposure(uid: string, metrics: OperationMetrics): Promise<Map<string, number>> {
+    const selection = await loadExamSelection(this.db, this.config, metrics);
     const snapshots = await this.db
       .collection(this.config.collections.users)
       .doc(uid)
       .collection("recentQuestions")
       // The most recently seen questions, not the first IDs alphabetically.
       .orderBy("lastSeenAt", "desc")
-      .limit(this.config.selection.recentQuestionLimit)
+      .limit(selection.recentQuestionLimit)
       .get();
     metrics.readQuery(snapshots.size);
     return new Map(
@@ -1390,12 +1392,13 @@ export class ExamAttemptService {
     required: number,
     metrics: OperationMetrics
   ): Promise<CandidateQuestion[]> {
+    const selection = await loadExamSelection(this.db, this.config, metrics);
     const limit = Math.min(
-      this.config.selection.maxCandidatesPerStart,
+      selection.maxCandidatesPerStart,
       Math.max(20, required * 8)
     );
     const found = new Map<string, CandidateQuestion>();
-    for (const start of randomStarts(seed, this.config.selection.candidateStartsPerBlock)) {
+    for (const start of randomStarts(seed, selection.candidateStartsPerBlock)) {
       let query = this.db
         .collection(this.config.collections.questions)
         .where("status", "==", "published")
