@@ -3,7 +3,7 @@
  * their stage when they earn their first XP of the week, and the week closes
  * on Monday moving the top of each group up and the bottom down.
  */
-import { FieldValue, type DocumentReference, type DocumentSnapshot, type Firestore, type Transaction } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, type DocumentReference, type DocumentSnapshot, type Firestore, type QueryDocumentSnapshot, type Transaction } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
 import type { PublicIdentity, RankingsSettings } from "./leaderboard";
@@ -128,6 +128,9 @@ export function orderGroup(members: readonly MemberStanding[]): MemberStanding[]
   return [...members].sort((a, b) => b.weekXp - a.weekXp || a.joinedAtMs - b.joinedAtMs);
 }
 
+/** Miembros por página al cerrar la semana (Fase 4B). */
+const LEAGUE_CLOSE_PAGE = 500;
+
 /** Closes [week] once: new stage and result for every member. Returns the members closed. */
 export async function closeLeagueWeek(
   db: Firestore,
@@ -137,19 +140,27 @@ export async function closeLeagueWeek(
 ): Promise<number> {
   const marker = db.collection(config.collections.leagueGroups).doc(`${week}_closed`);
   if ((await marker.get()).exists) return 0;
-  const members = await db.collection(config.collections.leagueMembers).where("week", "==", week).get();
+  // Los miembros se leen por páginas (Fase 4B): una semana con decenas de
+  // miles de asientos no entra en una sola consulta.
   const byGroup = new Map<string, { stage: number; standings: MemberStanding[] }>();
-  for (const doc of members.docs) {
-    const data = doc.data();
-    if (typeof data.groupId !== "string") continue;
-    const uid = doc.id.slice(week.length + 1);
-    const group = byGroup.get(data.groupId) ?? { stage: typeof data.stage === "number" ? data.stage : 0, standings: [] };
-    group.standings.push({
-      uid,
-      weekXp: typeof data.weekXp === "number" ? data.weekXp : 0,
-      joinedAtMs: typeof data.joinedAtMs === "number" ? data.joinedAtMs : 0
-    });
-    byGroup.set(data.groupId, group);
+  const base = db.collection(config.collections.leagueMembers).where("week", "==", week).orderBy(FieldPath.documentId()).limit(LEAGUE_CLOSE_PAGE);
+  let last: QueryDocumentSnapshot | undefined;
+  for (;;) {
+    const page = await (last === undefined ? base : base.startAfter(last)).get();
+    for (const doc of page.docs) {
+      const data = doc.data();
+      if (typeof data.groupId !== "string") continue;
+      const uid = doc.id.slice(week.length + 1);
+      const group = byGroup.get(data.groupId) ?? { stage: typeof data.stage === "number" ? data.stage : 0, standings: [] };
+      group.standings.push({
+        uid,
+        weekXp: typeof data.weekXp === "number" ? data.weekXp : 0,
+        joinedAtMs: typeof data.joinedAtMs === "number" ? data.joinedAtMs : 0
+      });
+      byGroup.set(data.groupId, group);
+    }
+    if (page.size < LEAGUE_CLOSE_PAGE) break;
+    last = page.docs[page.size - 1];
   }
   let writer = db.batch();
   let pending = 0;

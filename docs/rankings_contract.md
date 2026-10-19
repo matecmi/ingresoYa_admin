@@ -52,7 +52,7 @@ Una por alumno con nombre de usuario (oculto o no). La escribe Functions al camb
 - **Semana:** lunes 00:00 a domingo 23:59, hora de Lima (`peruWeek`). Etapa inicial: la primera.
 - **Entrar a un grupo:** al ganar el primer XP de la semana (en `XpService.grant`), en la misma transacción: puntero `{leagueGroups}/{semana}_{etapa}[_{universidad}]_open` → grupo con cupo o uno nuevo (`{semana}_{etapa}[_{univ}]_{n}`).
 - `{leagueMembers}/{semana}_{uid}`: `week`, `groupId`, `stage`, `weekXp`, `alias`, `hidden`, `rankStep`, `stars`, `universityId`, `professionId`, `joinedAtMs`. Se actualiza en cada XP de esa semana. Lectura pública para alumnos con sesión.
-- **Cierre** (tarea programada, lunes 00:10 Lima, solo si `enabled`): por grupo, orden `weekXp desc, joinedAtMs asc`; suben `max(1, round(n·p))` (no en la última etapa), bajan `round(n·d)` si `n ≥ minGroupForDemotion` (no en la primera); nunca se cruzan. Escribe en `ranking/current`: `stage` y `lastResult{week, from, to, position, size, seen:false}`.
+- **Cierre** (tarea programada, lunes 00:10 Lima, solo si `enabled`; lee los asientos de la semana por páginas de 500 ordenadas por id, Fase 4B de costos): por grupo, orden `weekXp desc, joinedAtMs asc`; suben `max(1, round(n·p))` (no en la última etapa), bajan `round(n·d)` si `n ≥ minGroupForDemotion` (no en la primera); nunca se cruzan. Escribe en `ranking/current`: `stage` y `lastResult{week, from, to, position, size, seen:false}`.
 
 ## 6. Reto del día
 

@@ -10,7 +10,7 @@ Rediseño del admin, fase 7 (lienzo v3.1, tablero 11).
 
 - La alternativa correcta sale de la clave congelada de esa versión (`{answerKeys}/{questionId}_{version}`); sin clave, la pregunta no se cuenta.
 - El cursor vive en `iya-question-stats-{env}/_cursor` (`submittedAt` + `doneIds` del mismo instante) para no contar dos veces un intento.
-- Se ejecuta cada noche (`nightlyQuestionStats`, 03:30 Lima) y con «Actualizar ahora» (callable `refreshQuestionStats`, requiere `questions:v`, sin App Check).
+- Se ejecuta cada noche (`nightlyQuestionStats`, 03:30 Lima; hasta tres pasadas de 20 000 intentos si la anterior llenó el cupo, Fase 4B de costos) y con «Actualizar ahora» (callable `refreshQuestionStats`, requiere `questions:v`, sin App Check). Las alternativas de cada pregunta se toman de `questionSnapshots` cuando `questions` solo trae id, versión y orden.
 
 ## Señales (admin)
 

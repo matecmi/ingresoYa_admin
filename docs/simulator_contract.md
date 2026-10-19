@@ -15,7 +15,7 @@ Un examen pasado es un registro del catálogo
 
 | Campo `simulator.*` | Tipo | Significado |
 |---|---|---|
-| `questionCount` | int 1–300 | Preguntas que tuvo el examen real |
+| `questionCount` | int 1–100 | Preguntas que tuvo el examen real |
 | `durationMinutes` | int 1–600 | Tiempo del examen |
 | `maxScore` | int > 0 | Puntaje máximo mostrado (p. ej. 1000) |
 | `correctPoints` | número > 0 | Puntos por correcta |
@@ -217,3 +217,11 @@ tolerando `streakGraceDays` días sin práctica.
   borra. `questionSnapshots`, `questionMeta` y `answers` quedan exentos de
   índices (`firestore.indexes.json`): no se consultan y pesaban más que el
   propio documento.
+
+## Tope de preguntas por examen pasado (Fase 4B de la reestructuración de costos, 2026-10-18)
+
+- `questionCount` acepta de 1 a 100 (antes 300): el admin lo valida al guardar
+  las reglas y las Functions al leerlas (`parsePastExamRules`). Un intento con
+  100 preguntas ya pesa cerca de 1 MB al enviarse; 300 no cabía en un documento
+  y triplicaba la descarga del alumno. Los exámenes de admisión del Perú tienen
+  entre 60 y 100 preguntas.

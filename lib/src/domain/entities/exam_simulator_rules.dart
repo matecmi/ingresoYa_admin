@@ -94,8 +94,8 @@ class ExamSimulatorRules {
 
   /// Spanish message for the first invalid value, or null when valid.
   String? validate() {
-    if (questionCount < 1 || questionCount > 300) {
-      return 'Las preguntas del examen original deben estar entre 1 y 300.';
+    if (questionCount < 1 || questionCount > 100) {
+      return 'Las preguntas del examen original deben estar entre 1 y 100.';
     }
     if (durationMinutes < 1 || durationMinutes > 600) {
       return 'La duración debe estar entre 1 y 600 minutos.';
