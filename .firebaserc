@@ -1,5 +1,6 @@
 {
   "projects": {
-    "test": "ingresoya-e5115"
+    "test": "ingresoya-e5115",
+    "production": "ingresoya-prod"
   }
 }

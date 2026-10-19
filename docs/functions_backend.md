@@ -7,7 +7,7 @@ Node 22, Firebase Admin SDK y el runtime `nodejs22` declarado en
 ## Entornos y colecciones
 
 Antes de desplegar, se debe definir `INGRESOYA_ENV` como `test`, `staging` o
-`production`; fuera de pruebas y emuladores no tiene valor por defecto. La
+`production`; fuera de pruebas y emuladores no tiene valor por defecto. Desde la Fase 1B (2026-10-19) producción es el proyecto `ingresoya-prod` (alias `production` en `.firebaserc`, variables en `functions/.env.production`, no versionado: `INGRESOYA_ENV=production`, `FUNCTIONS_REGION=us-central1`, `FUNCTIONS_ENFORCE_APP_CHECK=true`, `FUNCTIONS_MIN_INSTANCES=0`, `EXAM_*` como en TEST). La
 función resuelve únicamente las colecciones del entorno indicado, por ejemplo
 `iya-questions-test` o `iya-questions`. Esto evita que una configuración local
 apunte a producción por accidente. `FUNCTIONS_REGION` es explícita y por
