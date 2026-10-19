@@ -7,7 +7,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Índice">
   <div class="brand">Guía de IngresoYa</div>
-  <div class="meta">Documento vivo · actualizado el 15-oct-2026</div>
+  <div class="meta">Documento vivo · actualizado el 18-oct-2026</div>
   <ol>
     <li><a href="#como-leer">Cómo leer esta guía</a></li>
     <li><a href="#inicio">Inicio</a>
@@ -46,6 +46,7 @@
     <li><a href="#admin">Lo que se cambia en el admin</a></li>
     <li><a href="#observaciones">Observaciones abiertas</a></li>
     <li><a href="#noticias">Noticias</a></li>
+    <li><a href="#anuncios">Anuncios</a></li>
     <li><a href="#cambios">Historial de cambios</a></li>
   </ol>
 </nav>
@@ -130,6 +131,18 @@
   <tr><td class="msg">Notificación «Aviso UNPRG: {título}» · {texto}</td><td>Si el admin marcó «Enviar notificación»: llega una sola vez al publicarse (las programadas, a su hora) y solo a los alumnos de la audiencia. Android 13+ pide permiso al entrar.</td><td>Abre el detalle.</td></tr>
 </table></div>
 <p>Lo leído (ventanas, historias, noticias abiertas) se guarda en el teléfono por cuenta.</p>
+
+<!-- ============================================================ ANUNCIOS -->
+<h2 id="anuncios"><span class="chip info">ANUNCIOS</span><br>Anuncios</h2>
+<p>Anuncios de AdMob para los alumnos sin plan premium (contrato <code>docs/ads_contract.md</code>, Fase 5A de la reestructuración de costos). Regla fija: <b>nunca</b> dentro de una lección, un examen, el simulador ni las historias. Todo lo demás lo decide el admin en Configuración → Anuncios y se puede apagar sin publicar una versión nueva. Mientras no haya cuenta de AdMob, la app usa los anuncios de prueba de Google (se ven como anuncios reales con la etiqueta «Test Ad»).</p>
+<div class="table-wrap"><table>
+  <tr><th>Dónde</th><th>Qué se ve</th><th>Cuándo aparece</th></tr>
+  <tr><td class="msg">Inicio, lista de Noticias y Rankings</td><td>Franja (banner adaptable) al pie, sobre la barra de pestañas.</td><td>Si el admin encendió esa pantalla <span class="chip info">ADMIN</span> y el anuncio cargó; si no carga, no ocupa espacio.</td></tr>
+  <tr><td class="msg">Al salir del resultado de un examen (de parte, de dominio o del Simulador)</td><td>Anuncio de pantalla completa; se cierra con la X.</td><td>No en el primer resultado del día <span class="chip info">ADMIN</span>; después, como mucho uno cada {minutos} <span class="chip info">ADMIN</span> 10. Si no hay anuncio listo, no se espera.</td></tr>
+  <tr><td class="msg">Revisión de un examen: «Mira un video corto para ver la explicación de esta pregunta.» · «Ver video y abrir»</td><td>En las preguntas falladas, en lugar de la explicación. Las acertadas se ven directo.</td><td>Si el admin tiene los videos encendidos <span class="chip info">ADMIN</span>. Tras el video se abre y no se vuelve a pedir en la sesión. Si el video no carga, la explicación se abre igual. Si se cierra antes de tiempo: «Termina el video para ver la explicación.».</td></tr>
+  <tr><td class="msg">Alumno premium</td><td>Nada.</td><td>Con <code>premium.until</code> vigente en el perfil (Fase 5B).</td></tr>
+</table></div>
+<p class="note">Capturas reales pendientes de la prueba en el teléfono (Kevin), con <code>{config}/ads.enabled = true</code> en TEST.</p>
 
 <!-- ============================================================ GUÍA DE ESTUDIO -->
 <h2 id="estudio"><span class="chip study">GUÍA DE ESTUDIO</span><br>Guía de estudio</h2>
@@ -988,6 +1001,7 @@ flowchart LR
   <tr><td class="msg">Configuración → Nombres de usuario y reto de hoy</td><td>Buscar un nombre de usuario o uid y retirarlo con motivo (la app le asigna otro al azar y le explica por qué); ver quiénes se ocultaron; ver el reto de hoy de cada universidad y cambiar una pregunta si nadie lo entregó aún.</td><td>—</td></tr>
   <tr><td class="msg">Configuración → XP de un alumno</td><td>Buscar por correo o uid, ver su XP, rango, semana y libro de movimientos, y revertir un evento con motivo (no se vuelve a otorgar).</td><td>—</td></tr>
   <tr><td class="msg">Configuración → Noticias</td><td>Avisos urgentes por semana (0 los desactiva), días que una historia queda en el Inicio y cuántas caben.</td><td>1 · 7 · 5</td></tr>
+  <tr><td class="msg">Configuración → Anuncios</td><td>Anuncios encendidos, banner en Inicio / Noticias / Rankings, minutos entre anuncios de pantalla completa, primer examen del día sin anuncio, videos recompensados.</td><td>Apagado · las tres · 10 · Sí · Sí</td></tr>
   <tr><td class="msg">Alumnos → Noticias</td><td>Las noticias, su audiencia, prioridad, fechas, imagen, historia, botón y notificación.</td><td>—</td></tr>
   <tr><td class="msg">Universidades → ficha → Próximo examen de admisión</td><td>Fecha de la cuenta regresiva del Inicio.</td><td>Sin fecha</td></tr>
   <tr><td class="msg">Universidades → Exámenes de origen → Reglas del Simulador</td><td>Preguntas, duración, puntaje máximo, puntos por correcta/incorrecta/blanco, orden, disponible y mínimos de ingreso por carrera. «Visible en el Simulador» por universidad.</td><td>—</td></tr>
@@ -1017,6 +1031,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>18-oct-2026</b> · Anuncios de AdMob (Fase 5A de costos): banner al pie de Inicio, Noticias y Rankings; anuncio de pantalla completa al salir de un resultado (primer examen del día libre, mínimo 10 min entre dos); video para ver la explicación de una pregunta fallada; nada en lección, examen, simulador ni historias; todo apagable desde Configuración → Anuncios. Capturas pendientes de la prueba en el teléfono.</li>
   <li><b>17-oct-2026</b> · Probado en el teléfono (TEST): ventana del aviso urgente, Inicio, historias, lista, «Otras universidades», detalle, visor de imagen y notificación (abre el detalle). Capturas reales.</li>
   <li><b>17-oct-2026</b> · Noticias del admin (ventana del aviso urgente por universidad, fijada, historias, lista con «Otras universidades», detalle, imagen a pantalla completa y notificación) y nuevo Inicio (días al examen, % de la guía con ritmo, pendientes, historias y atajos). Admin: Alumnos → Noticias, Configuración → Noticias y «Próximo examen de admisión».</li>
   <li><b>16-oct-2026</b> · Admin: tema oscuro (selector Automático / Claro / Oscuro en la barra superior).</li>

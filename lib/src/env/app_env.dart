@@ -53,6 +53,9 @@ class AppEnv {
   static const String newsCollection = 'iya-news-test';
   static const String newsSettingsDocument = 'news';
 
+  /// Anuncios de AdMob en la app (docs/ads_contract.md).
+  static const String adsSettingsDocument = 'ads';
+
   /// Historial de cambios del admin (lo escriben disparadores del servidor).
   static const String auditCollection = 'iya-admin-audit-test';
 

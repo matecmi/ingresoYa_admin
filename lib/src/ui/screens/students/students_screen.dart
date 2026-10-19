@@ -335,6 +335,13 @@ class _StudentFileScreenState extends ConsumerState<StudentFileScreen> {
                         ),
                         if (stage.isNotEmpty)
                           StatusPill('Liga: $stage', tone: Tone.success),
+                        if (p.isPremiumAt(DateTime.now()))
+                          StatusPill(
+                            'Premium hasta ${_shortDate(p.premiumUntil!)}',
+                            tone: Tone.brand,
+                          )
+                        else
+                          const StatusPill('Sin premium · ve anuncios'),
                       ],
                     ),
                     if (ranking.moderatedReason != null) ...[
@@ -591,3 +598,6 @@ class _LedgerCard extends StatelessWidget {
     );
   }
 }
+
+String _shortDate(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';

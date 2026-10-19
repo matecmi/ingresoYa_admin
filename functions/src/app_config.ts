@@ -21,6 +21,7 @@ export const APP_CONFIG_SECTIONS = [
   "sync",
   "study",
   "exam",
+  "ads",
   "catalog"
 ] as const;
 
