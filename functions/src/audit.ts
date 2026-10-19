@@ -43,7 +43,10 @@ const META = new Set([
   "publishedAt"
 ]);
 
-const MAX_SNAPSHOT_CHARS = 180_000;
+// Copias completas (restaurar / recuperar) solo hasta este tamaño (Fase 4B:
+// antes 180k; una lección con todo su contenido se guardaba dos veces por
+// edición). Por encima queda la lista de campos cambiados y `tooLarge`.
+const MAX_SNAPSHOT_CHARS = 60_000;
 const MAX_VALUE_CHARS = 140;
 const MAX_CHANGES = 40;
 

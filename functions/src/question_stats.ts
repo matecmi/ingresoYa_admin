@@ -36,13 +36,24 @@ const PAGE = 200;
 function questionsOf(attempt: Record<string, unknown>): AttemptQuestion[] {
   const raw = attempt.questions;
   if (!Array.isArray(raw)) return [];
+  // Los intentos guardan {questionId, version, alternativeOrder} en `questions`
+  // y el contenido (con las alternativas) en `questionSnapshots` (Fase 4B).
+  const snapshots = new Map<string, Record<string, unknown>>();
+  if (Array.isArray(attempt.questionSnapshots)) {
+    for (const s of attempt.questionSnapshots as unknown[]) {
+      if (s !== null && typeof s === "object" && typeof (s as Record<string, unknown>).questionId === "string") {
+        snapshots.set((s as Record<string, unknown>).questionId as string, s as Record<string, unknown>);
+      }
+    }
+  }
   const out: AttemptQuestion[] = [];
   for (const q of raw) {
     if (q === null || typeof q !== "object") continue;
     const r = q as Record<string, unknown>;
     if (typeof r.questionId !== "string" || typeof r.version !== "number") continue;
-    const alternatives = Array.isArray(r.alternatives)
-      ? (r.alternatives as unknown[])
+    const rawAlternatives = Array.isArray(r.alternatives) ? r.alternatives : snapshots.get(r.questionId)?.alternatives;
+    const alternatives = Array.isArray(rawAlternatives)
+      ? (rawAlternatives as unknown[])
         .filter((a): a is Record<string, unknown> => a !== null && typeof a === "object")
         .map((a) => ({ id: String(a.id ?? ""), label: String(a.label ?? "") }))
         .filter((a) => a.id !== "")

@@ -24,7 +24,7 @@ No se anotan los cambios que solo tocan campos automáticos (`updatedAt`, `creat
 
 - `actor`: el usuario del admin (por el `authId` del evento y su ficha) o «Sistema» (Functions, scripts).
 - `changes`: campos con su texto corto; mapas anidados como `league.promotePercent`; partes de `listPart` por id (`listPart «Aceleración».active`). Máximo 40.
-- `before`/`after`: copia completa (hasta ≈180 KB; si es más grande, `tooLarge: true` y no se puede restaurar).
+- `before`/`after`: copia completa (hasta ≈60 KB desde la Fase 4B de costos, antes 180 KB; si es más grande, `tooLarge: true`, queda solo `changes` y no se puede restaurar). Afecta sobre todo a lecciones con todo su contenido: cada edición guardaba dos copias.
 
 Lectura: `history:v` (reglas). Escritura: solo los disparadores.
 

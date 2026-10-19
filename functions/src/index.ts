@@ -73,7 +73,12 @@ export const refreshQuestionStats = onCall(
 export const nightlyQuestionStats = onSchedule(
   { schedule: "30 3 * * *", timeZone: "America/Lima", timeoutSeconds: 540, memory: "512MiB" },
   async () => {
-    await questionStats.service.refresh(20000);
+    // Hasta tres pasadas por noche si quedó trabajo pendiente (Fase 4B): con
+    // más de ~6.000 alumnos activos al día una sola pasada se atrasaba.
+    for (let pass = 0; pass < 3; pass += 1) {
+      const { attempts } = await questionStats.service.refresh(20000);
+      if (attempts < 20000) break;
+    }
   }
 );
 

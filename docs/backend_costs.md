@@ -120,3 +120,20 @@ no despliega ninguno de esos artefactos.
 | Sección repetida (`recordPartSectionCompletion`) | 5 + 10 a 15 | 5 |
 | Envío de examen de parte (incluida la XP) | n + 3 + 1 + 15 | n + 3 + 10 |
 | Envío de reto del día | n + 4 + 3 lecturas de `xp` + 2 del intento | n + 4 |
+
+## Fase 4B de la reestructuración de costos (2026-10-18)
+
+- **Cierre de liga por páginas:** `closeLeagueWeek` lee los asientos de la
+  semana de 500 en 500 (`orderBy(documentId)` + `startAfter`) en vez de una sola
+  consulta; con decenas de miles de asientos la consulta única superaba la
+  memoria y el tiempo de la instancia.
+- **Nocturno de estadísticas con varias pasadas:** `nightlyQuestionStats` repite
+  `refresh(20000)` hasta tres veces si la pasada anterior llenó el cupo; antes,
+  con más de ~6 000 alumnos activos al día, el trabajo se atrasaba y los
+  intentos caducaban (TTL de la Fase 4A) sin contarse. `questionsOf` toma las
+  alternativas de `questionSnapshots` cuando `questions` no las trae.
+- **Historial más liviano:** las copias `before`/`after` del historial del admin
+  solo se guardan hasta 60 KB (antes 180 KB); por encima queda la lista de
+  campos cambiados y `tooLarge`.
+- **Tope de 100 preguntas por examen pasado:** `questionCount` 1–100 en el admin
+  (`ExamSimulatorRules.validate`) y en `parsePastExamRules`.

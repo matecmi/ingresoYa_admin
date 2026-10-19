@@ -34,7 +34,7 @@ test("past exam rules keep valid cutoffs and reject impossible scoring", () => {
   assert.equal(parsed?.questionOrder, "original");
   assert.equal(parsePastExamRules({ ...rules, incorrectPoints: 1 }), undefined);
   assert.equal(parsePastExamRules({ ...rules, correctPoints: 0 }), undefined);
-  assert.equal(parsePastExamRules({ ...rules, questionCount: 301 }), undefined);
+  assert.equal(parsePastExamRules({ ...rules, questionCount: 101 }), undefined);
   assert.equal(parsePastExamRules({ ...rules, blankPoints: 5 }), undefined);
   assert.equal(parsePastExamRules(null), undefined);
 });

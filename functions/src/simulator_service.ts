@@ -225,7 +225,7 @@ export function parsePastExamRules(value: unknown): PastExamRules | undefined {
   const incorrectPoints = finite(raw.incorrectPoints);
   const blankPoints = finite(raw.blankPoints) ?? 0;
   if (
-    questionCount === undefined || questionCount < 1 || questionCount > 300 ||
+    questionCount === undefined || questionCount < 1 || questionCount > 100 ||
     durationMinutes === undefined || durationMinutes < 1 || durationMinutes > 600 ||
     maxScore === undefined || maxScore < 1 ||
     correctPoints === undefined || correctPoints <= 0 ||
