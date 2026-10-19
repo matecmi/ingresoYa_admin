@@ -268,6 +268,18 @@ export function parseGetExamAttempt(data: unknown): GetExamAttemptInput {
   return { attemptId: id(value.attemptId, "attemptId") };
 }
 
+export interface ClaimExplanationXpInput {
+  attemptId: string;
+  questionId: string;
+}
+
+/** «Ver video · +5 XP»: the attempt and the question; everything else is server state. */
+export function parseClaimExplanationXp(data: unknown): ClaimExplanationXpInput {
+  const value = object(data, "data");
+  onlyKeys(value, ["attemptId", "questionId"]);
+  return { attemptId: id(value.attemptId, "attemptId"), questionId: id(value.questionId, "questionId") };
+}
+
 /** Only the attempt ID; the start time and duration come from the server. */
 export function parseStartExamAttempt(data: unknown): StartExamAttemptInput {
   const value = object(data, "data");

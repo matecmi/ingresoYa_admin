@@ -40,6 +40,26 @@ void main() {
     );
   });
 
+  test('explanation videos: 5 XP each, own daily cap of 25', () {
+    final d = XpSettings.defaults;
+    expect(d.amounts['explanationVideo'], 5);
+    expect(d.explanationVideoDailyCap, 25);
+    final parsed = XpSettings.fromMap({
+      'amounts': {'explanationVideo': 8},
+      'explanationVideoDailyCap': 40,
+    });
+    expect(parsed.amounts['explanationVideo'], 8);
+    expect(parsed.explanationVideoDailyCap, 40);
+    expect(parsed.toMap()['explanationVideoDailyCap'], 40);
+    expect(
+      XpSettings.fromMap({
+        'explanationVideoDailyCap': -3,
+      }).explanationVideoDailyCap,
+      25,
+    );
+    expect(xpEventLabels['explanation_video'], 'Explicación vista con video');
+  });
+
   test(
     'reverting an event takes its XP back once and recalculates the rank',
     () async {

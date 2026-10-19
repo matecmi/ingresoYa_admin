@@ -53,6 +53,8 @@ export interface XpAmounts {
   improvementMax: number;
   weeklyGoal: number;
   streakDay: number;
+  /** Explanation of a failed question opened with a rewarded video. */
+  explanationVideo: number;
 }
 
 export interface XpSettings {
@@ -68,6 +70,8 @@ export interface XpSettings {
   /** Sessions answered faster than this (average) give no XP. */
   minSecondsPerQuestion: number;
   pastExamEveryDays: number;
+  /** Max XP per Peru day from explanation videos (its own cap). */
+  explanationVideoDailyCap: number;
 }
 
 const defaultNames = ["Bronce", "Plata", "Platino", "Zafiro", "Amatista", "Maestro"];
@@ -93,13 +97,15 @@ export const defaultXpSettings: XpSettings = {
     improvementPer10: 1,
     improvementMax: 50,
     weeklyGoal: 50,
-    streakDay: 5
+    streakDay: 5,
+    explanationVideo: 5
   },
   dailyCap: 300,
   minQuestionsPerSession: 10,
   repeatWindowDays: 14,
   minSecondsPerQuestion: 5,
-  pastExamEveryDays: 7
+  pastExamEveryDays: 7,
+  explanationVideoDailyCap: 25
 };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -156,13 +162,15 @@ export function parseXpSettings(value: unknown): XpSettings {
       improvementPer10: amount("improvementPer10"),
       improvementMax: amount("improvementMax"),
       weeklyGoal: amount("weeklyGoal"),
-      streakDay: amount("streakDay")
+      streakDay: amount("streakDay"),
+      explanationVideo: amount("explanationVideo")
     },
     dailyCap: bounded(raw.dailyCap, d.dailyCap, 0, 100000),
     minQuestionsPerSession: bounded(raw.minQuestionsPerSession, d.minQuestionsPerSession, 1, 300),
     repeatWindowDays: bounded(raw.repeatWindowDays, d.repeatWindowDays, 0, 365),
     minSecondsPerQuestion: bounded(raw.minSecondsPerQuestion, d.minSecondsPerQuestion, 0, 600),
-    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365)
+    pastExamEveryDays: bounded(raw.pastExamEveryDays, d.pastExamEveryDays, 0, 365),
+    explanationVideoDailyCap: bounded(raw.explanationVideoDailyCap, d.explanationVideoDailyCap, 0, 1000)
   };
 }
 
@@ -219,7 +227,8 @@ export type XpEventType =
   | "past_exam_improvement"
   | "weekly_goal"
   | "streak_day"
-  | "daily_challenge";
+  | "daily_challenge"
+  | "explanation_video";
 
 /** Repeatable events limited by the daily cap. */
 export const cappedTypes: ReadonlySet<XpEventType> = new Set(["simulator_session", "correct_answers", "streak_day"]);
@@ -239,14 +248,15 @@ export interface XpState {
   total: number;
   /** Highest rank reached: it never goes down when thresholds change. */
   rankStep: number;
-  today: { day: string; capped: number };
+  /** [explained]: XP from explanation videos today (own cap). */
+  today: { day: string; capped: number; explained: number };
   week: { key: string; xp: number; sessionDays: string[] };
   /** Last Peru day a past exam gave its completion XP, by exam id. */
   pastExamDays: Record<string, string>;
 }
 
 export function emptyXpState(): XpState {
-  return { total: 0, rankStep: 0, today: { day: "", capped: 0 }, week: { key: "", xp: 0, sessionDays: [] }, pastExamDays: {} };
+  return { total: 0, rankStep: 0, today: { day: "", capped: 0, explained: 0 }, week: { key: "", xp: 0, sessionDays: [] }, pastExamDays: {} };
 }
 
 export function parseXpState(value: unknown): XpState {
@@ -259,7 +269,7 @@ export function parseXpState(value: unknown): XpState {
   return {
     total: number(raw.total),
     rankStep: number(raw.rankStep),
-    today: { day: typeof today?.day === "string" ? today.day : "", capped: number(today?.capped) },
+    today: { day: typeof today?.day === "string" ? today.day : "", capped: number(today?.capped), explained: number(today?.explained) },
     week: {
       key: typeof week?.key === "string" ? week.key : "",
       xp: number(week?.xp),
@@ -302,12 +312,16 @@ export function applyXpGrants(
   for (const grant of grants) {
     const day = peruDay(grant.atMs);
     const week = peruWeek(grant.atMs);
-    if (day > state.today.day) state.today = { day, capped: 0 };
+    if (day > state.today.day) state.today = { day, capped: 0, explained: 0 };
     if (week > state.week.key) state.week = { key: week, xp: 0, sessionDays: [] };
     let xp = Math.max(0, Math.round(grant.xp));
     if (cappedTypes.has(grant.type) && day === state.today.day) {
       xp = Math.min(xp, Math.max(0, settings.dailyCap - state.today.capped));
       state.today.capped += xp;
+    }
+    if (grant.type === "explanation_video" && day === state.today.day) {
+      xp = Math.min(xp, Math.max(0, settings.explanationVideoDailyCap - state.today.explained));
+      state.today.explained += xp;
     }
     state.total += xp;
     if (week === state.week.key) {
@@ -420,6 +434,17 @@ export function guideGrants(facts: GuideFacts, settings: XpSettings): XpGrant[] 
   return grants;
 }
 
+/**
+ * XP for opening the explanation of a failed (or blank) question with a
+ * rewarded video: once per attempt and question (fixed id), limited by its
+ * own daily cap in [applyXpGrants].
+ */
+export function explanationGrant(attemptId: string, questionId: string, atMs: number, settings: XpSettings): XpGrant[] {
+  const xp = settings.amounts.explanationVideo;
+  if (xp <= 0 || settings.explanationVideoDailyCap <= 0) return [];
+  return [{ id: `explanation_${attemptId}_${questionId}`, type: "explanation_video", xp, atMs, source: { attemptId, questionId } }];
+}
+
 // ---------------------------------------------------------------- award sent to the app
 
 export interface XpAwardItem {
@@ -441,6 +466,9 @@ export interface XpAward {
   stars: number;
   todayCapped: number;
   dailyCap: number;
+  /** XP from explanation videos today and its cap («te quedan N XP hoy»). */
+  todayExplained: number;
+  explanationDailyCap: number;
 }
 
 function award(before: XpState, after: XpState, applied: readonly AppliedXpEvent[], settings: XpSettings): XpAward {
@@ -454,7 +482,9 @@ function award(before: XpState, after: XpState, applied: readonly AppliedXpEvent
     starsBefore: starsFor(before.total, settings),
     stars: starsFor(after.total, settings),
     todayCapped: after.today.day === peruDay(Date.now()) ? after.today.capped : 0,
-    dailyCap: settings.dailyCap
+    dailyCap: settings.dailyCap,
+    todayExplained: after.today.day === peruDay(Date.now()) ? after.today.explained : 0,
+    explanationDailyCap: settings.explanationVideoDailyCap
   };
 }
 
@@ -642,6 +672,29 @@ export class XpService {
       atMs: Date.now()
     };
     return this.grant(uid, (_, settings) => guideGrants(facts, settings), metrics);
+  }
+
+  /**
+   * The student watched the rewarded video of a failed question
+   * (docs/xp_contract.md, «Explicación con video»). Only the owner of a
+   * submitted attempt, only for a question it got wrong or left blank;
+   * repeated calls give nothing (fixed event id).
+   */
+  public async afterExplanationVideo(
+    uid: string,
+    attemptId: string,
+    questionId: string,
+    metrics?: OperationMetrics
+  ): Promise<XpAward | undefined> {
+    const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+    metrics?.readDocument();
+    const data = attempt.data();
+    if (data?.userId !== uid || data?.status !== "submitted") return undefined;
+    const reviews = Array.isArray(data.review) ? data.review : [];
+    const item = reviews.map(record).find((review) => review?.questionId === questionId);
+    if (item === undefined || item.isCorrect === true) return undefined;
+    const atMs = Date.now();
+    return this.grant(uid, (_, settings) => explanationGrant(attemptId, questionId, atMs, settings), metrics);
   }
 
   /**
