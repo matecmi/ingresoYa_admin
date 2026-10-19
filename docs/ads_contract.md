@@ -44,11 +44,13 @@ lectura por sesión.
 `Env.adsAppId`, `adsBannerUnitId`, `adsInterstitialUnitId` y
 `adsRewardedUnitId` por sabor (`lib/config/env.dart`); el ID de la app
 también va en `android/app/build.gradle.kts` (`manifestPlaceholders["admobAppId"]`,
-leído por `AndroidManifest.xml`). Hasta que Kevin registre la app en AdMob y
-cree las tres unidades, los tres sabores usan los **ID de prueba oficiales de
-Google** (`ca-app-pub-3940256099942544…`): muestran anuncios de prueba y no
-generan ingresos ni infracciones. Antes de publicar: reemplazar los de
-`production` (y el placeholder del sabor `production`) por los reales.
+leído por `AndroidManifest.xml`). Desde el 2026-10-19 el ID de la app es el
+real de AdMob (`ca-app-pub-6838711524343941~9067462885`) en los tres sabores;
+las tres unidades siguen siendo los **ID de prueba oficiales de Google**
+(`ca-app-pub-3940256099942544/…`): muestran anuncios de prueba y no generan
+ingresos ni infracciones (combinación recomendada por Google para desarrollo).
+Antes de publicar: reemplazar las unidades de `production` por las reales
+(banner adaptable anclado, intersticial y recompensado) en `env.dart`.
 
 ## Cómo lo hace la app
 
@@ -79,8 +81,9 @@ generan ingresos ni infracciones. Antes de publicar: reemplazar los de
 
 ## Pendiente de Kevin
 
-Cuenta de AdMob, registrar la app Android y crear las tres unidades (banner
-adaptable, intersticial, video recompensado); pasar los ID. Formulario de
+Cuenta de AdMob y app Android registradas (ID de app entregado el 2026-10-19).
+Falta crear las tres unidades reales (banner adaptable anclado, intersticial,
+video recompensado) y pasar sus ID para `Env.production`. Formulario de
 seguridad de datos de Play Console y política de privacidad (AdMob usa el ID
 de publicidad). Probar en el teléfono con `{config}/ads.enabled = true` en
 TEST.

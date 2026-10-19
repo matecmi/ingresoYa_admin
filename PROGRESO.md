@@ -2,9 +2,10 @@
 
 > Actualizar en cada desarrollo, commit o PR (también `../iya-app/PROGRESO.md`).
 
-_Última actualización: 2026-10-18_
+_Última actualización: 2026-10-19_
 
 ## Estado actual
+- **Reestructuración de costos · AdMob, ID real de la app (2026-10-19, app #119):** la app lleva el ID real de la app de AdMob de Kevin (`ca-app-pub-6838711524343941~9067462885`) en los tres sabores con unidades de prueba de Google; sin cambios en el admin ni en `{config}/ads`. Pendiente de Kevin: las tres unidades reales para producción.
 - **Reestructuración de costos · Fase 1B (2026-10-19, en curso):** proyecto de producción `ingresoya-prod` creado por CLI (Firebase, Firestore nativo en **us-central1**, app Android con huellas, API sin costo), alias `production` en `.firebaserc`, `functions/.env.production` (local) y runbook §7 con la lista del primer despliegue. El clasificador del modo automático no dejó vincular la facturación: Kevin debe correr el `gcloud billing projects link` del runbook, crear el presupuesto, el bucket de Storage y el proveedor de Google; luego se habilitan las API de Functions y se despliega con autorización. App: PR #118.
 - **Reestructuración de costos · Fase 5A (2026-10-18, desplegada):** `{config}/ads` (`domain/ads_settings.dart`, `AppConfigRepo.watch/saveAdsSettings`, `SettingsDoc.ads`, tema «Anuncios» con «En la práctica»), sección `ads` en `{config}/app` y «Configuración · Anuncios» en el historial; ficha del alumno con «Premium hasta…» / «Sin premium · ve anuncios» (`StudentProfile.premiumUntil`). Contrato `docs/ads_contract.md`. En TEST el documento está encendido con los ID de prueba de Google. Pendiente de Kevin: cuenta de AdMob, app y tres unidades (los ID van en `iya-app/lib/config/env.dart` y `build.gradle.kts`), formulario de seguridad de datos y política de privacidad; capturas reales de la guía.
 - **Reestructuración de costos · Fase 4B (2026-10-18, desplegada):** cierre de liga por páginas de 500 (`league.ts`), nocturno de estadísticas con hasta tres pasadas y alternativas desde `questionSnapshots` (`index.ts`, `question_stats.ts`), historial con copias completas solo hasta 60 KB (`audit.ts`), tope de 100 preguntas por examen pasado (`exam_simulator_rules.dart`, `parsePastExamRules`). Sin cambios de datos ni en la app. Cierre: medir el cierre de liga del lunes y el nocturno en Cloud Logging.
