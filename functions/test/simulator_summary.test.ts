@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { FieldValue } from "firebase-admin/firestore";
 
-import { summaryUpdate } from "../src/simulator_service";
+import { summaryUpdate, recentResultsMax, recentResultsUpdate } from "../src/simulator_service";
 
 const courses = new Map([["t1", "alg"], ["t2", "alg"], ["t3", "geo"]]);
 
@@ -31,4 +31,14 @@ test("la primera vez migra la subcolección antigua con valores absolutos", () =
   assert.deepEqual(update.topics.t1, { topicId: "t1", courseId: "alg", answered: 14, correct: 9, updatedAtMs: 5000 });
   assert.deepEqual(update.topics.t2, { topicId: "t2", courseId: "alg", answered: 2, correct: 2, updatedAtMs: 5000 });
   assert.deepEqual(update.topics.t3, { topicId: "t3", courseId: "geo", answered: 2, correct: 1, updatedAtMs: 5000 });
+});
+
+test("los últimos resultados van primero, sin repetir el intento y con tope", () => {
+  const old = Array.from({ length: recentResultsMax }, (_, i) => ({ attemptId: `a${i}`, total: 10, universityId: "u" }));
+  const next = recentResultsUpdate([...old, "x", null], { attemptId: "new", total: 20, universityId: "u", submittedAtMs: 5 });
+  assert.equal(next.length, recentResultsMax);
+  assert.deepEqual(next[0], { attemptId: "new", total: 20, submittedAtMs: 5 });
+  assert.equal(next[1]?.attemptId, "a0");
+  assert.equal(next[1]?.universityId, undefined);
+  assert.equal(recentResultsUpdate(next, { attemptId: "a0", total: 3 }).filter((item) => item.attemptId === "a0").length, 1);
 });

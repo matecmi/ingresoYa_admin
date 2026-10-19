@@ -19,7 +19,7 @@ rechequeaba la XP.
 | Campo | Tipo | Límites | De fábrica | Significado |
 | --- | --- | --- | --- | --- |
 | `saveEveryAnswers` | number | 1 a 20 | 5 | Respuestas nuevas que la app acumula antes de guardarlas en el servidor. 1 = una llamada por respuesta, como antes. |
-| `saveEverySeconds` | number | 5 a 300 | 30 | Segundos como máximo entre un cambio y su guardado cuando no se llega a `saveEveryAnswers`. |
+| `saveEverySeconds` | number | 0 a 300 | 30 | Segundos como máximo entre un cambio y su guardado cuando no se llega a `saveEveryAnswers`. 0 = sin guardado por tiempo: solo por lote, al pausar o salir y al enviar. |
 | `candidateStartsPerBlock` | number | 1 a 8 | 2 | Fase 3C. Escaneos aleatorios del banco por bloque al armar un examen de la guía. Más = más variedad y más lecturas. |
 | `maxCandidatesPerStart` | number | 20 a 80 | 40 | Fase 3C. Candidatas por escaneo; también tope de cada pool por curso del Simulador. |
 | `recentQuestionLimit` | number | 1 a 200 | 60 | Fase 3C. Preguntas recientes del alumno que la guía revisa para no repetir. |
@@ -39,7 +39,9 @@ admin (`AppConfigRepo.saveExamSettings`).
 - Con `saveEveryAnswers` pendientes se llama a `saveExamAnswers` tras 700 ms
   (cambios rápidos de la misma respuesta se juntan). Si no se llega, la
   primera pendiente arranca un temporizador de `saveEverySeconds` que las
-  respuestas siguientes no posponen.
+  respuestas siguientes no posponen. Con `saveEverySeconds` = 0 no hay
+  temporizador (2026-10-19): un alumno que tarda más de 30 s por pregunta
+  hacía casi un guardado por respuesta.
 - Al pausar la app, al salir del examen («Pausar y salir») y al enviar se
   manda todo lo pendiente; `submitExamAttempt` ya acepta las respuestas en la
   misma llamada (hasta 300), así que el envío nunca depende de un guardado

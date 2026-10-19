@@ -259,6 +259,11 @@ test("XP: a practice gives session, fresh answers and streak once; repeats and r
   await db.collection(config.collections.attempts).doc(first.attemptId).update({ startedAtMs: Date.now() - 10 * 60 * 1000 });
   const graded = await service.submit(uid, { attemptId: first.attemptId, answers: answersFor(first.questions, 7) });
   assert.equal(graded.simulator?.correct, 7);
+  // Últimos resultados dentro del resumen: la app los lee con una lectura.
+  const recent = (await user.collection("simulatorSummary").doc("current").get()).data()?.recentResults as Record<string, unknown>[];
+  assert.equal(recent[0]?.attemptId, first.attemptId);
+  assert.equal(recent[0]?.correct, 7);
+  assert.equal(recent[0]?.universityId, undefined);
   const award = await xp.afterAttempt(uid, first.attemptId);
   assert.deepEqual(award?.items.map((item) => [item.type, item.xp]), [
     ["simulator_session", 10],

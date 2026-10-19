@@ -298,6 +298,33 @@ bool _on(SettingsValues v, SettingsDoc d, List<String> p, bool f) {
   return x is bool ? x : f;
 }
 
+/// Para qué sirve cada XP de [xpAmountFields] (una línea en Configuración).
+const xpAmountHelp = <String, String>{
+  'sectionReviewed':
+      'XP por cada sección de una parte (lección, ejemplos…) que el alumno revisa por primera vez.',
+  'partPassed': 'XP al aprobar por primera vez el examen de una parte.',
+  'subtopicCompleted':
+      'XP al completar todas las partes de un subtema (medalla de plata).',
+  'subtopicMastered':
+      'XP al aprobar el examen de dominio de un subtema (medalla de oro).',
+  'simulatorSession':
+      'XP por cada sesión del Simulador que cumple el mínimo de preguntas. Cuenta para el tope diario.',
+  'correctAnswer':
+      'XP por cada acierto en una pregunta que el alumno no vio en los últimos días. Cuenta para el tope diario.',
+  'diagnostic': 'XP, una sola vez, al terminar el examen diagnóstico.',
+  'pastExamCompleted':
+      'XP al terminar un examen pasado completo, como máximo una vez por examen en el plazo de «Examen pasado cada».',
+  'improvementPer10':
+      'XP por cada 10 puntos que el alumno supera su mejor puntaje en un examen pasado.',
+  'improvementMax':
+      'Máximo de XP que puede dar una mejora de puntaje en un examen pasado.',
+  'weeklyGoal': 'XP al cumplir las sesiones por semana de la meta de su plan.',
+  'streakDay':
+      'XP por cada día con una sesión que cuenta. Cuenta para el tope diario.',
+  'explanationVideo':
+      'XP al ver completo el video que abre la explicación de una pregunta fallada. Tiene su propio tope diario.',
+};
+
 int _int(SettingsValues v, SettingsDoc d, List<String> p, int f) {
   final x = readPath(v[d], p);
   return x is num ? x.toInt() : f;
@@ -433,6 +460,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['league', 'demotePercent'],
         question: '¿Qué porcentaje del grupo baja de etapa?',
         label: 'Bajan de liga',
+        help:
+            'Al cerrar la semana, este porcentaje del grupo con menos XP baja a la etapa anterior. 0 = nadie baja.',
         min: 0,
         max: 50,
         unit: '%',
@@ -470,6 +499,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Mostrar «Esta semana» (posición por universidad y carrera)?',
         label: '«Esta semana»',
+        help:
+            'Muestra en Rankings la tarjeta «Esta semana» con el puesto del alumno en su universidad y su carrera. Apagado, solo ve su liga.',
         screen: _ligaSemana,
       ),
       SettingSpec(
@@ -511,6 +542,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['challenge', 'questionCount'],
         question: '¿Cuántas preguntas tiene el reto?',
         label: 'Preguntas del reto',
+        help:
+            'Cuántas preguntas trae el reto del día. Es el mismo reto para todos los alumnos de una universidad.',
         min: 3,
         max: 30,
         unit: 'preguntas',
@@ -534,6 +567,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['challenge', 'minutes'],
         question: '¿Cuántos minutos dura?',
         label: 'Minutos del reto',
+        help:
+            'Tiempo para responder el reto del día. Al acabarse, el reto se entrega solo.',
         min: 3,
         max: 120,
         unit: 'min',
@@ -572,6 +607,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['challenge', 'noRepeatDays'],
         question: '¿Cuántos días sin repetir una pregunta en el reto?',
         label: 'Días sin repetir (reto)',
+        help:
+            'Una pregunta usada en el reto no vuelve a salir en el reto de esa universidad durante estos días. 0 = puede repetirse.',
         min: 0,
         max: 365,
         unit: 'días',
@@ -583,6 +620,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Cuántos alumnos de una carrera hacen falta para su tabla del día?',
         label: 'Mínimo por carrera (reto)',
+        help:
+            'La tabla del reto por carrera solo se muestra si jugaron al menos estos alumnos de la carrera ese día. Con menos, solo se ve la de la universidad.',
         min: 1,
         max: 1000,
         unit: 'alumnos',
@@ -605,6 +644,7 @@ final List<SettingsTopic> settingsTopics = [
           path: ['amounts', key],
           question: '¿Cuánto XP da: ${label.toLowerCase()}?',
           label: label,
+          help: xpAmountHelp[key] ?? '',
           min: 0,
           max: 1000,
           unit: 'XP',
@@ -661,6 +701,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['minQuestionsPerSession'],
         question: '¿Cuántas preguntas como mínimo para que una sesión dé XP?',
         label: 'Mínimo por sesión (XP)',
+        help:
+            'Una sesión del Simulador con menos preguntas no da XP de sesión. Evita sumar XP con sesiones mínimas.',
         min: 1,
         max: 300,
         unit: 'preguntas',
@@ -672,6 +714,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Cuántos días para que una respuesta correcta vuelva a dar XP?',
         label: 'Días para no repetir (XP)',
+        help:
+            'Acertar una pregunta da XP solo si el alumno no la vio en estos días. Evita ganar XP repitiendo las mismas preguntas.',
         min: 0,
         max: 365,
         unit: 'días',
@@ -693,6 +737,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['pastExamEveryDays'],
         question: '¿Cada cuántos días un mismo examen pasado vuelve a dar XP?',
         label: 'Examen pasado cada',
+        help:
+            'Terminar un mismo examen pasado da XP de «examen completo» como máximo una vez en este plazo. 0 = cada vez.',
         min: 0,
         max: 365,
         unit: 'días',
@@ -716,6 +762,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Se ganan estrellas después del último rango?',
         label: 'Estrellas',
+        help:
+            'Después del último rango (Maestro III) el alumno sigue ganando estrellas por cada tramo de XP. Apagado, se queda en el último rango.',
         screen: _rangos,
       ),
       SettingSpec(
@@ -723,6 +771,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['xpPerStar'],
         question: '¿Cuánto XP cuesta cada estrella?',
         label: 'XP por estrella',
+        help:
+            'XP que hay que sumar después del último rango para ganar cada estrella.',
         min: 100,
         max: 100000,
         unit: 'XP',
@@ -781,6 +831,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Las incorrectas restan en la práctica?',
         label: 'Penalidad',
+        help:
+            'Encendido, en la práctica cada respuesta incorrecta resta puntos, como en el examen real. Los exámenes pasados usan sus propias reglas.',
       ),
       SettingSpec(
         doc: SettingsDoc.simulator,
@@ -789,6 +841,8 @@ final List<SettingsTopic> settingsTopics = [
         choices: SimulatorSettings.sources,
         question: '¿De dónde salen las preguntas por defecto?',
         label: 'Origen de las preguntas',
+        help:
+            'Con qué origen se abre «Arma tu práctica»: preguntas de exámenes reales, de IngresoYa o de ambos. El alumno puede cambiarlo.',
         screen: _practica,
       ),
       SettingSpec(
@@ -798,6 +852,8 @@ final List<SettingsTopic> settingsTopics = [
         choices: SimulatorSettings.difficulties,
         question: '¿Qué dificultad por defecto?',
         label: 'Dificultad',
+        help:
+            'Con qué dificultad se abre «Arma tu práctica». El alumno puede cambiarla.',
         screen: _practica,
       ),
       SettingSpec(
@@ -805,6 +861,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['repeatWindowDays'],
         question: '¿Cuántos días sin repetir una pregunta ya vista?',
         label: 'Días sin repetir (Simulador)',
+        help:
+            'Al armar una práctica o la sesión del día, las preguntas vistas en estos días van al final y solo salen si faltan otras. 0 = no se evita repetir.',
         min: 0,
         max: SimulatorSettings.maxRepeatWindowDays,
         unit: 'días',
@@ -816,6 +874,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Mostrar exámenes pasados de otras universidades?',
         label: 'Otras universidades',
+        help:
+            'Muestra en «Exámenes pasados» también los de otras universidades, además de los de la universidad del alumno.',
       ),
       SettingSpec(
         doc: SettingsDoc.simulator,
@@ -823,6 +883,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Ocultar los exámenes pasados incompletos?',
         label: 'Ocultar incompletos',
+        help:
+            'Oculta los exámenes pasados que todavía no tienen todas sus preguntas cargadas.',
         advanced: true,
       ),
       SettingSpec(
@@ -831,6 +893,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Mostrar la explicación al revisar?',
         label: 'Explicaciones',
+        help:
+            'Muestra la explicación de cada pregunta en la revisión del Simulador. Apagado, el alumno solo ve su respuesta y la correcta.',
       ),
     ],
   ),
@@ -849,6 +913,7 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['dailyQuestions'],
         question: '¿Cuántas preguntas tiene la sesión del día?',
         label: 'Preguntas por sesión',
+        help: 'Tamaño de la sesión «Hoy te toca» del plan de entrenamiento.',
         min: 5,
         max: 40,
         unit: 'preguntas',
@@ -859,6 +924,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['dailyMinutes'],
         question: '¿Cuántos minutos dura la sesión del día?',
         label: 'Minutos por sesión',
+        help:
+            'Duración de la sesión del día cuando el alumno la rinde con tiempo límite.',
         min: 5,
         max: 120,
         unit: 'min',
@@ -871,6 +938,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['weakSharePercent'],
         question: '¿Qué parte de la sesión va a sus temas débiles?',
         label: 'Temas débiles en la sesión',
+        help:
+            'Parte de la sesión del día que sale de los temas donde el alumno acierta menos. El resto sale de sus cursos al azar.',
         min: 0,
         max: 100,
         unit: '%',
@@ -886,6 +955,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['weakThresholdPercent'],
         question: '¿Por debajo de qué % de acierto un tema es débil?',
         label: 'Umbral de tema débil',
+        help:
+            'Un tema con un acierto por debajo de este porcentaje se considera débil y recibe más preguntas en la sesión del día.',
         min: 1,
         max: 99,
         unit: '%',
@@ -896,6 +967,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['minAnswersToJudge'],
         question: '¿Cuántas respuestas hacen falta para juzgar un tema?',
         label: 'Respuestas para juzgar',
+        help:
+            'Un tema necesita al menos estas respuestas antes de poder considerarse débil. Evita juzgar con muy pocos datos.',
         min: 1,
         max: 50,
         unit: 'respuestas',
@@ -906,6 +979,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['diagnosticPerCourse'],
         question: '¿Cuántas preguntas por curso tiene el diagnóstico?',
         label: 'Diagnóstico por curso',
+        help:
+            'Preguntas de cada curso en el examen diagnóstico, que ubica al alumno cuando empieza el plan.',
         min: 1,
         max: 10,
         unit: 'preguntas',
@@ -915,6 +990,7 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['diagnosticMinutes'],
         question: '¿Cuántos minutos dura el diagnóstico?',
         label: 'Minutos del diagnóstico',
+        help: 'Tiempo total para responder el examen diagnóstico.',
         min: 5,
         max: 180,
         unit: 'min',
@@ -927,6 +1003,8 @@ final List<SettingsTopic> settingsTopics = [
         choices: PlanSettings.weekDays,
         question: '¿Qué día se sugiere el simulacro completo?',
         label: 'Día del simulacro',
+        help:
+            'Día de la semana que el plan sugiere para rendir un simulacro completo. El alumno puede cambiarlo.',
         screen: _metaDia,
       ),
       SettingSpec(
@@ -935,6 +1013,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.time,
         question: '¿A qué hora se sugiere el recordatorio?',
         label: 'Hora del recordatorio',
+        help:
+            'Hora sugerida para el recordatorio diario de estudio. El alumno puede cambiarla.',
         advanced: true,
       ),
       SettingSpec(
@@ -943,6 +1023,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Explicar «¿Por qué esta sesión?»?',
         label: '«¿Por qué?»',
+        help:
+            'Muestra bajo la sesión del día el motivo, por ejemplo «Fallaste 5 de 5 en Series». Apagado, solo se ve la sesión.',
         advanced: true,
       ),
       SettingSpec(
@@ -950,6 +1032,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['minQuestionsPerSession'],
         question: '¿Cuántas preguntas respondidas hacen que la sesión cuente?',
         label: 'Mínimo para contar la sesión',
+        help:
+            'Una sesión cuenta para la meta semanal y la racha solo si el alumno respondió al menos estas preguntas.',
         min: 1,
         max: 100,
         unit: 'preguntas',
@@ -960,6 +1044,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['streakGraceDays'],
         question: '¿Cuántos días puede faltar sin perder la racha?',
         label: 'Gracia de la racha',
+        help:
+            'Días seguidos que el alumno puede no estudiar sin perder su racha.',
         min: 0,
         max: 7,
         unit: 'días',
@@ -970,6 +1056,8 @@ final List<SettingsTopic> settingsTopics = [
         kind: SettingKind.toggle,
         question: '¿Los exámenes libres cuentan para la meta de la semana?',
         label: 'Exámenes libres cuentan',
+        help:
+            'Encendido, las prácticas y exámenes pasados que el alumno rinde por su cuenta también suman a su meta de la semana.',
         advanced: true,
       ),
     ],
@@ -1009,6 +1097,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['sectionMinSeconds'],
         question: '¿Cuántos segundos mínimo debe quedarse en cada sección?',
         label: 'Segundos por sección',
+        help:
+            'Tiempo mínimo en una sección (lección, ejemplos, repaso…) para que cuente como «Revisado». 0 = cuenta al abrirla.',
         min: 0,
         max: 300,
         unit: 's',
@@ -1029,6 +1119,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Cuántos segundos espera tras el último cambio para subirlo?',
         label: 'Espera tras el último cambio',
+        help:
+            'Tras el último cambio de avance, la app espera estos segundos antes de subirlo al servidor. El avance se guarda antes en el teléfono. Más alto = menos escrituras.',
         min: 5,
         max: 600,
         unit: 's',
@@ -1039,6 +1131,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['maxWaitSeconds'],
         question: '¿Cuánto espera como máximo si el alumno sigue estudiando?',
         label: 'Espera máxima',
+        help:
+            'Si el alumno estudia sin pausa, la app sube su avance al menos cada tantos segundos. Más alto = menos escrituras.',
         min: 5,
         max: 3600,
         unit: 's',
@@ -1049,6 +1143,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['refreshEveryHours'],
         question: '¿Cada cuántas horas revisa cambios de otros dispositivos?',
         label: 'Revisar otros dispositivos',
+        help:
+            'Cada cuántas horas la app revisa si hay avance hecho en otro celular de la misma cuenta. Solo importa a quien usa dos equipos. Más alto = menos lecturas.',
         min: 1,
         max: 168,
         unit: 'h',
@@ -1102,9 +1198,9 @@ final List<SettingsTopic> settingsTopics = [
         inPractice: (v) {
           final n = _int(v, SettingsDoc.exam, ['saveEveryAnswers'], 5);
           final s = _int(v, SettingsDoc.exam, ['saveEverySeconds'], 30);
+          final slow = s == 0 ? '' : ' (o una cada $s s si responde despacio)';
           return 'Un examen de 10 preguntas hace unas ${(10 / n).ceil()} '
-              'llamadas de guardado (o una cada $s s si responde despacio), más '
-              'el envío.';
+              'llamadas de guardado$slow, más el envío.';
         },
       ),
       SettingSpec(
@@ -1116,8 +1212,18 @@ final List<SettingsTopic> settingsTopics = [
         min: ExamSettings.minSaveEverySeconds,
         max: ExamSettings.maxSaveEverySeconds,
         unit: 's',
-        help: 'Aunque no se llegue al número de respuestas.',
-        keywords: 'guardar respuestas costo segundos examen',
+        help:
+            'Guarda las respuestas pendientes pasado este tiempo aunque no se '
+            'junte el número de arriba. 0 = no guarda por tiempo: solo al '
+            'juntar las respuestas, al salir o minimizar la app y al entregar. '
+            'Las respuestas siempre quedan guardadas en el teléfono.',
+        keywords: 'guardar respuestas costo segundos examen apagar',
+        inPractice: (v) {
+          final s = _int(v, SettingsDoc.exam, ['saveEverySeconds'], 30);
+          return s == 0
+              ? 'Sin guardado por tiempo: menos llamadas cuando el alumno responde despacio.'
+              : 'Si el alumno tarda más de $s s entre respuestas, se guarda casi una vez por respuesta.';
+        },
         advanced: true,
       ),
       SettingSpec(
@@ -1226,6 +1332,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['failPercent'],
         question: '¿Desde qué porcentaje de error «casi todos fallan»?',
         label: '«Casi todos fallan»',
+        help:
+            'Una pregunta con este porcentaje de error o más aparece en «Preguntas a revisar»: puede estar mal redactada o tener la clave equivocada.',
         min: 50,
         max: 100,
         unit: '%',
@@ -1236,6 +1344,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Qué parte de las respuestas debe llevarse una alternativa incorrecta para sospechar de la clave?',
         label: 'Alternativa que atrae',
+        help:
+            'Si una sola alternativa incorrecta se lleva esta parte de las respuestas, la pregunta se marca por posible clave equivocada.',
         min: 20,
         max: 100,
         unit: '%',
@@ -1245,6 +1355,8 @@ final List<SettingsTopic> settingsTopics = [
         path: const ['easyPercent'],
         question: '¿Desde qué porcentaje de acierto es «demasiado fácil»?',
         label: '«Demasiado fácil»',
+        help:
+            'Una pregunta con este porcentaje de acierto o más aparece como «demasiado fácil»: quizá aporta poco al examen.',
         min: 50,
         max: 100,
         unit: '%',
@@ -1255,6 +1367,8 @@ final List<SettingsTopic> settingsTopics = [
         question:
             '¿Con cuántas respuestas se avisa de una alternativa que nadie elige?',
         label: '«Nadie la elige»',
+        help:
+            'Cuando una pregunta junta estas respuestas y una alternativa nunca fue elegida, se avisa que esa alternativa no distrae a nadie.',
         min: 10,
         max: 1000,
         unit: 'respuestas',
