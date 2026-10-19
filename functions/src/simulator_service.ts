@@ -539,6 +539,15 @@ export class SimulatorService {
     input: SubmitExamAttemptInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<SubmittedAttemptResponse> {
+    return (await this.submitWithAttempt(uid, input, metrics)).response;
+  }
+
+  /** Como [submit], más el intento tal como quedó (Fase 3B). */
+  public async submitWithAttempt(
+    uid: string,
+    input: SubmitExamAttemptInput,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<{ response: SubmittedAttemptResponse; attemptData?: Record<string, unknown> }> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
     const settings = await this.settings(metrics);
     return this.db.runTransaction(async (transaction) => {
@@ -567,7 +576,10 @@ export class SimulatorService {
             reason: "attempt_data_invalid"
           });
         }
-        return simulatorResponse(attempt, attempt.answers, keys, meta, stored, settings, challengeLocked(data.simulator));
+        return {
+          response: simulatorResponse(attempt, attempt.answers, keys, meta, stored, settings, challengeLocked(data.simulator)),
+          attemptData: data
+        };
       }
       const now = Date.now();
       const expiresAtMs = Date.parse(attempt.expiresAt);
@@ -694,8 +706,18 @@ export class SimulatorService {
         })
       );
       metrics.writeDocument(bestRef === undefined ? 3 : 4);
-      return simulatorResponse({ ...attempt, status: "submitted", answers }, answers, keys, meta, result, settings,
-        challengeLocked(data.simulator));
+      return {
+        response: simulatorResponse({ ...attempt, status: "submitted", answers }, answers, keys, meta, result, settings,
+          challengeLocked(data.simulator)),
+        // What XP and the challenge entry need, without re-reading the attempt.
+        attemptData: {
+          ...data,
+          answers,
+          status: "submitted",
+          simulatorResult: result,
+          xpBasis: { freshCorrect, ...(typeof previousBestScore === "number" ? { previousBestScore } : {}) }
+        }
+      };
     });
   }
 
@@ -1296,12 +1318,12 @@ export class SimulatorService {
   /** Picked questions the student did not see in the XP repeat window. */
   private async freshForXp(uid: string, questionIds: readonly string[], now: number, metrics: OperationMetrics): Promise<string[]> {
     if (questionIds.length === 0) return [];
-    const [xpConfig, ...seen] = await this.db.getAll(
-      this.db.collection(this.config.collections.config).doc("xp"),
-      ...questionIds.map((id) => this.userRef(uid).collection("recentQuestions").doc(id))
-    );
-    metrics.readDocument(1 + seen.length);
-    const windowMs = parseXpSettings(xpConfig?.data()).repeatWindowDays * dayMs;
+    const [xpConfig, seen] = await Promise.all([
+      readConfigDoc(this.db, this.config, "xp", metrics),
+      this.db.getAll(...questionIds.map((id) => this.userRef(uid).collection("recentQuestions").doc(id)))
+    ]);
+    metrics.readDocument(seen.length);
+    const windowMs = parseXpSettings(xpConfig).repeatWindowDays * dayMs;
     return questionIds.filter((_, index) => {
       const last = seen[index]?.data()?.lastSeenAt;
       const lastMs = last instanceof Timestamp ? last.toMillis() : undefined;
@@ -1339,9 +1361,7 @@ export class SimulatorService {
   }
 
   private async settings(metrics: OperationMetrics): Promise<SimulatorSettings> {
-    const snapshot = await this.db.collection(this.config.collections.config).doc("simulator").get();
-    metrics.readDocument();
-    return parseSimulatorSettings(snapshot.data());
+    return parseSimulatorSettings(await readConfigDoc(this.db, this.config, "simulator", metrics));
   }
 
   private async existing(

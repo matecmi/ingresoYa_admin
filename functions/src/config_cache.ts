@@ -31,7 +31,7 @@ export async function readConfigDoc(
 ): Promise<ConfigData> {
   const key = `${config.collections.config}/${docId}`;
   const hit = entries.get(key);
-  if (hit !== undefined && nowMs - hit.atMs < CONFIG_CACHE_TTL_MS) return hit.data;
+  if (hit !== undefined && nowMs - hit.atMs < configCacheTtlMs()) return hit.data;
   let pending = inFlight.get(key);
   if (pending === undefined) {
     pending = db
@@ -48,6 +48,11 @@ export async function readConfigDoc(
     inFlight.set(key, pending);
   }
   return pending;
+}
+
+/** Sin caché bajo el emulador: las pruebas cambian la configuración entre pasos. */
+function configCacheTtlMs(): number {
+  return process.env.FIRESTORE_EMULATOR_HOST ? 0 : CONFIG_CACHE_TTL_MS;
 }
 
 /** Para pruebas y para forzar una relectura. */

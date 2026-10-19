@@ -9,6 +9,7 @@
 import { FieldValue, type DocumentReference, type Firestore } from "firebase-admin/firestore";
 
 import type { BackendConfig } from "./config";
+import { readConfigDoc } from "./config_cache";
 import type { OperationMetrics } from "./operation_metrics";
 import {
   leaderboardEntry,
@@ -468,17 +469,14 @@ export class XpService {
     private readonly config: BackendConfig
   ) {}
 
+  /** `{config}/xp`, en caché por instancia (config_cache.ts, Fase 3B). */
   public async settings(metrics?: OperationMetrics): Promise<XpSettings> {
-    const snapshot = await this.db.collection(this.config.collections.config).doc("xp").get();
-    metrics?.readDocument();
-    return parseXpSettings(snapshot.data());
+    return parseXpSettings(await readConfigDoc(this.db, this.config, "xp", metrics));
   }
 
-  /** `{config}/rankings` (docs/rankings_contract.md §2). */
+  /** `{config}/rankings` (docs/rankings_contract.md §2), en caché por instancia. */
   public async rankingsSettings(metrics?: OperationMetrics): Promise<RankingsSettings> {
-    const snapshot = await this.db.collection(this.config.collections.config).doc("rankings").get();
-    metrics?.readDocument();
-    return parseRankingsSettings(snapshot.data());
+    return parseRankingsSettings(await readConfigDoc(this.db, this.config, "rankings", metrics));
   }
 
   private userRef(uid: string): DocumentReference {
@@ -524,7 +522,10 @@ export class XpService {
         ? await readLeagueSeat(transaction, this.db, this.config, uid, week, choice.stage, rankings, profile.universityId)
         : undefined;
       const stars = starsFor(state.total, settings);
-      if (choice.alias !== null) {
+      // The public card only matters while rankings are on (Fase 3B): with
+      // them off nobody reads it, and the next grant after turning them on
+      // rewrites it.
+      if (choice.alias !== null && rankings.enabled) {
         transaction.set(entryRef, leaderboardEntry(choice, state, stars, profile));
         metrics?.writeDocument();
       }
@@ -552,15 +553,24 @@ export class XpService {
     });
   }
 
-  /** After a graded Simulator attempt. */
-  public async afterSimulatorAttempt(uid: string, attemptId: string, metrics?: OperationMetrics): Promise<XpAward | undefined> {
-    const [attempt, goal, settings] = await Promise.all([
-      this.db.collection(this.config.collections.attempts).doc(attemptId).get(),
+  /** After a graded Simulator attempt. [known] = the attempt as the submit left it (saves a read). */
+  public async afterSimulatorAttempt(
+    uid: string,
+    attemptId: string,
+    metrics?: OperationMetrics,
+    known?: Record<string, unknown>
+  ): Promise<XpAward | undefined> {
+    const [data, goal, settings] = await Promise.all([
+      known === undefined
+        ? this.db.collection(this.config.collections.attempts).doc(attemptId).get().then((snapshot) => {
+          metrics?.readDocument();
+          return snapshot.data();
+        })
+        : Promise.resolve(known),
       this.userRef(uid).collection("simulatorPlan").doc("current").get(),
       this.settings(metrics)
     ]);
-    metrics?.readDocument(2);
-    const data = attempt.data();
+    metrics?.readDocument();
     const simulator = record(data?.simulator);
     const result = record(data?.simulatorResult);
     if (data?.userId !== uid || data?.status !== "submitted" || simulator === undefined || result === undefined) return undefined;
@@ -634,13 +644,24 @@ export class XpService {
     return this.grant(uid, (_, settings) => guideGrants(facts, settings), metrics);
   }
 
-  /** After any submitted attempt: Simulator or guide (part exam / mastery). */
-  public async afterAttempt(uid: string, attemptId: string, metrics?: OperationMetrics): Promise<XpAward | undefined> {
-    const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
-    metrics?.readDocument();
-    const data = attempt.data();
+  /**
+   * After any submitted attempt: Simulator or guide (part exam / mastery).
+   * [known] = the attempt as the submit left it, so it is not read again.
+   */
+  public async afterAttempt(
+    uid: string,
+    attemptId: string,
+    metrics?: OperationMetrics,
+    known?: Record<string, unknown>
+  ): Promise<XpAward | undefined> {
+    let data = known;
+    if (data === undefined) {
+      const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+      metrics?.readDocument();
+      data = attempt.data();
+    }
     if (data?.userId !== uid) return undefined;
-    if (record(data.simulator) !== undefined) return this.afterSimulatorAttempt(uid, attemptId, metrics);
+    if (record(data.simulator) !== undefined) return this.afterSimulatorAttempt(uid, attemptId, metrics, data);
     const partContext = record(data.partContext);
     const partId = typeof data.partId === "string" && data.partId.length > 0 ? data.partId : undefined;
     const subtopicId = typeof partContext?.subtopicId === "string"

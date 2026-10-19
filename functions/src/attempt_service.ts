@@ -175,6 +175,12 @@ export interface AttemptReview {
   partIds?: string[];
 }
 
+/** Respuesta pública del envío más el intento tal como quedó (interno). */
+export interface SubmittedWithAttempt {
+  response: SubmittedAttemptResponse;
+  attemptData?: Record<string, unknown>;
+}
+
 export interface PartCompletionResponse {
   partId: string;
   status: PartProgressStatus;
@@ -457,6 +463,18 @@ export class ExamAttemptService {
     input: SubmitExamAttemptInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<SubmittedAttemptResponse> {
+    return (await this.submitWithAttempt(uid, input, metrics)).response;
+  }
+
+  /**
+   * Como [submit], más el intento tal como quedó, para que la XP y el reto de
+   * la misma llamada no vuelvan a leer un documento de 25 a 250 KB (Fase 3B).
+   */
+  public async submitWithAttempt(
+    uid: string,
+    input: SubmitExamAttemptInput,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<SubmittedWithAttempt> {
     const attemptRef = this.db.collection(this.config.collections.attempts).doc(input.attemptId);
     // Older attempts did not freeze their server-derived part context. Resolve
     // that context before the transaction so a passing legacy attempt can be
@@ -467,7 +485,7 @@ export class ExamAttemptService {
       throw notFound("Exam attempt not found.", "attempt_not_found");
     }
     const purpose = stringField(beforeSubmit.data()?.templateSnapshot, "purpose");
-    if (isSimulatorPurpose(purpose)) return this.simulator.submit(uid, input, metrics);
+    if (isSimulatorPurpose(purpose)) return this.simulator.submitWithAttempt(uid, input, metrics);
     const partId = stringValue(beforeSubmit.data()?.partId);
     const frozenContext = parsePartContext(objectMap(beforeSubmit.data()?.partContext));
     const partContext = purpose === "part_completion" && partId !== undefined
@@ -492,7 +510,7 @@ export class ExamAttemptService {
         const masteryUpdate = purpose === "subtopic_mastery" && hasPassed(result)
           ? await this.recordMasteryAward(transaction, uid, attempt.data(), input.attemptId, metrics)
           : undefined;
-        return submittedResponse(current, result, answerKeys, partCompletion, masteryUpdate);
+        return { response: submittedResponse(current, result, answerKeys, partCompletion, masteryUpdate), attemptData: attempt.data() };
       }
       if (current.status !== "in_progress") {
         throw failedPrecondition("The exam attempt is not open.", {
@@ -553,13 +571,16 @@ export class ExamAttemptService {
         }
       });
       metrics.writeDocument();
-      return submittedResponse(
-        { ...current, status: "submitted", answers },
-        result,
-        answerKeys,
-        partCompletion,
-        masteryUpdate
-      );
+      return {
+        response: submittedResponse(
+          { ...current, status: "submitted", answers },
+          result,
+          answerKeys,
+          partCompletion,
+          masteryUpdate
+        ),
+        attemptData: { ...attempt.data(), answers, status: "submitted" }
+      };
     });
   }
 
@@ -630,6 +651,18 @@ export class ExamAttemptService {
     input: RecordPartSectionCompletionInput,
     metrics: OperationMetrics = new OperationMetrics()
   ): Promise<PartCompletionResponse> {
+    return (await this.recordPartSectionCompletionDetailed(uid, input, metrics)).response;
+  }
+
+  /**
+   * Como [recordPartSectionCompletion], más si la llamada registró algo nuevo
+   * (una sección o la parte completa): sin cambios no hay XP que revisar.
+   */
+  public async recordPartSectionCompletionDetailed(
+    uid: string,
+    input: RecordPartSectionCompletionInput,
+    metrics: OperationMetrics = new OperationMetrics()
+  ): Promise<{ response: PartCompletionResponse; changed: boolean }> {
     const sections = input.sections ?? [input.section!];
     const resolvedContext = await this.partContext(uid, input.partId, metrics, undefined, input.catalog);
     const progressRef = this.progressRef(uid);
@@ -645,14 +678,15 @@ export class ExamAttemptService {
           reason: "part_not_enabled"
         });
       }
-      const assessment = assessSectionsCompletion(
-        readPartProgress(
-          partRecord(progress.data(), input.partId),
-          context,
-          resolvedContext.requiredSections
-        ),
-        sections
+      const state = readPartProgress(
+        partRecord(progress.data(), input.partId),
+        context,
+        resolvedContext.requiredSections
       );
+      const assessment = assessSectionsCompletion(state, sections);
+      // Nothing new recorded = nothing new to reward: the handler skips XP.
+      const changed = !state.completed &&
+        (assessment.shouldMarkCompleted || sections.some((section) => !state.completedSections.has(section)));
       const award = assessment.shouldMarkCompleted
         ? await this.pendingSubtopicAward(transaction, uid, context, progress.data(), metrics)
         : undefined;
@@ -667,7 +701,7 @@ export class ExamAttemptService {
         resolvedContext.requiredSections
       );
       this.writeSubtopicAward(transaction, award, context.partId, assessment, metrics);
-      return response;
+      return { response, changed };
     });
   }
 

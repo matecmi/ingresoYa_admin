@@ -27,11 +27,15 @@ export class ChallengeService {
     uid: string,
     attemptId: string,
     xpSettings: XpSettings,
-    metrics?: OperationMetrics
+    metrics?: OperationMetrics,
+    known?: Record<string, unknown>
   ): Promise<ChallengeEntrySummary | undefined> {
-    const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
-    metrics?.readDocument();
-    const data = attempt.data();
+    let data = known;
+    if (data === undefined) {
+      const attempt = await this.db.collection(this.config.collections.attempts).doc(attemptId).get();
+      metrics?.readDocument();
+      data = attempt.data();
+    }
     const simulator = record(data?.simulator);
     const result = record(data?.simulatorResult);
     if (data?.userId !== uid || data?.status !== "submitted" || simulator?.mode !== "daily_challenge" ||

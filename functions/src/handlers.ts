@@ -189,8 +189,10 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseRecordPartSectionCompletion(request.data);
-        const response = await attempts.recordPartSectionCompletion(uid, input, metrics);
+        const { response, changed } = await attempts.recordPartSectionCompletionDetailed(uid, input, metrics);
         safeLog("part_section_completion_completed", uid, metrics.logFields());
+        // Nothing new recorded (a repeated section): no XP check at all.
+        if (!changed) return response;
         return { ...response, ...await grantXp(uid, () => xp.afterGuide(uid, { partId: input.partId }, metrics), metrics) };
       } catch (error) {
         safeError("part_section_completion_rejected", error, metrics.logFields(), {
@@ -207,13 +209,13 @@ export function createCallableHandlers(config: BackendConfig) {
       try {
         const uid = requireUid(request);
         const input = parseSubmitExamAttempt(request.data);
-        const response = await attempts.submit(uid, input, metrics);
+        const { response, attemptData } = await attempts.submitWithAttempt(uid, input, metrics);
         safeLog("exam_attempt_submit_completed", uid, metrics.logFields());
-        const awarded = await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics), metrics);
+        const awarded = await grantXp(uid, () => xp.afterAttempt(uid, input.attemptId, metrics, attemptData), metrics);
         // Reto del día: the public entry, after the XP so it carries the new rank.
         if (response.simulator !== undefined) {
           try {
-            await challenges.recordEntry(uid, input.attemptId, await xp.settings(metrics), metrics);
+            await challenges.recordEntry(uid, input.attemptId, await xp.settings(metrics), metrics, attemptData);
           } catch (error) {
             safeError("challenge_entry_failed", error, metrics.logFields(), { environment: config.environment, uid });
           }
