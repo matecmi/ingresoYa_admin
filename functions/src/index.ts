@@ -12,6 +12,7 @@ import { prepareDailyChallenges } from "./challenge_job";
 import { createStaffHandlers } from "./staff";
 import { createAuditHandlers, onlyMetaChanged, recordWrite } from "./audit";
 import { CATALOG_DOC, bumpCatalogVersion, catalogKindOf, courseIdFromParams } from "./catalog_version";
+import { APP_CONFIG_DOC, publishAppConfig } from "./app_config";
 import { db } from "./admin";
 import { createQuestionStatsHandlers } from "./question_stats";
 import { sendDueNewsPushes, sendNewsPush, shouldSendPush } from "./news_push";
@@ -87,9 +88,15 @@ function auditTrigger(document: string, kindKey: string) {
       const after = event.data?.after;
       const docId = (after?.id ?? before?.id) ?? "";
       const path = (after?.ref.path ?? before?.ref.path) ?? "";
-      // {config}/catalog lo escribe el servidor en cada cambio del catálogo:
-      // no es un cambio del equipo ni debe generar una entrada por edición.
-      if (kindKey === "config" && docId === CATALOG_DOC) return;
+      // {config}/app y {config}/catalog los escribe el servidor: no son
+      // cambios del equipo ni generan entradas del historial. Cualquier otro
+      // cambio de configuración (y cada subida del catálogo) refunde
+      // {config}/app (docs/app_config_contract.md).
+      if (kindKey === "config" && docId === APP_CONFIG_DOC) return;
+      if (kindKey === "config" && docId === CATALOG_DOC) {
+        await publishAppConfig(config);
+        return;
+      }
       const beforeData = before?.exists ? (before.data() as Record<string, unknown>) : null;
       const afterData = after?.exists ? (after.data() as Record<string, unknown>) : null;
       await recordWrite(config, {
@@ -106,6 +113,9 @@ function auditTrigger(document: string, kindKey: string) {
       const catalogKind = catalogKindOf(kindKey);
       if (catalogKind && !onlyMetaChanged(beforeData, afterData)) {
         await bumpCatalogVersion(config, catalogKind, courseIdFromParams(kindKey, event.params as Record<string, string>));
+      }
+      if (kindKey === "config" && !onlyMetaChanged(beforeData, afterData)) {
+        await publishAppConfig(config);
       }
     }
   );
