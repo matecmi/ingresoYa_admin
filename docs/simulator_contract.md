@@ -192,8 +192,11 @@ tolerando `streakGraceDays` días sin práctica.
 ## Costo de lectura (Fase 2C de la reestructuración de costos, 2026-10-18)
 
 - `{config}/simulator.resultsLimit` (10 a 200, 60 de fábrica): resultados
-  recientes (`simulatorResults`) que baja la app; alimentan el historial, las
-  estadísticas y «Hoy te toca».
+  recientes que baja la app; alimentan el plan de la semana, «Hoy te toca» y
+  el día a día de Stats. Llegan en una sola lectura (`recentResults`).
+- `{config}/simulator.historyLimit` (5 a 30, 10 de fábrica): exámenes que
+  lista «Tu progreso e historial»; cada uno abre su revisión. El gráfico usa
+  como máximo los últimos 10. No borra nada: solo limita lo que se muestra.
 - `{config}/simulator.topicStatsLimit` (5 a 200, 30 de fábrica): temas de
   `simulatorTopicStats` que baja la app, los más practicados primero
   (`answered` descendente).
@@ -220,6 +223,14 @@ tolerando `streakGraceDays` días sin práctica.
   cada envío; la primera vez copia los de `simulatorResults` (que se sigue
   escribiendo para la ficha del alumno en el admin). La app lee de aquí los
   `resultsLimit` más recientes con una lectura en vez de uno por resultado.
+- Desde el 2026-10-19 también lleva `totals`: `{ exams, questions, correct,
+  incorrect, blank, byCourse: { [courseId]: { correct, incorrect, blank } } }`
+  de **todos** los exámenes entregados. La primera vez se calcula en la misma
+  transacción con una consulta de agregación sobre `simulatorResults` (una
+  lectura por cada 1 000 resultados) y se guarda en valores absolutos; desde
+  ahí cada envío suma con `FieldValue.increment` (`totalsUpdate`). La
+  tarjeta «Tus simulacros» y Stats usan estos totales (exactos aunque el
+  alumno tenga miles de exámenes); si faltan, suman los resultados bajados.
 - Los intentos (`attempts`) enviados llevan `expireAt` = fecha de envío +
   `{config}/exam.attemptRetentionDays` (180 de fábrica) y una política TTL los
   borra. `questionSnapshots`, `questionMeta` y `answers` quedan exentos de

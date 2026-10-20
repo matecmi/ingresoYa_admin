@@ -799,10 +799,26 @@ final List<SettingsTopic> settingsTopics = [
         max: SimulatorSettings.maxResultsLimit,
         unit: 'resultados',
         help:
-            'Alimentan el historial, las estadísticas y «Hoy te toca». Cada '
-            'resultado es una lectura por sesión.',
+            'Cuántos resultados recientes trae la app para el plan de la semana '
+            'y el día a día de Stats. Llegan juntos en una sola lectura, así '
+            'que no cambian el costo. Los totales salen aparte y siempre son '
+            'exactos.',
         keywords: 'lecturas costo historial estadisticas',
         advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.simulator,
+        path: const ['historyLimit'],
+        question: '¿Cuántos exámenes muestra el historial del alumno?',
+        label: 'Exámenes en el historial',
+        min: SimulatorSettings.minHistoryLimit,
+        max: SimulatorSettings.maxHistoryLimit,
+        unit: 'exámenes',
+        help:
+            'Los últimos exámenes que ve el alumno en «Tu progreso e '
+            'historial»; cada uno abre su revisión. El gráfico usa como '
+            'máximo los últimos 10. Los demás no se borran.',
+        keywords: 'historial ultimos examenes progreso',
       ),
       SettingSpec(
         doc: SettingsDoc.simulator,

@@ -264,6 +264,10 @@ test("XP: a practice gives session, fresh answers and streak once; repeats and r
   assert.equal(recent[0]?.attemptId, first.attemptId);
   assert.equal(recent[0]?.correct, 7);
   assert.equal(recent[0]?.universityId, undefined);
+  const summaryTotals = (await user.collection("simulatorSummary").doc("current").get()).data()?.totals as Record<string, unknown>;
+  assert.equal(summaryTotals.exams, 1);
+  assert.equal(summaryTotals.correct, 7);
+  assert.equal(summaryTotals.questions, 10);
   const award = await xp.afterAttempt(uid, first.attemptId);
   assert.deepEqual(award?.items.map((item) => [item.type, item.xp]), [
     ["simulator_session", 10],

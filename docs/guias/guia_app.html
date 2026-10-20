@@ -661,7 +661,7 @@ flowchart LR
 
 <div class="screen two" id="sim-despues">
   <figure><img src="img/sim-revision.jpg" alt="Revisión por pregunta con filtros, mapa y una pregunta fallada abierta"><figcaption>Revisión por pregunta: «Falladas 5 · En blanco 14 · Correctas 1 · Todas», el mapa de casillas y la pregunta 1 abierta («Marcaste A · era E», «TU RESPUESTA» en rojo).</figcaption></figure>
-  <figure><img src="img/sim-progreso.jpg" alt="Historial"><figcaption>Tu progreso e historial.</figcaption></figure>
+  <figure><img src="img/sim-progreso.jpg" alt="Tu progreso e historial: promedio, gráfico, último examen y temas a reforzar"><figcaption>Tu progreso e historial al abrir: promedio de los últimos 10, gráfico, «Tu último examen» y «Refuerza estos temas».</figcaption></figure>
   <div class="body">
     <h3>Revisión, Mis errores, historial y estadísticas</h3>
     <ul>
@@ -669,11 +669,15 @@ flowchart LR
       <li><b>Practicar mis errores</b>: examen «Mis errores» con lo que fallaste o dejaste en blanco, hasta 100 preguntas, mezcladas y en la misma versión. Lleva reloj (90 s por pregunta) solo si el original lo tenía.</li>
       <li><b>Tu progreso e historial</b>:
         <ul>
-          <li>«Temas · de menos a más aciertos»: hasta 8 temas con % y «Practicar», que abre la práctica con ese curso y tema.</li>
-          <li>Filtros «Todos / Plan / Libre / Oficial» y cada examen con «{c} de {t} · fecha» y su puntaje o %. Las fichas todavía no se pueden tocar.</li>
+          <li>Cabecera: el búho y «En tus últimos {n} exámenes acertaste en promedio el {p} % de las preguntas.» ({n} hasta 10). Con 2 o más exámenes, un gráfico «% de preguntas acertadas en cada examen»: una barra por examen (del más antiguo al último, resaltado), la línea punteada del promedio y «hace {n} exámenes · - - promedio: {p} % · el último: {u} %». La barra más alta llena el gráfico. La cabecera se va con el desplazamiento.</li>
+          <li>«TU ÚLTIMO EXAMEN»: título, fecha, % y «{c} correctas · {f} falladas · {b} en blanco»; «Revisar» abre su revisión y «Practicar {n} errores» (si hubo falladas o en blanco) abre «Mis errores» sin reloj.</li>
+          <li>«Refuerza estos temas»: los 3 temas con menos aciertos («{c} de {r}») con «Practicar»; «Ver los {n}» muestra todos y «Ver menos» los vuelve a ocultar.</li>
+          <li>Totales de todos tus exámenes: «exámenes», «preguntas» y «de acierto» (exactos aunque tengas miles: los suma el servidor).</li>
+          <li>«Historial · últimos {n}» · «toca para revisar»: {n} lo fija el admin («Exámenes en el historial», 10 de fábrica) <span class="chip info">ADMIN</span>. Filtros «Todos / Plan / Libre / Oficial» y cada examen con «{c} de {t} · fecha y hora» y su puntaje o %; tocarlo muestra «Abriendo la revisión…» con el búho y abre su revisión. Los exámenes más antiguos no se borran: siguen contando en los totales y Stats.</li>
           <li>Arriba, la bandera «Editar meta» y «Ver estadísticas».</li>
           <li>Vacío: «Aún no entregas exámenes en el Simulador.».</li>
         </ul></li>
+      <li style="list-style:none"><figure style="max-width:220px"><img src="img/sim-historial.jpg" alt="Totales e historial de los últimos 10 exámenes"><figcaption>Al bajar: totales y «Historial · últimos 10»; cada examen abre su revisión.</figcaption></figure></li>
       <li><b>Stats</b>: precisión, preguntas y simulacros por periodo, y cursos fuertes y por mejorar, calculados con tus resultados del servidor. Vacío: «Aún no hay estadísticas · Rinde tu primer simulacro…» con «Ir al Simulador».</li>
     </ul>
   </div>
@@ -1067,13 +1071,14 @@ flowchart LR
   <tr><td class="num">9</td><td>Las marcas y la pizarra se pierden al pausar. <s>Un examen del Simulador no se puede retomar después de cerrar la app.</s> Corregido: «Tienes un examen sin terminar · Retomar».</td><td>Simulador</td></tr>
   <tr><td class="num">10</td><td>Si falla la entrega automática al acabarse el tiempo, no hay forma de reintentar.</td><td>Simulador</td></tr>
   <tr><td class="num">11</td><td><s>«Hoy te toca» crea un examen nuevo en cada toque: tras un timeout puede quedar uno duplicado.</s> Corregido: mientras la sesión de hoy siga abierta, se devuelve la misma.</td><td>Simulador</td></tr>
-  <tr><td class="num">12</td><td>Las fichas del historial no se pueden tocar; la meta solo se edita desde el historial.</td><td>Simulador</td></tr>
+  <tr><td class="num">12</td><td><s>Las fichas del historial no se pueden tocar;</s> corregido: cada examen abre su revisión. La meta solo se edita desde el historial.</td><td>Simulador</td></tr>
   <tr><td class="num">13</td><td>El recordatorio diario solo guarda la hora: aún no hay notificaciones.</td><td>Simulador</td></tr>
 </table></div>
 
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>19-oct-2026</b> · «Tu progreso e historial» renovado: promedio de los últimos 10 exámenes y su gráfico en la cabecera, «Tu último examen» con «Revisar» y «Practicar N errores», los 3 temas más flojos con «Ver los N», totales exactos de todos los exámenes y los últimos 10 (ajuste del admin «Exámenes en el historial») con revisión al tocarlos. «Tus simulacros» y Stats cuentan todos los exámenes. Abrir una revisión muestra «Abriendo la revisión…».</li>
   <li><b>19-oct-2026</b> · Admin: cada ajuste de Configuración explica para qué sirve (41 descripciones nuevas). «Segundos entre guardados» acepta 0 para guardar solo por respuestas, al salir y al entregar. El Simulador lee el historial de resultados con una sola lectura; el alumno no ve cambios.</li>
   <li><b>19-oct-2026</b> · Candado del video renovado: tarjeta compacta con el degradado de la cabecera y el búho guiñando, «Desbloquea la explicación · Ganas +5 XP · te quedan 25 XP hoy», «Ver video · +5 XP» y «Premium». Ver el video completo da XP (5 por explicación, tope de 25 al día, una vez por pregunta, ajustables en el admin) y abre la explicación con el búho feliz y «¡Así se resuelve!».</li>
   <li><b>19-oct-2026</b> · Revisión por pregunta renovada (examen de parte, de dominio y Simulador): filtros «Falladas · En blanco · Correctas · Todas», mapa de casillas para saltar a cualquier pregunta, tarjeta que se entiende cerrada («Marcaste B · era C» y el inicio del enunciado), todas las alternativas marcadas al abrirla (rojo la tuya, verde la correcta, gris en blanco) y, en el Simulador, «Ver en la guía» por pregunta.</li>
