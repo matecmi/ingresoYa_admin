@@ -125,14 +125,24 @@ final effectiveSessionProvider = Provider<AdminSession>((ref) {
 });
 
 final contentHealthRepoProvider = Provider<ContentHealthRepo>(
-  (ref) => ContentHealthRepo(ref.watch(firestoreProvider)),
+  (ref) => ContentHealthRepo(
+    ref.watch(firestoreProvider),
+    functions: ref.watch(functionsProvider),
+  ),
 );
 
-/// Salud del contenido (se calcula al entrar y con «Revisar ahora»:
-/// `ref.invalidate(contentHealthProvider)`).
+/// Salud del contenido: el reporte que guarda el servidor (una lectura); se
+/// recalcula solo si cambió el contenido. Tras guardar algo desde el admin,
+/// `refreshContentHealth(ref)`; «Revisar ahora» fuerza el cálculo.
 final contentHealthProvider = FutureProvider<ContentHealthReport>(
   (ref) => ref.watch(contentHealthRepoProvider).load(),
 );
+
+/// Pide recalcular la salud en la próxima carga y la recarga.
+void refreshContentHealth(WidgetRef ref) {
+  ref.read(contentHealthRepoProvider).markStale();
+  ref.invalidate(contentHealthProvider);
+}
 
 final courseStructureRepoProvider = Provider<CourseStructureRepo>(
   (ref) => CourseStructureRepo(ref.watch(firestoreProvider)),

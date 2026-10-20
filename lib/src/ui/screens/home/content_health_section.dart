@@ -39,7 +39,7 @@ class ContentHealthSection extends ConsumerWidget {
             TextButton.icon(
               onPressed: health.isLoading
                   ? null
-                  : () => ref.invalidate(contentHealthProvider),
+                  : () => refreshContentHealth(ref),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Revisar ahora'),
             ),

@@ -18,6 +18,7 @@ import { APP_CONFIG_DOC, publishAppConfig } from "./app_config";
 import { db } from "./admin";
 import { syncQuestionIndex } from "./question_index";
 import { createQuestionStatsHandlers } from "./question_stats";
+import { createContentHealthHandlers, markContentHealthDirty, questionAffectsHealth } from "./content_health";
 import { sendDueNewsPushes, sendNewsPush, shouldSendPush } from "./news_push";
 
 // Firebase CLI discovers the callable manifest before it injects the deployed
@@ -96,6 +97,15 @@ export const nightlyQuestionStats = onSchedule(
   }
 );
 
+// Salud del contenido del Inicio del admin (content_health.ts): se recalcula
+// solo cuando el admin la abre y está marcada como desactualizada.
+const contentHealth = createContentHealthHandlers(db, config);
+export const refreshContentHealth = onCall(
+  { ...adminCallableOptions, timeoutSeconds: 120, memory: "512MiB" },
+  contentHealth.refreshContentHealth
+);
+const HEALTH_KINDS = new Set(["courses", "topics", "subtopics", "templates"]);
+
 // Historial de cambios del admin (docs/admin_audit_contract.md). La base de
 // Firestore está en nam5, así que los disparadores van en us-central1.
 const col = config.collections;
@@ -136,6 +146,9 @@ function auditTrigger(document: string, kindKey: string) {
       if (kindKey === "config" && !onlyMetaChanged(beforeData, afterData)) {
         await publishAppConfig(config);
       }
+      if (HEALTH_KINDS.has(kindKey) && !onlyMetaChanged(beforeData, afterData)) {
+        await markContentHealthDirty(db, config);
+      }
     }
   );
 }
@@ -146,13 +159,10 @@ export const indexQuestions = onDocumentWritten(
   async (event) => {
     const before = event.data?.before;
     const after = event.data?.after;
-    await syncQuestionIndex(
-      db,
-      config,
-      event.params.id,
-      before?.exists ? (before.data() as Record<string, unknown>) : undefined,
-      after?.exists ? (after.data() as Record<string, unknown>) : undefined
-    );
+    const beforeData = before?.exists ? (before.data() as Record<string, unknown>) : undefined;
+    const afterData = after?.exists ? (after.data() as Record<string, unknown>) : undefined;
+    await syncQuestionIndex(db, config, event.params.id, beforeData, afterData);
+    if (questionAffectsHealth(event.params.id, beforeData, afterData)) await markContentHealthDirty(db, config);
   }
 );
 export const auditCourses = auditTrigger(`${col.courses}/{id}`, "courses");

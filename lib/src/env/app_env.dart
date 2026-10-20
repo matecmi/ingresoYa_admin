@@ -59,6 +59,13 @@ class AppEnv {
   /// Plan premium (docs/premium_contract.md).
   static const String premiumSettingsDocument = 'premium';
 
+  /// Índice de preguntas publicadas por curso (lo escribe el servidor).
+  static const String questionIndexCollection = 'iya-question-index-test';
+
+  /// Reportes que calcula el servidor para el admin (salud del contenido).
+  static const String adminReportsCollection = 'iya-admin-reports-test';
+  static const String contentHealthDocument = 'contentHealth';
+
   /// Historial de cambios del admin (lo escriben disparadores del servidor).
   static const String auditCollection = 'iya-admin-audit-test';
 
