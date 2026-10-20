@@ -36,9 +36,12 @@ final _templatesProvider =
     FutureProvider.autoDispose<Map<String, TemplateInfo>>(
       (ref) => ref.watch(contentHealthRepoProvider).templates(),
     );
-final _countsProvider = FutureProvider.autoDispose<Map<String, int>>(
-  (ref) => ref.watch(contentHealthRepoProvider).publishedByPart(),
-);
+final _countsProvider = FutureProvider.autoDispose
+    .family<Map<String, int>, String>(
+      (ref, courseId) => ref
+          .watch(contentHealthRepoProvider)
+          .publishedByPart(courseId: courseId),
+    );
 final _partTemplateProvider = FutureProvider.autoDispose.family<String, String>(
   (ref, courseId) =>
       ref.watch(courseStructureRepoProvider).partTemplateOf(courseId),
@@ -67,8 +70,8 @@ class _CourseStructureScreenState extends ConsumerState<CourseStructureScreen> {
   Future<void> _run(Future<void> Function() action, [String? done]) async {
     try {
       await action();
-      ref.invalidate(_countsProvider);
-      ref.invalidate(contentHealthProvider);
+      ref.invalidate(_countsProvider(_courseId));
+      refreshContentHealth(ref);
       if (done != null && mounted) {
         ScaffoldMessenger.of(
           context,
@@ -91,7 +94,7 @@ class _CourseStructureScreenState extends ConsumerState<CourseStructureScreen> {
     final topics = [...?ref.watch(_topicsProvider(_courseId)).value]
       ..sort((a, b) => a.order.compareTo(b.order));
     final templates = ref.watch(_templatesProvider).value ?? const {};
-    final counts = ref.watch(_countsProvider).value ?? const {};
+    final counts = ref.watch(_countsProvider(_courseId)).value ?? const {};
     final defaultTemplate =
         ref.watch(_partTemplateProvider(_courseId)).value ?? '';
 

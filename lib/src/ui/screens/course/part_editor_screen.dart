@@ -75,7 +75,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
       ),
     );
     ref.invalidate(_countProvider(widget.partId));
-    ref.invalidate(contentHealthProvider);
+    refreshContentHealth(ref);
   }
 
   Future<void> _setActive(bool active) async {
@@ -87,7 +87,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
         widget.partId,
         {'active': active},
       );
-      ref.invalidate(contentHealthProvider);
+      refreshContentHealth(ref);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -162,7 +162,7 @@ class _PartEditorScreenState extends ConsumerState<PartEditorScreen> {
               active: part.active,
             ),
           );
-      ref.invalidate(contentHealthProvider);
+      refreshContentHealth(ref);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

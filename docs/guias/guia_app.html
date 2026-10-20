@@ -934,7 +934,7 @@ flowchart LR
 </div>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
-  <tr><td class="msg">«Bloquean al alumno» · «Le restan calidad» · «Partes listas {n} de {total}»</td><td>Inicio, si el perfil ve Cursos. Se calcula al entrar y con «Revisar ahora» (lee cursos, partes, plantillas y preguntas publicadas). Revisa todas las partes activas de cursos activos.</td><td>—</td></tr>
+  <tr><td class="msg">«Bloquean al alumno» · «Le restan calidad» · «Partes listas {n} de {total}»</td><td>Inicio, si el perfil ve Cursos. Lee el reporte que guarda el servidor; se recalcula solo si cambió una pregunta, un curso, un tema, un subtema o una plantilla, y con «Revisar ahora». «Revisado hace…» dice cuándo se calculó. Revisa todas las partes activas de cursos activos.</td><td>—</td></tr>
   <tr><td class="msg">««{subtema} · {parte}» no tiene examen» — «La parte nunca se completa…»</td><td>Parte activa sin plantilla de examen.</td><td>«Resolver →» abre la parte.</td></tr>
   <tr><td class="msg">«El examen de «…» pide {N} preguntas y el banco tiene {M}» — «…verá un error y no podrá aprobarla. Faltan {N−M}.»</td><td>La plantilla pide más preguntas publicadas de las que hay para esa parte.</td><td>Abre la parte («Cargar {N−M} preguntas aquí»).</td></tr>
   <tr><td class="msg">«…usa una plantilla que no existe o no está publicada»</td><td>Plantilla borrada, inactiva o no publicada.</td><td>Abre la parte.</td></tr>
@@ -1078,6 +1078,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>19-oct-2026</b> · Admin: «Salud del contenido» ahora sale de un reporte que guarda el servidor y se recalcula solo cuando cambia el contenido. Se ve igual y casi no gasta lecturas. Abrir un curso también lee mucho menos.</li>
   <li><b>19-oct-2026</b> · «Tu progreso e historial» renovado: promedio de los últimos 10 exámenes y su gráfico en la cabecera, «Tu último examen» con «Revisar» y «Practicar N errores», los 3 temas más flojos con «Ver los N», totales exactos de todos los exámenes y los últimos 10 (ajuste del admin «Exámenes en el historial») con revisión al tocarlos. «Tus simulacros» y Stats cuentan todos los exámenes. Abrir una revisión muestra «Abriendo la revisión…».</li>
   <li><b>19-oct-2026</b> · Admin: cada ajuste de Configuración explica para qué sirve (41 descripciones nuevas). «Segundos entre guardados» acepta 0 para guardar solo por respuestas, al salir y al entregar. El Simulador lee el historial de resultados con una sola lectura; el alumno no ve cambios.</li>
   <li><b>19-oct-2026</b> · Candado del video renovado: tarjeta compacta con el degradado de la cabecera y el búho guiñando, «Desbloquea la explicación · Ganas +5 XP · te quedan 25 XP hoy», «Ver video · +5 XP» y «Premium». Ver el video completo da XP (5 por explicación, tope de 25 al día, una vez por pregunta, ajustables en el admin) y abre la explicación con el búho feliz y «¡Así se resuelve!».</li>

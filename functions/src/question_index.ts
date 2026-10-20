@@ -10,8 +10,8 @@ import type { OperationMetrics } from "./operation_metrics";
  * (reestructuración de costos): con él el servidor elige las preguntas de un
  * examen del Simulador sin leer muestras de 40 preguntas; solo lee las que
  * eligió. Lo mantiene el disparador `indexQuestions` y solo lo lee el
- * servidor. `q[questionId] = {v, t, s, d, o, u}`: versión, tema, subtema,
- * dificultad, origen y universidad.
+ * servidor y el admin (salud del contenido). `q[questionId] = {v, t, s, d, o,
+ * u, p}`: versión, tema, subtema, dificultad, origen, universidad y partes.
  */
 export interface IndexEntry {
   id: string;
@@ -21,6 +21,7 @@ export interface IndexEntry {
   difficulty: CandidateQuestion["difficulty"];
   sourceType: CandidateQuestion["sourceType"];
   universityId: string;
+  partIds: string[];
 }
 
 export function questionIndexRef(db: Firestore, config: BackendConfig, courseId: string): DocumentReference {
@@ -40,7 +41,8 @@ export function indexEntryOf(questionId: string, data: Record<string, unknown> |
       s: question.subtopicId,
       d: question.difficulty,
       o: question.sourceType,
-      u: question.universityId
+      u: question.universityId,
+      p: question.partIds
     }
   };
 }
@@ -51,7 +53,7 @@ export function parseQuestionIndex(value: unknown): IndexEntry[] {
   const entries: IndexEntry[] = [];
   for (const [id, item] of Object.entries(raw as Record<string, unknown>)) {
     if (item === null || typeof item !== "object") continue;
-    const { v, t, s, d, o, u } = item as Record<string, unknown>;
+    const { v, t, s, d, o, u, p } = item as Record<string, unknown>;
     if (typeof v !== "number" || typeof d !== "string" || typeof o !== "string") continue;
     entries.push({
       id,
@@ -60,7 +62,8 @@ export function parseQuestionIndex(value: unknown): IndexEntry[] {
       subtopicId: typeof s === "string" ? s : "",
       difficulty: d as IndexEntry["difficulty"],
       sourceType: o as IndexEntry["sourceType"],
-      universityId: typeof u === "string" ? u : ""
+      universityId: typeof u === "string" ? u : "",
+      partIds: Array.isArray(p) ? p.filter((id): id is string => typeof id === "string") : []
     });
   }
   // Orden estable: el sorteo por semilla no debe depender del orden del mapa.

@@ -51,14 +51,14 @@ const published = (extra: Record<string, unknown> = {}) => ({
 });
 
 test("el índice del curso guarda lo justo y sigue a la pregunta al publicar, mover o retirar", () => {
-  assert.deepEqual(indexEntryOf("q1", published()), { courseId: "c1", value: { v: 3, t: "t1", s: "s1", d: "hard", o: "original", u: "u1" } });
+  assert.deepEqual(indexEntryOf("q1", published()), { courseId: "c1", value: { v: 3, t: "t1", s: "s1", d: "hard", o: "original", u: "u1", p: [] } });
   assert.equal(indexEntryOf("q1", published({ status: "draft" })), undefined);
   // Publicar: entra en su curso.
   assert.deepEqual([...indexChanges("q1", undefined, published()).keys()], ["c1"]);
   // Mover de curso: sale del anterior y entra en el nuevo.
   const moved = indexChanges("q1", published(), published({ courseId: "c2" }));
   assert.ok((moved.get("c1")?.q1 as FieldValue).isEqual(FieldValue.delete()));
-  assert.deepEqual(moved.get("c2")?.q1, { v: 3, t: "t1", s: "s1", d: "hard", o: "original", u: "u1" });
+  assert.deepEqual(moved.get("c2")?.q1, { v: 3, t: "t1", s: "s1", d: "hard", o: "original", u: "u1", p: [] });
   // Retirar: sale.
   assert.ok((indexChanges("q1", published(), published({ status: "retired" })).get("c1")?.q1 as FieldValue).isEqual(FieldValue.delete()));
   assert.deepEqual(parseQuestionIndex({ q: { b: { v: 1, d: "easy", o: "original" }, a: { v: 2, d: "hard", o: "admission_exam", t: "t" } } }).map((entry) => entry.id), ["a", "b"]);

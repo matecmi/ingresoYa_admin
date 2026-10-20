@@ -371,6 +371,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['review']);
     }
 
+    // Índice de preguntas por curso (lo escribe el disparador indexQuestions)
+    // y reportes calculados por el servidor para el admin (salud del
+    // contenido): el admin con courses:v los lee; solo Functions escribe.
+    match /{collectionName}/{docId} {
+      allow read: if collectionName in [
+          'iya-question-index-test', 'iya-question-index-staging', 'iya-question-index',
+          'iya-admin-reports-test', 'iya-admin-reports-staging', 'iya-admin-reports'
+        ] && can('courses', 'v');
+    }
+
     // Noticias del alumno (docs/news_contract.md). El alumno lee solo las
     // publicadas (la app decide dónde mostrarlas según su universidad); el
     // admin con news:v ve también borradores y archivadas. Publicar, o tocar

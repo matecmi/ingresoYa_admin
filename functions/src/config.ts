@@ -38,6 +38,8 @@ export interface BackendCollections {
   news: string;
   /** Token de compra de Play (sha256) → uid (docs/premium_contract.md); server-only. */
   purchaseTokens: string;
+  /** Reportes que calcula el servidor para el admin (`contentHealth`); los lee el admin. */
+  adminReports: string;
 }
 
 /** Plan premium (docs/premium_contract.md). */
@@ -94,7 +96,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     professions: "iya-professions-test",
     questionStats: "iya-question-stats-test",
     news: "iya-news-test",
-    purchaseTokens: "iya-purchase-tokens-test"
+    purchaseTokens: "iya-purchase-tokens-test",
+    adminReports: "iya-admin-reports-test"
   },
   staging: {
     questions: "iya-questions-staging",
@@ -119,7 +122,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     professions: "iya-professions-staging",
     questionStats: "iya-question-stats-staging",
     news: "iya-news-staging",
-    purchaseTokens: "iya-purchase-tokens-staging"
+    purchaseTokens: "iya-purchase-tokens-staging",
+    adminReports: "iya-admin-reports-staging"
   },
   production: {
     questions: "iya-questions",
@@ -144,7 +148,8 @@ const collectionsByEnvironment: Record<DeploymentEnvironment, BackendCollections
     professions: "iya-professions",
     questionStats: "iya-question-stats",
     news: "iya-news",
-    purchaseTokens: "iya-purchase-tokens"
+    purchaseTokens: "iya-purchase-tokens",
+    adminReports: "iya-admin-reports"
   }
 };
 
