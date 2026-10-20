@@ -1,5 +1,5 @@
 import type { DocumentReference, Firestore, Transaction } from "firebase-admin/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { AggregateField, FieldValue } from "firebase-admin/firestore";
 
 import {
   gradeFrozenAttempt,
@@ -683,6 +683,20 @@ export class SimulatorService {
         : await transaction.get(this.userRef(uid).collection("simulatorResults")
           .orderBy("submittedAtMs", "desc").limit(recentResultsMax));
       if (legacyResults !== undefined) metrics.readQuery(legacyResults.size);
+      // Totales acumulados (exámenes, preguntas, aciertos): la primera vez se
+      // suman los `simulatorResults` con una consulta de suma (1 lectura por
+      // cada 1 000 documentos); después, incrementos.
+      const storedTotals = summaryDoc.data()?.totals;
+      const totalsBase = isRecord(storedTotals)
+        ? undefined
+        : (await transaction.get(this.userRef(uid).collection("simulatorResults").aggregate({
+          exams: AggregateField.count(),
+          questions: AggregateField.sum("total"),
+          correct: AggregateField.sum("correct"),
+          incorrect: AggregateField.sum("incorrect"),
+          blank: AggregateField.sum("blank")
+        }))).data();
+      if (totalsBase !== undefined) metrics.readDocument();
       // «+N vs. anterior»: the score of the previous try at the same exam.
       const previousScore = best?.data()?.lastScore;
       if (typeof previousScore === "number") result.previousScore = previousScore;
@@ -762,7 +776,8 @@ export class SimulatorService {
           ...(result.byTopic.length > 0
             ? summaryUpdate(legacyTopics?.docs.map((doc) => [doc.id, doc.data()]), result.byTopic, topicCourses, now)
             : { schemaVersion: 1, updatedAtMs: now }),
-          recentResults: recentResultsUpdate(previousRecent, summary)
+          recentResults: recentResultsUpdate(previousRecent, summary),
+          totals: totalsUpdate(totalsBase === undefined ? undefined : { ...totalsBase, recent: previousRecent }, summary)
         },
         { merge: true }
       );
@@ -1608,6 +1623,64 @@ export function publicSimulatorContext(
 export function questionCourseIds(data: Record<string, unknown>, questions: readonly AttemptQuestionSnapshot[]): string[] {
   const meta = parseQuestionMeta(data.questionMeta);
   return questions.map((question) => meta.get(question.questionId)?.courseId ?? "");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+const totalNumber = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+
+/**
+ * `simulatorSummary/current.totals` tras un envío: con [base] (primera vez)
+ * valores absolutos = lo anterior + este examen; si no, incrementos. Por curso
+ * la primera vez se suma lo que hay en los resultados recientes (hasta 200).
+ */
+export function totalsUpdate(
+  base: { exams?: unknown; questions?: unknown; correct?: unknown; incorrect?: unknown; blank?: unknown; recent: readonly unknown[] } | undefined,
+  latest: Record<string, unknown>
+): Record<string, unknown> {
+  const courses = (value: unknown) => (Array.isArray(value) ? value.filter(isRecord) : []);
+  const own = courses(latest.byCourse);
+  if (base === undefined) {
+    const byCourse: Record<string, unknown> = {};
+    for (const course of own) {
+      if (typeof course.id !== "string") continue;
+      byCourse[course.id] = {
+        correct: FieldValue.increment(totalNumber(course.correct)),
+        incorrect: FieldValue.increment(totalNumber(course.incorrect)),
+        blank: FieldValue.increment(totalNumber(course.blank))
+      };
+    }
+    return {
+      exams: FieldValue.increment(1),
+      questions: FieldValue.increment(totalNumber(latest.total)),
+      correct: FieldValue.increment(totalNumber(latest.correct)),
+      incorrect: FieldValue.increment(totalNumber(latest.incorrect)),
+      blank: FieldValue.increment(totalNumber(latest.blank)),
+      byCourse
+    };
+  }
+  const byCourse = new Map<string, { correct: number; incorrect: number; blank: number }>();
+  for (const item of [...base.recent.filter(isRecord), latest]) {
+    for (const course of courses(item.byCourse)) {
+      if (typeof course.id !== "string") continue;
+      const sum = byCourse.get(course.id) ?? { correct: 0, incorrect: 0, blank: 0 };
+      byCourse.set(course.id, {
+        correct: sum.correct + totalNumber(course.correct),
+        incorrect: sum.incorrect + totalNumber(course.incorrect),
+        blank: sum.blank + totalNumber(course.blank)
+      });
+    }
+  }
+  return {
+    exams: totalNumber(base.exams) + 1,
+    questions: totalNumber(base.questions) + totalNumber(latest.total),
+    correct: totalNumber(base.correct) + totalNumber(latest.correct),
+    incorrect: totalNumber(base.incorrect) + totalNumber(latest.incorrect),
+    blank: totalNumber(base.blank) + totalNumber(latest.blank),
+    byCourse: Object.fromEntries(byCourse)
+  };
 }
 
 /** Cuántos resultados recientes guarda el resumen (el máximo de `resultsLimit`). */

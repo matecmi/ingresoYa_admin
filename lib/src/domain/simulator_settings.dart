@@ -69,6 +69,7 @@ class SimulatorSettings {
     this.showExplanations = true,
     this.resultsLimit = 60,
     this.topicStatsLimit = 30,
+    this.historyLimit = 10,
   });
 
   static const defaults = SimulatorSettings();
@@ -112,6 +113,10 @@ class SimulatorSettings {
   static const minTopicStatsLimit = 5;
   static const maxTopicStatsLimit = 200;
 
+  /// Exámenes que muestra «Tu progreso e historial».
+  static const minHistoryLimit = 5;
+  static const maxHistoryLimit = 30;
+
   final List<PracticeSize> practiceSizes;
   final bool practiceTimerDefault;
   final bool practicePenalty;
@@ -123,6 +128,7 @@ class SimulatorSettings {
   final bool showExplanations;
   final int resultsLimit;
   final int topicStatsLimit;
+  final int historyLimit;
 
   factory SimulatorSettings.fromMap(Map<String, dynamic>? data) {
     if (data == null) return defaults;
@@ -156,6 +162,7 @@ class SimulatorSettings {
       showExplanations: data['showExplanations'] != false,
       resultsLimit: number('resultsLimit', defaults.resultsLimit),
       topicStatsLimit: number('topicStatsLimit', defaults.topicStatsLimit),
+      historyLimit: number('historyLimit', defaults.historyLimit),
     );
   }
 
@@ -171,6 +178,7 @@ class SimulatorSettings {
     bool? showExplanations,
     int? resultsLimit,
     int? topicStatsLimit,
+    int? historyLimit,
   }) => SimulatorSettings(
     practiceSizes: practiceSizes ?? this.practiceSizes,
     practiceTimerDefault: practiceTimerDefault ?? this.practiceTimerDefault,
@@ -183,6 +191,7 @@ class SimulatorSettings {
     showExplanations: showExplanations ?? this.showExplanations,
     resultsLimit: resultsLimit ?? this.resultsLimit,
     topicStatsLimit: topicStatsLimit ?? this.topicStatsLimit,
+    historyLimit: historyLimit ?? this.historyLimit,
   );
 
   Map<String, dynamic> toMap() => {
@@ -198,6 +207,7 @@ class SimulatorSettings {
     'showExplanations': showExplanations,
     'resultsLimit': resultsLimit,
     'topicStatsLimit': topicStatsLimit,
+    'historyLimit': historyLimit,
   };
 
   /// The first problem found, in Spanish for the editor, or null when valid.
@@ -226,6 +236,10 @@ class SimulatorSettings {
     if (resultsLimit < minResultsLimit || resultsLimit > maxResultsLimit) {
       return 'Resultados que baja la app: entre $minResultsLimit y '
           '$maxResultsLimit.';
+    }
+    if (historyLimit < minHistoryLimit || historyLimit > maxHistoryLimit) {
+      return 'Exámenes en el historial: entre $minHistoryLimit y '
+          '$maxHistoryLimit.';
     }
     if (topicStatsLimit < minTopicStatsLimit ||
         topicStatsLimit > maxTopicStatsLimit) {

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { FieldValue } from "firebase-admin/firestore";
 
-import { summaryUpdate, recentResultsMax, recentResultsUpdate } from "../src/simulator_service";
+import { summaryUpdate, recentResultsMax, recentResultsUpdate, totalsUpdate } from "../src/simulator_service";
 
 const courses = new Map([["t1", "alg"], ["t2", "alg"], ["t3", "geo"]]);
 
@@ -41,4 +41,18 @@ test("los últimos resultados van primero, sin repetir el intento y con tope", (
   assert.equal(next[1]?.attemptId, "a0");
   assert.equal(next[1]?.universityId, undefined);
   assert.equal(recentResultsUpdate(next, { attemptId: "a0", total: 3 }).filter((item) => item.attemptId === "a0").length, 1);
+});
+
+test("los totales se suman: absolutos la primera vez, incrementos después", () => {
+  const latest = { total: 20, correct: 5, incorrect: 3, blank: 12, byCourse: [{ id: "alg", correct: 5, incorrect: 3, blank: 12 }] };
+  const first = totalsUpdate({ exams: 13, questions: 230, correct: 50, incorrect: 40, blank: 140,
+    recent: [{ byCourse: [{ id: "alg", correct: 2, incorrect: 1, blank: 7 }, { id: "geo", correct: 1, incorrect: 0, blank: 0 }] }] }, latest);
+  assert.deepEqual(first, {
+    exams: 14, questions: 250, correct: 55, incorrect: 43, blank: 152,
+    byCourse: { alg: { correct: 7, incorrect: 4, blank: 19 }, geo: { correct: 1, incorrect: 0, blank: 0 } }
+  });
+  const next = totalsUpdate(undefined, latest);
+  assert.ok((next.exams as FieldValue).isEqual(FieldValue.increment(1)));
+  assert.ok((next.questions as FieldValue).isEqual(FieldValue.increment(20)));
+  assert.ok(((next.byCourse as Record<string, Record<string, FieldValue>>).alg!.blank!).isEqual(FieldValue.increment(12)));
 });
