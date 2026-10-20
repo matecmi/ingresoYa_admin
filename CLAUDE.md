@@ -4,6 +4,7 @@ Panel de administración de IngresoYa (Flutter) + backend en Firebase Functions 
 Proyecto hermano: `../iya-app` (app del alumno). Ambos comparten contratos en `docs/` (p. ej. `subtopic_mastery_contract.md`, `question_contract_v2.md`, `admin_part_learning_contract.md`).
 
 ## Al empezar una sesión
+0. **Máquina nueva o sin memoria de Claude:** leer `docs/contexto_claude/README.md` (dónde nos quedamos, reglas, pendientes) y restaurar la memoria desde `docs/contexto_claude/memoria/`.
 1. Leer `PROGRESO.md` (este repo) y `../iya-app/PROGRESO.md`.
 2. Revisar `git status` y la rama actual.
 

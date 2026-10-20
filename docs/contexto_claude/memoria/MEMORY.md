@@ -1,0 +1,14 @@
+- [Sincronizar docs de progreso](progreso-docs-sync.md) — actualizar CLAUDE.md/PROGRESO.md en ingresoya_admin e iya-app en cada commit/PR
+- [Sin producción aún](sin-produccion-aun.md) — solo test; nada a main ni INGRESOYA_ENV=production hasta publicar en Play Console
+- [Parámetros en el admin](parametros-en-admin.md) — todo valor configurable a futuro va en ingresoya_admin, no fijo en la app
+- [Guías vivas](guias-vivas.md) — actualizar Guía de la app y Arquitectura/servicios en cada cambio funcional o de diseño
+- [Recta final: App Check](recta-final-play-console.md) — recordar a Kevin activar App Check en Firebase al preparar la versión para Play Console
+- [Diseño Noticias/Inicio/Universidades](noticias-inicio-diseno.md) — lienzo y decisiones: aviso por universidad + historias; Inicio final = F-Inicio; implementado en PR admin #88 y app #105
+- [Pantallas de la app idénticas](pantallas-app-identicas.md) — en diseños/admin/guías mostrar la app real, no maquetas
+- [Reestructuración de costos](analisis-costos-firebase.md) — 2026-10-19: 12 subfases hechas; 5B y 1B «En curso»; lista exacta de pendientes de Kevin (Play Console, AdMob, teléfono, facturación) y de Claude; todo en TEST hasta la recta final
+- [Autorización reestructuración de costos](autorizacion-reestructuracion-costos.md) — Kevin autorizó hacer todo por CLI/API sin depender de él; a él solo teléfono, AdMob, Play Console, facturación; estatus al cerrar cada subfase
+- [Herramientas CLI y entorno](herramientas-cli-entorno.md) — ruta de gcloud, firebase vía npx, bloqueos del modo automático, GitHub Actions de matecmi detenido
+- [Revisión del examen](revision-examen-propuestas.md) — revisión renovada (app #124/#125) y candado del video con XP (app #126, admin #110), validados en el teléfono
+- [Teléfono de Kevin con cuidado](telefono-solo-con-permiso.md) — es su teléfono personal: verificar que IngresoYa esté al frente antes de cada toque por adb
+- [Historial del Simulador](historial-propuestas.md) — 3 + 2 fusionado (admin #113, app #129); salud del contenido en el servidor (rama codex/salud-contenido)
+- [Dónde nos quedamos](donde-nos-quedamos.md) — punto de retomar al 2026-10-19 y cómo restaurar el contexto desde docs/contexto_claude del admin
