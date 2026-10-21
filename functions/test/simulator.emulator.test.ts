@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Timestamp, type WriteBatch } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, type WriteBatch } from "firebase-admin/firestore";
 
 import { db } from "../src/admin";
 import { ExamAttemptService, type AttemptQuestionSnapshot } from "../src/attempt_service";
+import { activeCourseIds } from "../src/catalog_cache";
 import { readBackendConfig } from "../src/config";
 import { ExamBackendError } from "../src/errors";
 import { ChallengeService } from "../src/challenge";
@@ -466,3 +467,21 @@ function hasReason(code: ExamBackendError["code"], reason: string) {
   return (error: unknown): boolean =>
     error instanceof ExamBackendError && error.code === code && error.details?.reason === reason;
 }
+
+test("los cursos activos salen de {config}/catalog sin recorrer la colección", async () => {
+  const catalog = db.collection(config.collections.config).doc("catalog");
+  await catalog.set({ activeCourseIds: ["sim-zeta", "sim-alfa", "sim-alfa"] }, { merge: true });
+  try {
+    const metrics = new OperationMetrics();
+    // Ordenados por id (el orden de la colección) y sin repetidos.
+    assert.deepEqual(await activeCourseIds(db, config, metrics), ["sim-alfa", "sim-zeta"]);
+    assert.equal(metrics.logFields().queryCalls, 0);
+    assert.equal(metrics.logFields().observedDocumentReads, 1);
+  } finally {
+    await catalog.set({ activeCourseIds: FieldValue.delete() }, { merge: true });
+  }
+  // Sin la lista, la colección de cursos como antes.
+  const metrics = new OperationMetrics();
+  await activeCourseIds(db, config, metrics);
+  assert.equal(metrics.logFields().queryCalls, 1);
+});

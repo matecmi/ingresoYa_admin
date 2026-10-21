@@ -9,6 +9,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 
 import { db } from "./admin";
+import { ACTIVE_COURSES_FIELD, scanActiveCourseIds } from "./catalog_cache";
 import type { BackendConfig } from "./config";
 
 /** Documento de `{config}` que guarda las versiones. */
@@ -46,25 +47,39 @@ export function courseIdFromParams(kindKey: string, params: Record<string, strin
  * cursos, también el del curso tocado (`courseVersions.<id>`), para que la app
  * vuelva a bajar solo ese árbol.
  */
-export function catalogBumpFields(kind: CatalogKind, courseId = ""): Record<string, unknown> {
+export function catalogBumpFields(
+  kind: CatalogKind,
+  courseId = "",
+  activeCourseIds?: readonly string[]
+): Record<string, unknown> {
   const fields: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   if (kind === "courses") {
     fields.coursesVersion = FieldValue.increment(1);
     if (courseId) fields.courseVersions = { [courseId]: FieldValue.increment(1) };
+    // Lista completa de cursos activos (catalog_cache.ts): el Simulador la
+    // lee aquí en una lectura en vez de recorrer la colección de cursos.
+    if (activeCourseIds !== undefined) fields[ACTIVE_COURSES_FIELD] = [...activeCourseIds];
   } else {
     fields.universitiesVersion = FieldValue.increment(1);
   }
   return fields;
 }
 
-/** Sube la versión (una escritura con merge; crea el documento si no existe). */
+/**
+ * Sube la versión (una escritura con merge; crea el documento si no existe).
+ * Con [refreshActiveCourses] (un curso cambió, no un tema ni un subtema)
+ * vuelve a guardar la lista de cursos activos: el admin edita cursos pocas
+ * veces y así cada examen del Simulador se ahorra recorrer la colección.
+ */
 export async function bumpCatalogVersion(
   config: BackendConfig,
   kind: CatalogKind,
-  courseId = ""
+  courseId = "",
+  refreshActiveCourses = false
 ): Promise<void> {
+  const active = refreshActiveCourses ? await scanActiveCourseIds(db, config) : undefined;
   await db
     .collection(config.collections.config)
     .doc(CATALOG_DOC)
-    .set(catalogBumpFields(kind, courseId), { merge: true });
+    .set(catalogBumpFields(kind, courseId, active), { merge: true });
 }

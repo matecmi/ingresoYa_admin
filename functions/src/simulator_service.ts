@@ -368,7 +368,7 @@ export function pickFresh(
 
 /** Lo que se pide a [SimulatorService.coursePool] además del tamaño de la muestra. */
 interface PoolOptions {
-  /** Preguntas que de verdad se van a usar de este curso (con el índice se leen estas + 2). */
+  /** Preguntas que de verdad se van a usar de este curso (con el índice se leen solo estas). */
   need?: number;
   /** Filtro previo sobre el índice (origen y dificultad de la práctica). */
   accept?: (entry: IndexEntry) => boolean;
@@ -383,7 +383,10 @@ interface PoolCursor {
   loaded: CandidateQuestion[];
 }
 
-const poolMargin = 2;
+// Sin margen: si el índice va un instante detrás y una pregunta ya no sirve,
+// el bucle de [SimulatorService.coursePool] lee la siguiente. Con 2 de margen
+// «Hoy te toca» (hasta 6 muestras) leía ~12 preguntas que no usaba.
+const poolMargin = 0;
 
 export class SimulatorService {
   public constructor(
@@ -1356,7 +1359,7 @@ export class SimulatorService {
   /**
    * Muestra de preguntas de un curso (o de sus [topicIds]). Con el índice del
    * curso (question_index.ts) ordena todo el banco con la semilla, deja las
-   * vistas al final y lee solo [PoolOptions.need] + 2 preguntas; sin índice
+   * vistas al final y lee solo [PoolOptions.need] preguntas; sin índice
    * usa las dos consultas al azar de antes.
    */
   private async coursePool(

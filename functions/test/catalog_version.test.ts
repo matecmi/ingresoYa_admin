@@ -33,3 +33,10 @@ test("cursos sube coursesVersion y la versión del curso; universidades solo su 
   const universities = catalogBumpFields("universities");
   assert.deepEqual(Object.keys(universities).sort(), ["universitiesVersion", "updatedAt"]);
 });
+
+test("un cambio de curso guarda la lista de cursos activos; temas y universidades no", () => {
+  const withList = catalogBumpFields("courses", "alg", ["alg", "geo"]);
+  assert.deepEqual(withList.activeCourseIds, ["alg", "geo"]);
+  assert.equal("activeCourseIds" in catalogBumpFields("courses", "alg"), false);
+  assert.equal("activeCourseIds" in catalogBumpFields("universities", "", ["alg"]), false);
+});
