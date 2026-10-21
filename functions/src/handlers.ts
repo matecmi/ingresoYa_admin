@@ -48,12 +48,14 @@ export function createCallableHandlers(config: BackendConfig) {
     run: () => Promise<XpAward | undefined>,
     metrics: OperationMetrics
   ): Promise<{ xp?: XpAward }> {
+    // Solo el trabajo del XP: el envío o la sección ya registraron el suyo.
+    const mark = metrics.mark();
     try {
       const award = await run();
-      if (award !== undefined) safeLog("xp_granted", uid, { ...metrics.logFields(), gained: award.gained });
+      if (award !== undefined) safeLog("xp_granted", uid, { ...metrics.logFieldsSince(mark), gained: award.gained });
       return award === undefined ? {} : { xp: award };
     } catch (error) {
-      safeError("xp_grant_failed", error, metrics.logFields(), { environment: config.environment, uid });
+      safeError("xp_grant_failed", error, metrics.logFieldsSince(mark), { environment: config.environment, uid });
       return {};
     }
   }

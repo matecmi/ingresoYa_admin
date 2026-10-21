@@ -128,6 +128,16 @@ test("operation telemetry reports only aggregate work counts", () => {
   assert.equal(fields.queryDocuments, 5);
   assert.equal(fields.plannedDocumentWrites, 2);
   assert.equal(fields.transactionAttempts, 1);
+  // A later step (the XP after a submit) logs only its own work.
+  const mark = metrics.mark();
+  metrics.readDocument(4);
+  metrics.writeDocument(5);
+  const step = metrics.logFieldsSince(mark);
+  assert.equal(step.observedDocumentReads, 4);
+  assert.equal(step.queryCalls, 0);
+  assert.equal(step.plannedDocumentWrites, 5);
+  assert.equal(step.transactionAttempts, 0);
+  assert.equal(metrics.logFields().observedDocumentReads, 12);
 });
 
 test("callable errors expose a stable reason without leaking private data to logs", () => {

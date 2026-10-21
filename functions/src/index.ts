@@ -141,7 +141,12 @@ function auditTrigger(document: string, kindKey: string) {
       // cursos y universidades solo cuando este contador cambia.
       const catalogKind = catalogKindOf(kindKey);
       if (catalogKind && !onlyMetaChanged(beforeData, afterData)) {
-        await bumpCatalogVersion(config, catalogKind, courseIdFromParams(kindKey, event.params as Record<string, string>));
+        await bumpCatalogVersion(
+          config,
+          catalogKind,
+          courseIdFromParams(kindKey, event.params as Record<string, string>),
+          kindKey === "courses"
+        );
       }
       if (kindKey === "config" && !onlyMetaChanged(beforeData, afterData)) {
         await publishAppConfig(config);

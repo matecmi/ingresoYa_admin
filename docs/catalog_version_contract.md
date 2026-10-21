@@ -23,6 +23,7 @@ resto del catálogo (reglas `isCatalog`). Escritura: solo el servidor.
 | `coursesVersion` | number | Sube en 1 con cada cambio en un curso, tema o subtema (incluye sus partes) de cualquier curso. |
 | `courseVersions` | map `{courseId: number}` | Sube en 1 el contador del curso tocado. Un curso sin entrada no ha cambiado desde que existe el documento. |
 | `universitiesVersion` | number | Sube en 1 con cada cambio en una universidad o en sus subcolecciones (carreras, exámenes de admisión). |
+| `activeCourseIds` | array de string | Ids de los cursos activos, ordenados por id (el orden de la colección). Lo reescribe `auditCourses` con cada cambio de un curso (no de temas ni subtemas). Lo lee el Simulador (`activeCourseIds` de `functions/src/catalog_cache.ts`) en vez de recorrer la colección de cursos; si falta, recorre la colección como antes. Desde 2026-10-20. |
 | `updatedAt` | timestamp | Última subida. |
 
 ## Quién lo escribe
@@ -41,6 +42,10 @@ corresponde:
 Un cambio que solo toca metadatos (`updatedAt`, `updatedBy`, …; ver
 `onlyMetaChanged`) no sube la versión. El disparador `auditConfig` ignora
 `{config}/catalog` para no anotar una entrada del historial por cada subida.
+
+`auditCourses` además lee la colección de cursos completa (pocas veces: el
+admin edita cursos rara vez) y guarda `activeCourseIds`. Al crear un entorno
+nuevo, editar cualquier curso o escribir la lista a mano la deja lista.
 
 Si el documento no existe, el primer cambio lo crea (`set` con `merge`). En
 TEST se creó a mano el 2026-10-18 con `coursesVersion: 1` y
