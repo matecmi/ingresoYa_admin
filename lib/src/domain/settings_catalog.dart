@@ -10,6 +10,7 @@ import 'news.dart';
 import 'quality_settings.dart';
 import 'rankings_settings.dart';
 import 'simulator_settings.dart';
+import 'stats_settings.dart';
 import 'study_review_rules.dart';
 import 'sync_settings.dart';
 import 'xp_settings.dart';
@@ -33,6 +34,7 @@ enum SettingsDoc {
   exam,
   ads,
   premium,
+  stats,
 }
 
 enum SettingKind { integer, toggle, choice, time }
@@ -1325,6 +1327,153 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
   SettingsTopic(
+    id: 'stats',
+    label: 'Estadísticas',
+    icon: Icons.insights_outlined,
+    intro:
+        'La pestaña Estadísticas de la app: cuánto le falta al alumno para '
+        'ingresar a su carrera, los hallazgos del búho sobre cómo estudia, su '
+        'avance en la guía y sus números. Todo sale del resumen que ya lee la '
+        'app; estos ajustes deciden cuándo hay datos suficientes para '
+        'mostrar algo.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['insightsEnabled'],
+        kind: SettingKind.toggle,
+        question: '¿El búho muestra hallazgos sobre cómo estudia el alumno?',
+        label: 'Hallazgos del búho',
+        help:
+            'Tarjetas como «De noche aciertas más», «En Física dejas muchas '
+            'en blanco» o «Vas muy rápido», cada una con su acción.',
+        keywords: 'buho hallazgos consejos estadisticas',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['storiesEnabled'],
+        kind: SettingKind.toggle,
+        question: '¿Se muestran las historias de la semana?',
+        label: 'Historias de la semana',
+        help:
+            'Burbujas arriba de Estadísticas: preguntas de la semana, mejor '
+            'curso, mejor examen, racha y en qué enfocarse. Se pueden '
+            'compartir.',
+        keywords: 'historias semana compartir estadisticas',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['focusCourses'],
+        question: '¿Cuántos cursos muestra «Lo que más te acerca»?',
+        label: 'Cursos que más acercan',
+        min: StatsSettings.minFocusCourses,
+        max: StatsSettings.maxFocusCourses,
+        unit: 'cursos',
+        help:
+            'Los cursos donde el alumno sumaría más respuestas correctas, '
+            'según cuántas preguntas trae su examen y cuánto acierta.',
+        keywords: 'cursos enfoque ingreso carrera estadisticas',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['insightMinQuestions'],
+        question:
+            '¿Cuántas preguntas necesita el búho para sacar una conclusión?',
+        label: 'Preguntas para un hallazgo',
+        min: StatsSettings.minInsightQuestions,
+        max: StatsSettings.maxInsightQuestions,
+        unit: 'preguntas',
+        help:
+            'Cada grupo que se compara (una franja horaria, un curso, la mitad '
+            'reciente de sus exámenes) necesita al menos estas preguntas. Más '
+            '= hallazgos más seguros y más tardíos.',
+        keywords: 'buho minimo preguntas hallazgos',
+        advanced: true,
+        inPractice: (v) {
+          final n = _int(v, SettingsDoc.stats, ['insightMinQuestions'], 20);
+          return 'Con menos de $n preguntas en una franja o curso, el búho no '
+              'dice nada de él.';
+        },
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['insightMinGapPoints'],
+        question: '¿Cuánta diferencia de acierto hace falta para un hallazgo?',
+        label: 'Diferencia para un hallazgo',
+        min: StatsSettings.minGapPoints,
+        max: StatsSettings.maxGapPoints,
+        unit: 'puntos',
+        help:
+            'Para decir «de noche aciertas más» o «Química subió», la '
+            'diferencia entre los grupos debe llegar a estos puntos de '
+            'porcentaje.',
+        keywords: 'buho diferencia puntos hora mejora',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['blankWarnPercent'],
+        question: '¿Desde qué porcentaje en blanco avisa el búho?',
+        label: 'Aviso de preguntas en blanco',
+        min: StatsSettings.minBlankPercent,
+        max: StatsSettings.maxBlankPercent,
+        unit: '%',
+        help:
+            'Si en un curso el alumno deja en blanco al menos este porcentaje '
+            'de las preguntas, el búho se lo dice.',
+        keywords: 'blanco sin responder aviso',
+        advanced: true,
+        inPractice: (v) {
+          final p = _int(v, SettingsDoc.stats, ['blankWarnPercent'], 25);
+          return 'Con $p %, avisa a quien deja 1 de cada ${(100 / p).round()} '
+              'preguntas sin responder.';
+        },
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['fastPacePercent'],
+        question: '¿Cuándo le dice el búho que va muy rápido?',
+        label: 'Aviso de ritmo rápido',
+        min: StatsSettings.minFastPercent,
+        max: StatsSettings.maxFastPercent,
+        unit: '%',
+        help:
+            'Si el alumno usa menos de este porcentaje del tiempo que da su '
+            'examen por pregunta y acierta poco, el búho le pide usar el '
+            'tiempo.',
+        keywords: 'ritmo rapido tiempo por pregunta',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['projectionMinDays'],
+        question: '¿Cuántos días de historia necesita la proyección?',
+        label: 'Días para proyectar',
+        min: StatsSettings.minProjectionDays,
+        max: StatsSettings.maxProjectionDays,
+        unit: 'días',
+        help:
+            '«A este ritmo llegarías al X %» solo se muestra si los exámenes '
+            'del alumno abarcan al menos estos días.',
+        keywords: 'proyeccion ritmo dias examen',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.stats,
+        path: const ['calendarWeeks'],
+        question: '¿Cuántas semanas muestra «Tus días de estudio»?',
+        label: 'Semanas del calendario',
+        min: StatsSettings.minCalendarWeeks,
+        max: StatsSettings.maxCalendarWeeks,
+        unit: 'semanas',
+        help:
+            'El calendario sale de los últimos 200 exámenes del alumno, sin '
+            'lecturas extra.',
+        keywords: 'calendario semanas racha dias',
+        advanced: true,
+      ),
+    ],
+  ),
+  SettingsTopic(
     id: 'quality',
     label: 'Preguntas a revisar',
     icon: Icons.fact_check_outlined,
@@ -1730,6 +1879,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.exam => ExamSettings.defaults.toMap(),
   SettingsDoc.ads => AdsSettings.defaults.toMap(),
   SettingsDoc.premium => PremiumSettings.defaults.toMap(),
+  SettingsDoc.stats => StatsSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -1746,6 +1896,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.exam => ExamSettings.fromMap(map).validate(),
   SettingsDoc.ads => AdsSettings.fromMap(map).validate(),
   SettingsDoc.premium => PremiumSettings.fromMap(map).validate(),
+  SettingsDoc.stats => StatsSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -1765,4 +1916,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.exam => ExamSettings.fromMap(map).toMap(),
   SettingsDoc.ads => AdsSettings.fromMap(map).toMap(),
   SettingsDoc.premium => PremiumSettings.fromMap(map).toMap(),
+  SettingsDoc.stats => StatsSettings.fromMap(map).toMap(),
 };

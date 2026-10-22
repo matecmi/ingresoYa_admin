@@ -23,7 +23,7 @@ Si el cambio es funcional o de diseño, actualizar también las **guías vivas**
 - Functions: Node 22 (runtime `nodejs22`)/TypeScript, firebase-functions 7, firebase-admin 13. Código en `functions/src/` (`attempt_service.ts`, `selection.ts`, `subtopic_achievement.ts`, `achievement_summary.ts`, `handlers.ts`, ...).
 
 ## Configuración que lee la app
-Colección `AppEnv.configCollection` (`iya-config-test`): `sync` (sincronización del progreso), `study` (reglas de «Revisado» de la guía), `ads` (anuncios de AdMob, `docs/ads_contract.md`), `premium` (plan premium, `docs/premium_contract.md`) y los demás documentos del catálogo de Configuración (`lib/src/ui/screens/settings/`).
+Colección `AppEnv.configCollection` (`iya-config-test`): `sync` (sincronización del progreso), `study` (reglas de «Revisado» de la guía), `ads` (anuncios de AdMob, `docs/ads_contract.md`), `premium` (plan premium, `docs/premium_contract.md`), `stats` (umbrales de la pestaña Estadísticas, `docs/stats_contract.md`) y los demás documentos del catálogo de Configuración (`lib/src/ui/screens/settings/`).
 
 ## Comandos
 ```powershell

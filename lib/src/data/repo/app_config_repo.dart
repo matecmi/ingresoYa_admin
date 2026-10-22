@@ -6,6 +6,7 @@ import 'package:ingresoya_admin/src/domain/quality_settings.dart';
 import 'package:ingresoya_admin/src/domain/simulator_settings.dart';
 import 'package:ingresoya_admin/src/domain/plan_settings.dart';
 import 'package:ingresoya_admin/src/domain/premium_settings.dart';
+import 'package:ingresoya_admin/src/domain/stats_settings.dart';
 import 'package:ingresoya_admin/src/domain/study_review_rules.dart';
 import 'package:ingresoya_admin/src/domain/sync_settings.dart';
 import 'package:ingresoya_admin/src/env/app_env.dart';
@@ -64,6 +65,28 @@ class AppConfigRepo {
     final problem = settings.validate();
     if (problem != null) throw StateError(problem);
     await _exam.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  /// `{config}/stats` (docs/stats_contract.md): umbrales de la pestaña
+  /// Estadísticas de la app.
+  DocumentReference<Map<String, dynamic>> get _stats =>
+      db.collection(AppEnv.configCollection).doc('stats');
+
+  Stream<StatsSettings> watchStatsSettings() => _stats.snapshots().map(
+    (snapshot) => StatsSettings.fromMap(snapshot.data()),
+  );
+
+  Future<void> saveStatsSettings(
+    StatsSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _stats.set({
       ...settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
