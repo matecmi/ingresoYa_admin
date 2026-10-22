@@ -9,6 +9,7 @@ import '../../domain/quality_settings.dart';
 import '../../domain/rankings_settings.dart';
 import '../../domain/settings_catalog.dart';
 import '../../domain/simulator_settings.dart';
+import '../../domain/stats_settings.dart';
 import '../../domain/study_review_rules.dart';
 import '../../domain/sync_settings.dart';
 import '../../domain/xp_settings.dart';
@@ -44,6 +45,7 @@ class SettingsStore {
     SettingsDoc.exam => _config.watchExamSettings().map((s) => s.toMap()),
     SettingsDoc.ads => _config.watchAdsSettings().map((s) => s.toMap()),
     SettingsDoc.premium => _config.watchPremiumSettings().map((s) => s.toMap()),
+    SettingsDoc.stats => _config.watchStatsSettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.
@@ -117,6 +119,10 @@ class SettingsStore {
     ),
     SettingsDoc.premium => _config.savePremiumSettings(
       PremiumSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.stats => _config.saveStatsSettings(
+      StatsSettings.fromMap(map),
       editor: editor,
     ),
   };
