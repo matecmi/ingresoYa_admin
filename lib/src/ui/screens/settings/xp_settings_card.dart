@@ -149,6 +149,8 @@ class _XpSettingsCardState extends ConsumerState<XpSettingsCard> {
       repeatWindowDays: limits['repeatWindowDays']!,
       minSecondsPerQuestion: limits['minSecondsPerQuestion']!,
       pastExamEveryDays: limits['pastExamEveryDays']!,
+      explanationVideoDailyCap: widget.settings.explanationVideoDailyCap,
+      rankAnimation: widget.settings.rankAnimation,
     );
   }
 

@@ -774,7 +774,7 @@ flowchart LR
 </div>
 
 <div class="screen" id="xp-celebracion">
-  <figure><img src="img/xp-celebracion.jpg" alt="Subiste de rango"><figcaption>Bronce I → Bronce III.</figcaption></figure>
+  <figure><img src="img/xp-celebracion.jpg" alt="Subiste de rango"><figcaption>Bronce III → Plata I, al terminar la animación.</figcaption></figure>
   <div class="body">
 <h3>«¡Subiste de rango!»</h3>
 <div class="table-wrap"><table>
@@ -783,6 +783,7 @@ flowchart LR
   <tr><td class="msg">«¡NUEVA ESTRELLA!» · «Ya tienes N estrellas sobre tu insignia.»</td><td>Al ganar una estrella después del último rango.</td></tr>
   <tr><td class="msg">«Llegaste al rango más alto. Ahora cada 2.000 XP suma una estrella.»</td><td>Al llegar a Maestro III.</td></tr>
 </table></div>
+<p><b>Animación</b> <span class="chip info">ADMIN</span>: la insignia anterior brilla y tiembla, gira como una moneda y se convierte en la nueva con un destello, un anillo, rayos de luz, vibración y confeti; luego entran los textos, el búho salta y a la izquierda queda la insignia anterior con una flecha (unos 3 s). Con una estrella nueva, la insignia queda quieta: una estrella entra volando, la etiqueta pasa de ★N-1 a ★N con chispas y un confeti pequeño. Tocar la insignia salta al final. Sin animación (ajuste «Animación al subir de rango» apagado, o el teléfono con «reducir movimiento») se ve directamente la pantalla final, sin confeti.</p>
 <p>Si el admin revierte XP y el rango baja, no hay mensaje.</p>
   </div>
 </div>
@@ -1078,6 +1079,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>22-oct-2026</b> · «¡Subiste de rango!» animado: la insignia anterior brilla, gira como moneda y se convierte en la nueva con destello, rayos, vibración y confeti; la estrella nueva entra volando a su etiqueta. Tocar la insignia salta al final; se apaga en el admin (Niveles e insignias → «Animación al subir de rango») y con «reducir movimiento». Captura nueva.</li>
   <li><b>19-oct-2026</b> · Admin: «Salud del contenido» ahora sale de un reporte que guarda el servidor y se recalcula solo cuando cambia el contenido. Se ve igual y casi no gasta lecturas. Abrir un curso también lee mucho menos.</li>
   <li><b>19-oct-2026</b> · «Tu progreso e historial» renovado: promedio de los últimos 10 exámenes y su gráfico en la cabecera, «Tu último examen» con «Revisar» y «Practicar N errores», los 3 temas más flojos con «Ver los N», totales exactos de todos los exámenes y los últimos 10 (ajuste del admin «Exámenes en el historial») con revisión al tocarlos. «Tus simulacros» y Stats cuentan todos los exámenes. Abrir una revisión muestra «Abriendo la revisión…».</li>
   <li><b>19-oct-2026</b> · Admin: cada ajuste de Configuración explica para qué sirve (41 descripciones nuevas). «Segundos entre guardados» acepta 0 para guardar solo por respuestas, al salir y al entregar. El Simulador lee el historial de resultados con una sola lectura; el alumno no ve cambios.</li>
