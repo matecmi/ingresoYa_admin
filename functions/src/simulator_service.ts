@@ -14,6 +14,7 @@ import {
   type SubmittedAttemptResponse
 } from "./attempt_service";
 import { activeCourseIds } from "./catalog_cache";
+import { areaCourseWeights, weightedCourses } from "./exam_areas";
 import { type ExamMemoryState, loadExamMemory, recordExposure, seenSince as memorySeenSince } from "./exam_memory";
 import { type IndexEntry, loadQuestionIndex } from "./question_index";
 import type { BackendConfig } from "./config";
@@ -462,7 +463,7 @@ export class SimulatorService {
         ? await this.mistakesPlan(uid, input, settings, metrics)
         : isPlanInput(input)
           ? input.mode === "plan"
-            ? await this.dailyPlan(uid, input, settings, metrics)
+            ? await this.dailyPlan(uid, input, profile, settings, metrics)
             : input.mode === "daily_challenge"
               ? await this.challengePlan(uid, input, profile.universityId, settings, metrics)
               : await this.diagnosticPlan(uid, input, settings, metrics)
@@ -987,6 +988,7 @@ export class SimulatorService {
   private async dailyPlan(
     uid: string,
     input: PlanAttemptInput,
+    profile: { universityId: string; professionId?: string },
     settings: SimulatorSettings,
     metrics: OperationMetrics
   ) {
@@ -1008,7 +1010,7 @@ export class SimulatorService {
       chosen.forEach((question) => taken.add(question.questionId));
       picked.push(...chosen);
     }
-    const courseIds = await this.randomCourses(uid, input.requestId, metrics);
+    const courseIds = await this.planCourses(uid, input.requestId, profile, metrics);
     let missing = plan.dailyQuestions - picked.length;
     const want = splitEvenly(courseIds, missing);
     const pools = new Map<string, CandidateQuestion[]>();
@@ -1451,6 +1453,27 @@ export class SimulatorService {
       throw failedPrecondition("A selected course is unavailable.", { reason: "course_not_available" });
     }
     return [...courseIds];
+  }
+
+  /**
+   * Cursos del resto de la práctica del día: con área del examen, al azar
+   * según su peso (docs/exam_areas_contract.md); sin área, al azar.
+   */
+  private async planCourses(
+    uid: string,
+    requestId: string,
+    profile: { universityId: string; professionId?: string },
+    metrics: OperationMetrics
+  ): Promise<string[]> {
+    if (profile.professionId === undefined) return this.randomCourses(uid, requestId, metrics);
+    const [active, university] = await Promise.all([
+      activeCourseIds(this.db, this.config, metrics),
+      this.db.collection(this.config.collections.universities).doc(profile.universityId).get()
+    ]);
+    metrics.readDocument();
+    const weights = areaCourseWeights(university.data(), profile.professionId);
+    if (weights.size === 0 || active.length === 0) return this.randomCourses(uid, requestId, metrics);
+    return weightedCourses(active, weights, 3, `${uid}:${requestId}:courses`);
   }
 
   private async randomCourses(uid: string, requestId: string, metrics: OperationMetrics): Promise<string[]> {

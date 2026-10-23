@@ -39,6 +39,17 @@ void main() {
       const PlanSettings(defaultReminderTime: '25:00').validate(),
       contains('HH:mm'),
     );
+    expect(
+      const PlanSettings(maxPartsPerDay: 0).validate(),
+      contains('partes de la guía'),
+    );
+    expect(PlanSettings.fromMap(const {}).maxPartsPerDay, 3);
+    expect(
+      PlanSettings.fromMap(const {
+        'maxPartsPerDay': 4,
+      }).toMap()['maxPartsPerDay'],
+      4,
+    );
   });
 
   test('the plan and the simulator settings never erase each other', () async {

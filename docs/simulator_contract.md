@@ -156,13 +156,25 @@ entregado cuenta para la semana.
 | `minQuestionsPerSession` | `10` | Un examen cuenta como sesión desde este tamaño |
 | `streakGraceDays` | `1` | Días sin practicar antes de perder la racha |
 | `freeExamsCount` | `true` | Los exámenes libres cuentan para la semana |
+| `maxPartsPerDay` | `3` | Tope de partes de la guía por día de estudio en «Tu plan de hoy» (1–10) |
 
 ### Meta del alumno `{users}/{uid}/simulatorPlan/current` (la escribe el alumno)
 
 `examMonth` (`"YYYY-MM"` o `null` = aún no sé), `sessionsPerWeek`, `mockDay`
 (1–7), `reminderEnabled`, `reminderTime` (`"HH:mm"`), `createdAtMs`,
 `updatedAtMs`. Sin documento no hay plan: el Inicio invita a crearlo y el modo
-libre funciona igual.
+libre funciona igual. La app ya no muestra el recordatorio (los avisos no existen todavía); los campos se conservan.
+
+### Fecha del examen (app, regla única, 2026-10-23)
+
+Inicio, plan, Simulador y Estadísticas usan la misma fecha (`ExamDate.resolve`): la `nextExam` de la universidad si no pasó; si no, el último día de `examMonth` («por confirmar»); si tampoco, sin fecha. «Tu meta» solo pregunta el mes cuando la universidad no publicó la fecha.
+
+### «Tu plan de hoy» (app, 2026-10-23)
+
+- Días de estudio: `sessionsPerWeek` días repartidos en la semana (lunes, martes, jueves, viernes, miércoles, domingo, sábado, en ese orden), sin el día del simulacro salvo con 7.
+- Ritmo: partes sin aprobar al empezar el día ÷ días de estudio hasta la víspera del examen, redondeado hacia arriba y con tope `maxPartsPerDay`; si el tope no alcanza, la app dice hasta qué porcentaje de la guía llega. Se recalcula cada día; las partes aprobadas al empezar el día se guardan en el teléfono.
+- La parte que toca: la última a medias si no está aprobada; si no, la primera sin aprobar empezando por los cursos clave del área del examen (`docs/exam_areas_contract.md`).
+- «Tu semana» (`/simulator_plan_week`): qué toca cada día (partes y práctica, ★ simulacro o descanso).
 
 ### Aciertos por tema `{users}/{uid}/simulatorTopicStats/{topicId}` (servidor)
 
@@ -175,8 +187,10 @@ dueño solo lee. Un tema es débil con `answered ≥ minAnswersToJudge` y
 
 - `mode: 'plan'` — «Hoy te toca»: `{requestId, purpose: 'practice', mode:
   'plan', timed}`. `dailyQuestions` preguntas: `weakSharePercent` de los temas
-  más débiles (repartidas entre ellos) y el resto de todos los cursos activos;
-  si no hay temas débiles, todo mezclado. El contexto público trae
+  más débiles (repartidas entre ellos) y el resto de tres cursos activos
+  elegidos al azar según su peso en el área del examen de la carrera
+  (`docs/exam_areas_contract.md`; sin área, al azar); si no hay temas
+  débiles, todo de esos cursos. El contexto público trae
   `focusTopicIds` (los temas débiles usados).
 - `mode: 'diagnostic'` — primera sesión sin historial: `{requestId, purpose:
   'practice', mode: 'diagnostic'}`. `diagnosticPerCourse` preguntas de cada

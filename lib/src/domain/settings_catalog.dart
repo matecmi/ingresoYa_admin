@@ -1081,6 +1081,18 @@ final List<SettingsTopic> settingsTopics = [
       ),
       SettingSpec(
         doc: SettingsDoc.plan,
+        path: const ['maxPartsPerDay'],
+        question:
+            '¿Cuántas partes de la guía pide como máximo el plan cada día?',
+        label: 'Tope de partes por día',
+        help:
+            '«Tu plan de hoy» reparte las partes que faltan entre los días de estudio hasta el examen, empezando por los cursos clave de su área, pero nunca pide más que este tope. Si no alcanza, le dice al alumno hasta qué porcentaje de la guía llega.',
+        min: 1,
+        max: 10,
+        unit: 'partes',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.plan,
         path: const ['freeExamsCount'],
         kind: SettingKind.toggle,
         question: '¿Los exámenes libres cuentan para la meta de la semana?',

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint --max-warnings=0 src test",
-    "test": "npm run build && node --test lib/test/validation.test.js lib/test/simulator.test.js lib/test/xp.test.js lib/test/ranking.test.js lib/test/staff.test.js lib/test/audit.test.js lib/test/question_stats.test.js lib/test/news_push.test.js lib/test/catalog_version.test.js lib/test/exam_config.test.js lib/test/app_config.test.js lib/test/simulator_summary.test.js lib/test/premium.test.js lib/test/exam_memory.test.js lib/test/content_health.test.js",
+    "test": "npm run build && node --test lib/test/validation.test.js lib/test/simulator.test.js lib/test/xp.test.js lib/test/ranking.test.js lib/test/staff.test.js lib/test/audit.test.js lib/test/question_stats.test.js lib/test/news_push.test.js lib/test/catalog_version.test.js lib/test/exam_config.test.js lib/test/app_config.test.js lib/test/simulator_summary.test.js lib/test/premium.test.js lib/test/exam_memory.test.js lib/test/content_health.test.js lib/test/exam_areas.test.js",
     "admin:claim": "npm run build && node lib/scripts/manage_admin_claim.js",
     "xp:retro": "npm run build && node lib/scripts/xp_retroactive.js",
     "rankings:aliases": "npm run build && node lib/scripts/rankings_aliases.js",
