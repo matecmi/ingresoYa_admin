@@ -81,6 +81,7 @@ class XpSettings {
     this.minSecondsPerQuestion = 5,
     this.pastExamEveryDays = 7,
     this.explanationVideoDailyCap = 25,
+    this.rankAnimation = true,
   });
 
   final List<RankStep> ranks;
@@ -95,6 +96,10 @@ class XpSettings {
 
   /// XP máximo por día de las explicaciones vistas con video (tope propio).
   final int explanationVideoDailyCap;
+
+  /// La app anima la subida de rango y la estrella nueva (apagado: pantalla
+  /// fija).
+  final bool rankAnimation;
 
   static final XpSettings defaults = XpSettings(
     ranks: [
@@ -186,6 +191,9 @@ class XpSettings {
         0,
         1000,
       ),
+      rankAnimation: data['rankAnimation'] is bool
+          ? data['rankAnimation'] as bool
+          : d.rankAnimation,
     );
   }
 
@@ -200,6 +208,7 @@ class XpSettings {
     'minSecondsPerQuestion': minSecondsPerQuestion,
     'pastExamEveryDays': pastExamEveryDays,
     'explanationVideoDailyCap': explanationVideoDailyCap,
+    'rankAnimation': rankAnimation,
   };
 
   static String? validateRanks(List<RankStep> ranks) {

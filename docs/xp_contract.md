@@ -46,7 +46,7 @@ Las respuestas incluyen `xp` (§4) cuando algo se otorgó.
 
 | Ruta | Contenido | Escribe | Lee |
 |---|---|---|---|
-| `{config}/xp` | `ranks[{name, minXp, image}]`, `starsEnabled`, `xpPerStar`, `amounts{…}`, `dailyCap`, `minQuestionsPerSession`, `repeatWindowDays`, `minSecondsPerQuestion`, `pastExamEveryDays`, `explanationVideoDailyCap` | Admin | Functions, app |
+| `{config}/xp` | `ranks[{name, minXp, image}]`, `starsEnabled`, `xpPerStar`, `amounts{…}`, `dailyCap`, `minQuestionsPerSession`, `repeatWindowDays`, `minSecondsPerQuestion`, `pastExamEveryDays`, `explanationVideoDailyCap`, `rankAnimation` (animación al subir de rango o ganar una estrella; `true` de fábrica) | Admin | Functions, app |
 | `{profile}/{uid}/xp/current` | `total`, `rankStep` (el más alto alcanzado), `today{day, capped, explained}`, `week{key, xp, sessionDays[]}`, `pastExamDays{examId: día}`, `updatedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
 | `{profile}/{uid}/xpEvents/{id}` | `type`, `xp`, `requested`, `count?`, `day`, `week`, `atMs`, `source{…}`, `createdAt`; si se revirtió: `reverted`, `revertedXp`, `revertReason`, `revertedBy`, `revertedAtMs` | Functions (y el admin al revertir) | Dueño, admin |
 | `{profile}/{uid}/ranking/current` | `alias`, `visible`, `moderatedReason`, `updatedAtMs` (fase 2) | Functions (y el admin al retirar un alias) | Dueño, admin |

@@ -780,6 +780,17 @@ final List<SettingsTopic> settingsTopics = [
         unit: 'XP',
         screen: _rangos,
       ),
+      SettingSpec(
+        doc: SettingsDoc.xp,
+        path: const ['rankAnimation'],
+        kind: SettingKind.toggle,
+        question: '¿Se anima la pantalla al subir de rango?',
+        label: 'Animación al subir de rango',
+        help:
+            'La insignia anterior brilla, gira como una moneda y se convierte en la nueva, con destello, rayos y confeti; una estrella nueva entra volando. Dura unos 3 segundos y el alumno puede tocar para saltarla. Apagado, la pantalla aparece fija. En teléfonos con «reducir movimiento» nunca se anima.',
+        keywords: 'animacion rango insignia estrella celebracion confeti',
+        screen: _rangos,
+      ),
     ],
   ),
   SettingsTopic(

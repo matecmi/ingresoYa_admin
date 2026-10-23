@@ -146,4 +146,47 @@ void main() {
     expect((doc.data()!['amounts'] as Map)['partPassed'], 45);
     expect((doc.data()!['ranks'] as List).length, 18);
   });
+
+  testWidgets('the card keeps the fields it does not show', (tester) async {
+    final db = FakeFirebaseFirestore();
+    final ref = db
+        .collection(AppEnv.configCollection)
+        .doc(AppEnv.xpSettingsDocument);
+    await ref.set({
+      ...XpSettings.defaults.toMap(),
+      'explanationVideoDailyCap': 40,
+      'rankAnimation': false,
+    });
+    tester.view.physicalSize = const Size(1200, 6000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [xpRepoProvider.overrideWithValue(XpRepo(db))],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: XpSettingsSection()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('xp-save')));
+    await tester.pumpAndSettle();
+    final data = (await ref.get()).data()!;
+    expect(data['explanationVideoDailyCap'], 40);
+    expect(data['rankAnimation'], false);
+  });
+
+  test('rankAnimation is on unless the admin turns it off', () {
+    expect(XpSettings.fromMap(const {}).rankAnimation, isTrue);
+    expect(
+      XpSettings.fromMap(const {'rankAnimation': 'no'}).rankAnimation,
+      isTrue,
+    );
+    expect(
+      XpSettings.fromMap(const {'rankAnimation': false}).rankAnimation,
+      isFalse,
+    );
+  });
 }
