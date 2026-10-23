@@ -60,6 +60,7 @@ class _PlanSettingsCardState extends ConsumerState<PlanSettingsCard> {
     'diagnosticMinutes',
     'minQuestionsPerSession',
     'streakGraceDays',
+    'maxPartsPerDay',
   ];
 
   @override
@@ -114,6 +115,7 @@ class _PlanSettingsCardState extends ConsumerState<PlanSettingsCard> {
       minQuestionsPerSession: values['minQuestionsPerSession']!,
       streakGraceDays: values['streakGraceDays']!,
       freeExamsCount: _freeExamsCount,
+      maxPartsPerDay: values['maxPartsPerDay']!,
     );
   }
 
@@ -326,6 +328,12 @@ class _PlanSettingsCardState extends ConsumerState<PlanSettingsCard> {
             'Días sin practicar antes de perder la racha',
             'días',
             '0 = se pierde si falta un día.',
+          ),
+          _number(
+            'maxPartsPerDay',
+            'Tope de partes de la guía por día',
+            'partes',
+            '«Tu plan de hoy» nunca pide más, aunque falten muchas.',
           ),
           toggle(
             'plan-free-count',

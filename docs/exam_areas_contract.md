@@ -46,7 +46,8 @@ En UNPRG grupo E: Razonamiento Verbal 20 × 20 = 400 de 2000 (20 %), Álgebra
 | --- | --- |
 | Guía de estudio (pestaña Cursos) | Tres grupos: **«Clave para tu examen»** (cursos clave, de mayor a menor peso, tarjeta destacada con «N preguntas · P % de tu puntaje»), **«También vienen en tu examen»** (resto con preguntas > 0, por peso, con «N preguntas») y **«No vienen en tu examen»** (cursos activos sin filas o con 0 preguntas, atenuados al final). Sin área: la lista de siempre, sin grupos. |
 | Estadísticas «Lo que más te acerca a <carrera>» | Usa las preguntas por curso de su área en vez de las del último examen pasado que rindió. Sin área: como antes. |
-| Plan de hoy y práctica del día | Fase siguiente: las partes de la guía y las preguntas de la práctica se priorizan por peso (contrato aparte cuando se implemente). |
+| Plan de hoy | La parte de la guía que toca sale primero de los cursos clave y luego por peso (`docs/simulator_contract.md` §4). |
+| Práctica del día (Functions) | El resto de las preguntas (tras los temas débiles) sale de tres cursos activos elegidos al azar con probabilidad según su peso (`functions/src/exam_areas.ts`); una lectura de la universidad por práctica. |
 
 El dorado sigue reservado para el dominio del subtema: lo «clave» usa el color
 secundario.

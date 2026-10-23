@@ -18,6 +18,7 @@ class PlanSettings {
     this.minQuestionsPerSession = 10,
     this.streakGraceDays = 1,
     this.freeExamsCount = true,
+    this.maxPartsPerDay = 3,
   });
 
   static const defaults = PlanSettings();
@@ -68,6 +69,9 @@ class PlanSettings {
   /// Free exams (not proposed by the plan) also count as sessions.
   final bool freeExamsCount;
 
+  /// «Tu plan de hoy»: never asks for more guide parts per study day.
+  final int maxPartsPerDay;
+
   factory PlanSettings.fromMap(Object? raw) {
     if (raw is! Map) return defaults;
     int number(String key, int fallback) {
@@ -115,6 +119,7 @@ class PlanSettings {
       ),
       streakGraceDays: number('streakGraceDays', defaults.streakGraceDays),
       freeExamsCount: raw['freeExamsCount'] != false,
+      maxPartsPerDay: number('maxPartsPerDay', defaults.maxPartsPerDay),
     );
   }
 
@@ -136,6 +141,7 @@ class PlanSettings {
     'minQuestionsPerSession': minQuestionsPerSession,
     'streakGraceDays': streakGraceDays,
     'freeExamsCount': freeExamsCount,
+    'maxPartsPerDay': maxPartsPerDay,
   };
 
   /// The first problem, in Spanish for the editor, or null when valid.
@@ -181,6 +187,9 @@ class PlanSettings {
     }
     if (streakGraceDays < 0 || streakGraceDays > 7) {
       return 'Los días antes de perder la racha van de 0 a 7.';
+    }
+    if (maxPartsPerDay < 1 || maxPartsPerDay > 10) {
+      return 'Las partes de la guía por día van de 1 a 10.';
     }
     return null;
   }
