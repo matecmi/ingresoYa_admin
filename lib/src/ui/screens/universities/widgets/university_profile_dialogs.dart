@@ -265,11 +265,13 @@ Future<CareerDetails?> showCareerDetailsDialog(
   required String careerName,
   required List<Faculty> faculties,
   required CareerDetails initial,
+  List<ExamArea> areas = const [],
 }) => showDialog<CareerDetails>(
   context: context,
   builder: (_) => _CareerDialog(
     careerName: careerName,
     faculties: faculties,
+    areas: areas,
     initial: initial,
   ),
 );
@@ -279,10 +281,12 @@ class _CareerDialog extends StatefulWidget {
     required this.careerName,
     required this.faculties,
     required this.initial,
+    this.areas = const [],
   });
 
   final String careerName;
   final List<Faculty> faculties;
+  final List<ExamArea> areas;
   final CareerDetails initial;
 
   @override
@@ -292,6 +296,9 @@ class _CareerDialog extends StatefulWidget {
 class _CareerDialogState extends State<_CareerDialog> {
   late String _faculty = widget.faculties.any((f) => f.id == widget.initial.facultyId)
       ? widget.initial.facultyId
+      : '';
+  late String _area = widget.areas.any((a) => a.id == widget.initial.examAreaId)
+      ? widget.initial.examAreaId
       : '';
   late final _vacancies = TextEditingController(
     text: widget.initial.vacancies?.toString() ?? '',
@@ -364,6 +371,31 @@ class _CareerDialogState extends State<_CareerDialog> {
                   style: TextStyle(color: AppTheme.muted, fontSize: 12.5),
                 ),
               ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _area,
+              decoration: const InputDecoration(
+                labelText: 'Área del examen',
+                helperText: 'Decide qué cursos salen primero en la guía del alumno.',
+              ),
+              items: [
+                const DropdownMenuItem(value: '', child: Text('Sin área')),
+                for (final a in widget.areas)
+                  DropdownMenuItem(
+                    value: a.id,
+                    child: Text(a.label, overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (v) => setState(() => _area = v ?? ''),
+            ),
+            if (widget.areas.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Primero crea las áreas en la pestaña «Áreas del examen».',
+                  style: TextStyle(color: AppTheme.muted, fontSize: 12.5),
+                ),
+              ),
             const SizedBox(height: 14),
             Text(
               'Último proceso de admisión (fuente oficial)',
@@ -424,6 +456,7 @@ class _CareerDialogState extends State<_CareerDialog> {
         onPressed: () {
           final d = CareerDetails(
             facultyId: _faculty,
+            examAreaId: _area,
             vacancies: _int(_vacancies),
             minScore: _num(_min),
             maxScore: _num(_max),
