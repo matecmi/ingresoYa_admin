@@ -208,6 +208,9 @@ flowchart LR
       <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
       <tr><td class="msg">«{n} completados» · «{n} dominado(s)»</td><td>Cuando el servidor devolvió tu resumen de logros. Si está cargando o falla, no aparecen.</td><td>Nada.</td></tr>
       <tr><td class="msg">Tarjeta del curso: nombre, descripción</td><td>Por cada curso de tu universidad y carrera.</td><td>Abre el curso.</td></tr>
+      <tr><td class="msg">«Clave para tu examen» · «Lo que más pesa en el examen de {área}.»</td><td>Si la carrera del alumno tiene <b>área del examen</b> <span class="chip info">ADMIN</span>: primero los cursos marcados ★ clave en su área, de mayor a menor peso, con borde y etiqueta «CLAVE» y «{n} preguntas · {p} % de tu puntaje» (preguntas × puntos ÷ puntaje máximo del examen).</td><td>Abre el curso.</td></tr>
+      <tr><td class="msg">«También vienen en tu examen» · «{n} preguntas en tu examen»</td><td>Los demás cursos con preguntas en su examen, de mayor a menor peso.</td><td>Abre el curso.</td></tr>
+      <tr><td class="msg">«No vienen en tu examen» · «Repásalos si te sobra tiempo.»</td><td>Cursos sin preguntas en su área, al final y atenuados. Sin área, la lista sale como siempre, sin grupos.</td><td>Abre el curso.</td></tr>
       <tr><td class="msg">«{c} de {t} subtemas completados»</td><td><code>c</code> viene del servidor; <code>t</code> son los subtemas del curso.</td><td>—</td></tr>
       <tr><td class="msg">Medalla dorada + número</td><td>Si hay subtemas dominados en el curso.</td><td>—</td></tr>
       <tr><td class="msg">«{n}%» y barra</td><td>100 % si todos los subtemas están completos; si no, avance por <b>partes</b> aprobadas.</td><td>—</td></tr>
@@ -1079,6 +1082,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>23-oct-2026</b> · Guía de estudio ordenada por el examen de la carrera: con las «Áreas del examen» del admin (grupos académicos del prospecto, preguntas y puntos por asignatura, cursos clave), Cursos muestra «Clave para tu examen», «También vienen en tu examen» y «No vienen en tu examen». «Lo que más te acerca» de Estadísticas usa esas preguntas. Cargado para la UNPRG (prospecto 2026-II, Anexo 1).</li>
   <li><b>22-oct-2026</b> · «¡Subiste de rango!» animado: la insignia anterior brilla, gira como moneda y se convierte en la nueva con destello, rayos, vibración y confeti; la estrella nueva entra volando a su etiqueta. Tocar la insignia salta al final; se apaga en el admin (Niveles e insignias → «Animación al subir de rango») y con «reducir movimiento». Captura nueva.</li>
   <li><b>19-oct-2026</b> · Admin: «Salud del contenido» ahora sale de un reporte que guarda el servidor y se recalcula solo cuando cambia el contenido. Se ve igual y casi no gasta lecturas. Abrir un curso también lee mucho menos.</li>
   <li><b>19-oct-2026</b> · «Tu progreso e historial» renovado: promedio de los últimos 10 exámenes y su gráfico en la cabecera, «Tu último examen» con «Revisar» y «Practicar N errores», los 3 temas más flojos con «Ver los N», totales exactos de todos los exámenes y los últimos 10 (ajuste del admin «Exámenes en el historial») con revisión al tocarlos. «Tus simulacros» y Stats cuentan todos los exámenes. Abrir una revisión muestra «Abriendo la revisión…».</li>

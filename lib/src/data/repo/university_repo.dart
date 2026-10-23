@@ -207,7 +207,8 @@ class UniversityRepo {
           if (f.id != facultyId) f.toMap(),
       ],
       for (final e in data.careerDetails.entries)
-        if (e.value.facultyId == facultyId) 'careerDetails.${e.key}.facultyId': '',
+        if (e.value.facultyId == facultyId)
+          'careerDetails.${e.key}.facultyId': '',
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -221,6 +222,30 @@ class UniversityRepo {
     if (problem != null) throw StateError(problem);
     await _col.doc(id).update({
       'careerDetails.$careerId': details.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Áreas del examen (docs/exam_areas_contract.md). Una carrera cuya área
+  /// ya no existe queda sin área.
+  Future<void> setExamAreas(
+    String id,
+    UniversityStudentData data,
+    List<ExamArea> areas,
+  ) async {
+    for (final a in areas) {
+      final problem = a.validate();
+      if (problem != null) throw StateError(problem);
+    }
+    final ids = areas.map((a) => a.id.trim().toUpperCase()).toList();
+    if (ids.toSet().length != ids.length) {
+      throw StateError('Hay dos áreas con el mismo código.');
+    }
+    await _col.doc(id).update({
+      'examAreas': [for (final a in areas) a.toMap()],
+      for (final e in data.careerDetails.entries)
+        if (e.value.examAreaId.isNotEmpty && !ids.contains(e.value.examAreaId))
+          'careerDetails.${e.key}.examAreaId': '',
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

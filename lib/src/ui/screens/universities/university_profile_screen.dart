@@ -8,6 +8,7 @@ import '../../../providers/providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/admin_ui.dart';
 import '../news/news_format.dart';
+import 'widgets/exam_areas_card.dart';
 import 'widgets/university_next_exam_card.dart';
 import 'widgets/university_profile_dialogs.dart';
 
@@ -122,7 +123,7 @@ class _UniversityProfileScreenState
     final profile = _current;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -174,6 +175,7 @@ class _UniversityProfileScreenState
                 Tab(text: 'Facultades'),
                 Tab(text: 'Carreras'),
                 Tab(text: 'Admisión'),
+                Tab(text: 'Áreas del examen'),
               ],
             ),
           ),
@@ -193,6 +195,7 @@ class _UniversityProfileScreenState
                     ),
                     _admissionCard(profile),
                   ]),
+                  _page([ExamAreasCard(data: data)]),
                 ],
               ),
             ),
@@ -482,9 +485,9 @@ class _UniversityProfileScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Toca una carrera para poner su facultad, vacantes, puntajes '
-                  'de ingreso (con el proceso al que corresponden), duración, '
-                  'título y enlace oficial.',
+                  'Toca una carrera para poner su facultad, área del examen, '
+                  'vacantes, puntajes de ingreso (con el proceso al que '
+                  'corresponden), duración, título y enlace oficial.',
                   style: TextStyle(color: AppTheme.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
@@ -500,6 +503,7 @@ class _UniversityProfileScreenState
                             context,
                             careerName: c.name,
                             faculties: data.faculties,
+                            areas: data.examAreas,
                             initial: d,
                           );
                           if (edited == null) return;
@@ -520,6 +524,7 @@ class _UniversityProfileScreenState
                             if (d.vacancies != null) '${d.vacancies} vacantes',
                             if (d.minScore != null) 'mín. ${fmtScore(d.minScore!)}',
                             if (d.scorePeriod.isNotEmpty) d.scorePeriod,
+                            if (data.areaOf(c.id) case final area?) 'área ${area.id}',
                           ].join(' · '),
                         ),
                         trailing: Row(
