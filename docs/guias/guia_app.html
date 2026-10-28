@@ -89,10 +89,10 @@
 </table></div>
 
 <div class="screen" id="inicio-plan-hoy">
-  <figure><img src="img/ini-plan-hoy.jpg" alt="Inicio con Tu plan de hoy"><figcaption>Inicio con plan (TEST, 23-oct-2026).</figcaption></figure>
+  <figure><img src="img/ini-plan-hoy.jpg" alt="Inicio con Tu plan de hoy"><figcaption>Inicio con plan, tarjeta compacta (TEST, 27-oct-2026).</figcaption></figure>
   <div class="body">
     <h3>Tu plan de hoy (con plan)</h3>
-    <p>Si el alumno tiene meta, bajo la cabecera aparece la misma tarjeta «TU PLAN DE HOY» que en el Simulador (ver <a href="#sim-plan">Tu plan de hoy</a>): la parte de la guía que toca, la práctica del día y el ritmo. Sin meta no aparece y el ritmo sigue en la cabecera.</p>
+    <p>Si el alumno tiene meta, bajo la cabecera aparece la misma tarjeta «TU PLAN DE HOY» que en el Simulador (ver <a href="#sim-plan">Tu plan de hoy</a>): la parte de la guía que toca y la práctica del día. En el Inicio no lleva el chip «faltan {n} días» (ya está en «Tu examen», justo arriba). Sin meta no aparece y el ritmo sigue en la cabecera.</p>
   </div>
 </div>
 
@@ -512,22 +512,21 @@ flowchart LR
 
 <div class="screen two" id="sim-plan">
   <figure><img src="img/sim-inicio-sinplan.jpg" alt="Arma tu plan"><figcaption>Sin meta: «Arma tu plan».</figcaption></figure>
-  <figure><img src="img/sim-inicio-plan.jpg" alt="Tu plan de hoy en el Simulador"><figcaption>Con meta: «Tu plan de hoy» (TEST, 23-oct-2026).</figcaption></figure>
+  <figure><img src="img/sim-inicio-plan.jpg" alt="Tu plan de hoy en el Simulador"><figcaption>Con meta: «Tu plan de hoy» compacta (TEST, 27-oct-2026).</figcaption></figure>
   <div class="body">
     <h3>Tu plan de hoy</h3>
-    <p>Sin meta se ve «Arma tu plan» · «Te diré qué practicar cada día según tus errores. Siempre podrás elegir otro examen.» · «Crear mi plan» (abre Tu meta). Con meta, la tarjeta «TU PLAN DE HOY» (también en el Inicio) junta lo que toca hoy:</p>
+    <p>Sin meta se ve «Arma tu plan» · «Te diré qué practicar cada día según tus errores. Siempre podrás elegir otro examen.» · «Crear mi plan» (abre Tu meta). Con meta, la tarjeta «TU PLAN DE HOY» (también en el Inicio) junta lo que toca hoy en poco espacio: una línea de cabecera y cada tarea con un título y un detalle de una línea (lo que no cabe se corta con «…»). El ritmo está en <a href="#sim-tu-semana">Tu semana</a>; el tema débil va corto en el detalle de la práctica.</p>
     <div class="table-wrap"><table>
       <tr><th>Parte</th><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
-      <tr><td class="msg">Chips</td><td class="msg">«faltan {n} días» (+ «· por confirmar») · «{n} días seguidos»</td><td>Días hasta la fecha única del examen; «tu examen es hoy» el mismo día; sin fecha no hay chip. Racha si es mayor que 0.</td><td>—</td></tr>
-      <tr><td class="msg">Guía</td><td class="msg">«Guía · «{subtema} · parte {n}»» · «{h} de {m} partes de hoy · {CURSO}» · «Seguir»</td><td>La parte que toca: la última que abriste si aún no está aprobada; si no, la primera sin aprobar empezando por los <b>cursos clave</b> del área de tu carrera y luego por peso. <code>m</code> = el ritmo de hoy; <code>h</code> = partes aprobadas hoy.</td><td>Abre esa parte.</td></tr>
-      <tr><td class="msg">Guía cumplida</td><td class="msg">«Guía de hoy lista: {n} partes» (check verde) · «Seguir»</td><td>Ya aprobaste las <code>m</code> partes de hoy.</td><td>Adelanta la siguiente.</td></tr>
-      <tr><td class="msg">Día sin guía</td><td class="msg">«Hoy no toca guía. Si quieres, adelanta.»</td><td>Hoy no es día de estudio (por los días por semana de tu meta) o es el día del simulacro.</td><td>Abre la siguiente parte.</td></tr>
-      <tr><td class="msg">Guía terminada</td><td class="msg">«¡Terminaste tu guía! Repasa con el Simulador.»</td><td>Todas las partes aprobadas.</td><td>—</td></tr>
-      <tr><td class="msg">Práctica</td><td class="msg">«Práctica del día» · «{10} preguntas · {15} min» + «¿Por qué?» · «Empezar»</td><td>Día normal sin práctica hecha. Ya hecha: «Práctica del día lista» y «Otra».</td><td>Crea «Hoy te toca», <b>siempre con reloj</b>.</td></tr>
-      <tr><td class="msg">Simulacro</td><td class="msg">«★ Simulacro» · «Un examen pasado completo, con su tiempo y puntaje.» · «Empezar»</td><td>Hoy es tu día de simulacro y no entregaste un examen pasado desde el lunes.</td><td>Abre Exámenes pasados.</td></tr>
-      <tr><td class="msg">Diagnóstico</td><td class="msg">«Diagnóstico» · «Empezar»</td><td>Tienes meta y ningún examen del Simulador entregado.</td><td>Abre el Diagnóstico.</td></tr>
-      <tr><td class="msg">Ritmo</td><td class="msg">«{n} partes por día de estudio y terminas tu guía antes del examen.» / «A {n} partes por día llegas al {p} % de tu guía: empieza por lo clave.»</td><td>Partes sin aprobar al empezar el día ÷ días de estudio hasta la víspera del examen, hacia arriba, con tope de 3 <span class="chip info">ADMIN</span> («Tope de partes por día», 1–10). Si el tope no alcanza, la segunda frase con el % de la guía que se cubre. Se recalcula cada día.</td><td>—</td></tr>
-      <tr><td class="msg">Enlace</td><td class="msg">«Ver mi semana ›»</td><td>Siempre con meta.</td><td>Abre <a href="#sim-tu-semana">Tu semana</a>.</td></tr>
+      <tr><td class="msg">Chips</td><td class="msg">«faltan {n} días» (+ «· por confirmar») · «{n} días seguidos»</td><td>Días hasta la fecha única del examen; «tu examen es hoy» el mismo día; sin fecha no hay chip; en el Inicio no se muestra. Racha si es mayor que 0.</td><td>—</td></tr>
+      <tr><td class="msg">Guía</td><td class="msg">«{subtema} · parte {n}» · «Guía · {h} de {m} hoy» · «Seguir»</td><td>La parte que toca: la última que abriste si aún no está aprobada; si no, la primera sin aprobar empezando por los <b>cursos clave</b> del área de tu carrera y luego por peso. <code>m</code> = el ritmo de hoy; <code>h</code> = partes aprobadas hoy.</td><td>Abre esa parte.</td></tr>
+      <tr><td class="msg">Guía cumplida</td><td class="msg">«{subtema} · parte {n}» · «Guía · {m} de {m} hoy» (check verde) · «Seguir» (botón con borde)</td><td>Ya aprobaste las <code>m</code> partes de hoy.</td><td>Adelanta la siguiente.</td></tr>
+      <tr><td class="msg">Día sin guía</td><td class="msg">«{subtema} · parte {n}» · «Guía · hoy descansas, puedes adelantar» · «Seguir» (botón con borde)</td><td>Hoy no es día de estudio (por los días por semana de tu meta) o es el día del simulacro.</td><td>Abre la siguiente parte.</td></tr>
+      <tr><td class="msg">Guía terminada</td><td class="msg">«¡Guía terminada!» · «Repasa con el Simulador» (check verde)</td><td>Todas las partes aprobadas.</td><td>—</td></tr>
+      <tr><td class="msg">Práctica</td><td class="msg">«Práctica del día» · «{10} preguntas · refuerza {tema}» (con tema débil y «Mostrar ¿Por qué?» encendido <span class="chip info">ADMIN</span>) o «{10} preguntas · {15} min» · «Empezar»</td><td>Día normal sin práctica hecha. Ya hecha: «Práctica del día lista» y «Otra».</td><td>Crea «Hoy te toca», <b>siempre con reloj</b>.</td></tr>
+      <tr><td class="msg">Simulacro</td><td class="msg">«★ Simulacro» · «Un examen pasado completo» · «Empezar»</td><td>Hoy es tu día de simulacro y no entregaste un examen pasado desde el lunes.</td><td>Abre Exámenes pasados.</td></tr>
+      <tr><td class="msg">Diagnóstico</td><td class="msg">«Diagnóstico» · «Examen corto · {30} min» <span class="chip info">ADMIN</span> · «Empezar»</td><td>Tienes meta y ningún examen del Simulador entregado.</td><td>Abre el Diagnóstico.</td></tr>
+      <tr><td class="msg">Enlace</td><td class="msg">«Mi semana ›» (arriba a la derecha)</td><td>Siempre con meta.</td><td>Abre <a href="#sim-tu-semana">Tu semana</a>.</td></tr>
     </table></div>
     <p><b>Días de estudio:</b> tantos días como «días a la semana» de tu meta, en este orden de preferencia: lunes, martes, jueves, viernes, miércoles, domingo, sábado; el día del simulacro no es de estudio salvo con 7 días.</p>
     <h4>El recuadro «¿Por qué?»</h4>
@@ -1131,6 +1130,7 @@ flowchart LR
   <li><b>19-oct-2026</b> · Candado del video renovado: tarjeta compacta con el degradado de la cabecera y el búho guiñando, «Desbloquea la explicación · Ganas +5 XP · te quedan 25 XP hoy», «Ver video · +5 XP» y «Premium». Ver el video completo da XP (5 por explicación, tope de 25 al día, una vez por pregunta, ajustables en el admin) y abre la explicación con el búho feliz y «¡Así se resuelve!».</li>
   <li><b>19-oct-2026</b> · Revisión por pregunta renovada (examen de parte, de dominio y Simulador): filtros «Falladas · En blanco · Correctas · Todas», mapa de casillas para saltar a cualquier pregunta, tarjeta que se entiende cerrada («Marcaste B · era C» y el inicio del enunciado), todas las alternativas marcadas al abrirla (rojo la tuya, verde la correcta, gris en blanco) y, en el Simulador, «Ver en la guía» por pregunta.</li>
   <li><b>19-oct-2026</b> · Anuncios: el banner va también en Cursos, Simulador (portada), Stats y Perfil (siete pantallas, cada una con su interruptor en Configuración → Anuncios) y se comparte entre pestañas para aparecer al instante; el anuncio de pantalla completa sale al terminar cada examen, antes del resultado (de fábrica sin espera ni primer examen libre; ambos siguen siendo ajustes del admin). App #123, admin #107.</li>
+  <li><b>27-oct-2026</b> · «Tu plan de hoy» compacta (Inicio y Simulador): cabecera en una línea con «Mi semana ›», cada tarea con título y detalle de una línea, botones más pequeños, sin la frase del ritmo (queda en Tu semana) y sin el chip de días en el Inicio. Capturas nuevas.</li>
   <li><b>27-oct-2026</b> · Onboarding con plan de estudio opcional (paso 4 de 5): las mismas preguntas de Tu meta, «Guardar mi plan» o «Lo armo después en el Simulador», y la confirmación muestra el plan elegido. Tu meta y el onboarding comparten el mismo formulario.</li>
   <li><b>23-oct-2026</b> · Plan personalizado (app #137, admin #121): fecha única del examen (universidad o mes de la meta «por confirmar»), «Tu plan de hoy» en Inicio y Simulador (parte de la guía que toca, cursos clave primero, ritmo con tope configurable, práctica del día), pantalla «Tu semana», «Tu meta» corta con vista previa del ritmo y sin recordatorio, y la práctica del día elige cursos según su peso en el área del examen. Probado en el teléfono; capturas nuevas. Corregido: «{n} %» ya no se parte en dos líneas y el chip del día del examen dice «tu examen es hoy».</li>
   <li><b>19-oct-2026</b> · Probado en el teléfono (TEST): banner de prueba en el Inicio, pantalla Premium, tarjeta del Perfil, premium regalado (sin banner), «Restaurar compras» y el aviso del tope diario de exámenes pasados; capturas reales en «Anuncios» y «Plan Premium». Corregido el banner que tomaba media pantalla y dejaba el Inicio vacío (app #122).</li>
