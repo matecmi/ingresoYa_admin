@@ -47,6 +47,8 @@ XP y rango (fase 1): `functions/src/xp.ts` (XpService, se llama desde handlers t
 
 Identidad de la universidad (`identity`, `docs/universities_contract.md`): pestaña «Identidad» de la ficha (`widgets/university_identity_card.dart`, `domain/university_identity.dart`, `UniversityRepo.setIdentity`); la vista previa usa el búho real copiado en `app_preview/gen/owl_mascot.g.dart` (regenerar con `tool/sync_app_preview.py` si cambia el búho de la app).
 
+Sonidos de logros (`{config}/sounds`, contrato `docs/sounds_contract.md`, copiado en la app): `domain/sound_settings.dart` y tema «Sonidos de logros» de Configuración (solo ajustes simples, sin editor completo); `sounds` está en `APP_CONFIG_SECTIONS`.
+
 Recorridos del búho (`{config}/tours`, contrato `docs/tours_contract.md`): `domain/tour_settings.dart` (`tourCatalog` con los textos de fábrica, iguales a los `tour…` del ARB de la app; si agregas una guía o un paso, súmalo en ambos), tema «Recorridos del búho» de Configuración y su editor de textos `settings/tour_settings_card.dart`; `tours` está en `APP_CONFIG_SECTIONS`.
 
 «Mis errores» (contrato `docs/mistakes_contract.md`): `functions/src/mistake_bank.ts` (`applyGraded` dentro de la transacción del envío, `pickFromBank` para el modo `mistake_bank`); el banco va en `{perfil}/simulatorSummary/current.mistakes` (no crear documentos aparte: cero operaciones extra). Ajustes `{config}/simulator.mistakes` (admin `domain/mistake_settings.dart`, `SettingsDoc.mistakes`, tema «Mis errores» de Configuración); XP `mistake_fixed` / `mistake_mission` en `xp.ts` bajo `answeredTooFast`.

@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/domain/sound_settings.dart';
 import '../../domain/tour_settings.dart';
 import '../../domain/mistake_settings.dart';
 import 'dart:async';
@@ -52,6 +53,7 @@ class SettingsStore {
     SettingsDoc.premium => _config.watchPremiumSettings().map((s) => s.toMap()),
     SettingsDoc.stats => _config.watchStatsSettings().map((s) => s.toMap()),
     SettingsDoc.tours => _config.watchTourSettings().map((s) => s.toMap()),
+    SettingsDoc.sounds => _config.watchSoundSettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.
@@ -137,6 +139,10 @@ class SettingsStore {
     ),
     SettingsDoc.tours => _config.saveTourSettings(
       TourSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.sounds => _config.saveSoundSettings(
+      SoundSettings.fromMap(map),
       editor: editor,
     ),
   };
