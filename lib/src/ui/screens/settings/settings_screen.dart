@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/ui/screens/settings/tour_settings_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -263,6 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'xp' => 'Más opciones: escalera de rangos e imágenes',
                 'simulator' => 'Más opciones: tamaños de la práctica',
                 'plan' => 'Más opciones: sesiones por semana que puede elegir',
+                'tours' => 'Más opciones: textos y gesto de cada paso',
                 _ => 'Más opciones',
               },
               open: _showFull,
@@ -280,6 +282,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'xp' => const XpSettingsSection(),
                 'simulator' => const SimulatorSettingsSection(),
                 'plan' => const PlanSettingsSection(),
+                'tours' => const TourTextsSection(),
                 _ => const SizedBox.shrink(),
               },
             ],

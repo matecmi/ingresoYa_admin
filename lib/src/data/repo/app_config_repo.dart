@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/domain/tour_settings.dart';
 import 'package:ingresoya_admin/src/domain/mistake_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ingresoya_admin/src/domain/ads_settings.dart';
@@ -74,6 +75,27 @@ class AppConfigRepo {
 
   /// `{config}/stats` (docs/stats_contract.md): umbrales de la pestaña
   /// Estadísticas de la app.
+  /// Recorridos del búho (docs/tours_contract.md).
+  DocumentReference<Map<String, dynamic>> get _tours =>
+      db.collection(AppEnv.configCollection).doc('tours');
+
+  Stream<TourSettings> watchTourSettings() => _tours.snapshots().map(
+    (snapshot) => TourSettings.fromMap(snapshot.data()),
+  );
+
+  Future<void> saveTourSettings(
+    TourSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _tours.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
   DocumentReference<Map<String, dynamic>> get _stats =>
       db.collection(AppEnv.configCollection).doc('stats');
 

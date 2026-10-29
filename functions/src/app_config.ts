@@ -24,6 +24,7 @@ export const APP_CONFIG_SECTIONS = [
   "ads",
   "premium",
   "stats",
+  "tours",
   "catalog"
 ] as const;
 
