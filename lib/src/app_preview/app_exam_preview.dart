@@ -52,9 +52,9 @@ class AppExamQuestionScreen extends StatelessWidget {
 
   static const _tabs = [
     (Icons.home_rounded, 'Inicio'),
-    (Icons.menu_book_rounded, 'Cursos'),
+    (Icons.menu_book_rounded, 'Guía'),
     (Icons.play_circle_rounded, 'Simulador'),
-    (Icons.bar_chart_rounded, 'Stats'),
+    (Icons.bar_chart_rounded, 'Progreso'),
     (Icons.person_rounded, 'Perfil'),
   ];
 
