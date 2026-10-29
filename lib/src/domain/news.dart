@@ -227,6 +227,7 @@ class NewsItem {
     this.image,
     this.story = false,
     this.storyColor = 'violet',
+    this.storyLabel = '',
     this.action,
     this.push = false,
     this.pushSentAt,
@@ -258,6 +259,12 @@ class NewsItem {
   /// Mostrar también como historia en el Inicio.
   final bool story;
   final String storyColor;
+
+  /// «Nombre en la historia»: lo que dice el círculo del Inicio (máx.
+  /// [storyLabelMax]). Vacío = la app usa el titular.
+  final String storyLabel;
+
+  static const storyLabelMax = 24;
   final NewsAction? action;
 
   /// Enviar notificación al publicar (la envía el servidor una sola vez).
@@ -305,6 +312,9 @@ class NewsItem {
       storyColor: d['story'] is Map
           ? '${(d['story'] as Map)['color'] ?? 'violet'}'
           : 'violet',
+      storyLabel: d['story'] is Map
+          ? '${(d['story'] as Map)['label'] ?? ''}'.trim()
+          : '',
       action: NewsAction.fromMap(d['action']),
       push: d['push'] == true,
       pushSentAt: _date(d['pushSentAt']),
@@ -329,7 +339,11 @@ class NewsItem {
     'eventLabel': eventLabel.trim(),
     'keyDates': [for (final k in keyDates) k.toMap()],
     'image': image?.toMap(),
-    'story': {'enabled': story, 'color': storyColor},
+    'story': {
+      'enabled': story,
+      'color': storyColor,
+      'label': storyLabel.trim(),
+    },
     'action': action?.toMap(),
     'push': push,
   };
@@ -350,6 +364,9 @@ class NewsItem {
     }
     if (priority != NewsPriority.normal && expiresAt == null) {
       return 'Una noticia fijada o urgente necesita fecha de vencimiento.';
+    }
+    if (story && storyLabel.trim().length > storyLabelMax) {
+      return 'El nombre en la historia es muy largo (máx. $storyLabelMax).';
     }
     if (eventAt != null && eventLabel.trim().isEmpty) {
       return 'Di qué pasa en la fecha del evento (p. ej. «Cierre de inscripciones»).';
@@ -379,6 +396,7 @@ class NewsItem {
     NewsImage? Function()? image,
     bool? story,
     String? storyColor,
+    String? storyLabel,
     NewsAction? Function()? action,
     bool? push,
   }) => NewsItem(
@@ -398,6 +416,7 @@ class NewsItem {
     image: image != null ? image() : this.image,
     story: story ?? this.story,
     storyColor: storyColor ?? this.storyColor,
+    storyLabel: storyLabel ?? this.storyLabel,
     action: action != null ? action() : this.action,
     push: push ?? this.push,
     pushSentAt: pushSentAt,

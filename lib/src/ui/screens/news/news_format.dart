@@ -25,9 +25,8 @@ String formatNewsDate(DateTime t) =>
 String formatShortDate(DateTime t) => '${t.day} ${_months[t.month - 1]}';
 
 /// Días de calendario desde [now] hasta [at] (negativo si ya pasó).
-int daysUntil(DateTime at, DateTime now) => DateUtils.dateOnly(
-  at,
-).difference(DateUtils.dateOnly(now)).inDays;
+int daysUntil(DateTime at, DateTime now) =>
+    DateUtils.dateOnly(at).difference(DateUtils.dateOnly(now)).inDays;
 
 /// Elige fecha y luego hora; null si se cancela la fecha.
 Future<DateTime?> pickDateTime(
