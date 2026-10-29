@@ -291,4 +291,6 @@ const xpEventLabels = {
   'streak_day': 'Día de racha',
   'daily_challenge': 'Reto del día',
   'explanation_video': 'Explicación vista con video',
+  'mistake_fixed': 'Errores corregidos',
+  'mistake_mission': 'Misión de Mis errores',
 };

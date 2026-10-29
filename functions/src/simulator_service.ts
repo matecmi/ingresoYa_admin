@@ -25,9 +25,19 @@ import { failedPrecondition, notFound } from "./errors";
 import { OperationMetrics } from "./operation_metrics";
 import { randomStarts, shuffle } from "./selection";
 import { parseXpSettings, peruDay } from "./xp";
+import {
+  applyGraded,
+  type MistakeBank,
+  type MistakeSettings,
+  parseMistakeBank,
+  parseMistakeSettings,
+  pickFromBank,
+  questionExcerpt
+} from "./mistake_bank";
 import { parsePremiumSettings, pastExamGate, type PastExamUsage } from "./premium";
 import { parseRankingsSettings, type ChallengeSettings } from "./leaderboard";
 import type {
+  MistakeBankAttemptInput,
   MistakesAttemptInput,
   PlanAttemptInput,
   PastExamAttemptInput,
@@ -41,7 +51,7 @@ import type {
 export type SimulatorPurpose = "past_exam" | "practice";
 
 export type SimulatorAttemptInput =
-  PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput;
+  PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | MistakeBankAttemptInput | PlanAttemptInput;
 
 function isPlanInput(input: SimulatorAttemptInput): input is PlanAttemptInput {
   return input.purpose === "practice" &&
@@ -85,6 +95,8 @@ export interface SimulatorSettings {
   showOtherUniversities: boolean;
   showExplanations: boolean;
   plan: PlanSettings;
+  /** «Mis errores» (docs/mistakes_contract.md). */
+  mistakes: MistakeSettings;
 }
 
 /** `{config}/simulator.plan` (contract §4), only what Functions uses. */
@@ -166,6 +178,15 @@ export interface SimulatorResult {
   reachedCutoff?: boolean;
   /** Past exam: score of the student's previous try at the same exam. */
   previousScore?: number;
+  /** «Mis errores» tras este envío (docs/mistakes_contract.md). */
+  mistakes?: {
+    added: number;
+    fixed: number;
+    left: number;
+    missionDone: number;
+    missionSize: number;
+    missionCompleted: boolean;
+  };
   gradedAtMs: number;
 }
 
@@ -286,7 +307,8 @@ export function parseSimulatorSettings(value: unknown): SimulatorSettings {
       : "mixed",
     showOtherUniversities: raw.showOtherUniversities !== false,
     showExplanations: raw.showExplanations !== false,
-    plan: parsePlanSettings(raw.plan)
+    plan: parsePlanSettings(raw.plan),
+    mistakes: parseMistakeSettings(raw.mistakes)
   };
 }
 
@@ -461,6 +483,8 @@ export class SimulatorService {
       ? await this.pastExamPlan(uid, input, profile, settings, metrics)
       : input.mode === "mistakes"
         ? await this.mistakesPlan(uid, input, settings, metrics)
+        : input.mode === "mistake_bank"
+          ? await this.bankPlan(uid, input, settings, metrics)
         : isPlanInput(input)
           ? input.mode === "plan"
             ? await this.dailyPlan(uid, input, profile, settings, metrics)
@@ -707,6 +731,45 @@ export class SimulatorService {
       const previousBestScore = best?.data()?.bestScore;
       const fresh = new Set(stringList(data.xpFreshQuestionIds));
       const freshCorrect = grading.review.filter((item) => item.isCorrect && fresh.has(item.questionId)).length;
+      // «Mis errores»: el banco vive en el mismo resumen (docs/mistakes_contract.md).
+      const previousBank = parseMistakeBank(summaryDoc.data()?.mistakes);
+      const bankUpdate = settings.mistakes.enabled
+        ? applyGraded(previousBank, grading.review.map((item) => {
+          const info = meta.get(item.questionId);
+          const question = attempt.questions.find((entry) => entry.questionId === item.questionId);
+          return {
+            questionId: item.questionId,
+            correct: item.isCorrect,
+            blank: item.selectedAlternativeId === null,
+            courseId: info?.courseId ?? "",
+            topicId: info?.topicId ?? "",
+            subtopicId: info?.subtopicId ?? "",
+            excerpt: questionExcerpt(question?.content ?? [])
+          };
+        }), settings.mistakes, {
+          now,
+          day: peruDay(now),
+          where: mistakeSourceOf(purpose, simulator?.mode),
+          ...(challengeLocked(data.simulator, now) ? { holdUntil: nextPeruDay(now) } : {})
+        })
+        : undefined;
+      if (bankUpdate !== undefined) {
+        result.mistakes = {
+          added: bankUpdate.added,
+          fixed: bankUpdate.fixed,
+          left: Object.keys(bankUpdate.bank.items).length,
+          missionDone: bankUpdate.bank.mission.done,
+          missionSize: settings.mistakes.missionSize,
+          missionCompleted: bankUpdate.bank.mission.completed
+        };
+      }
+      const mistakesBasis = bankUpdate === undefined ? {} : {
+        mistakesFixed: bankUpdate.fixed,
+        mistakesXp: bankUpdate.fixXp,
+        ...(bankUpdate.missionCompleted && settings.mistakes.missionXp > 0
+          ? { missionDay: peruDay(now), missionXp: settings.mistakes.missionXp }
+          : {})
+      };
 
       transaction.update(attemptRef, {
         answers,
@@ -726,6 +789,7 @@ export class SimulatorService {
         simulatorResult: result,
         xpBasis: {
           freshCorrect,
+          ...mistakesBasis,
           ...(typeof previousBestScore === "number" ? { previousBestScore } : {})
         }
       });
@@ -781,7 +845,8 @@ export class SimulatorService {
             ? summaryUpdate(legacyTopics?.docs.map((doc) => [doc.id, doc.data()]), result.byTopic, topicCourses, now)
             : { schemaVersion: 1, updatedAtMs: now }),
           recentResults: recentResultsUpdate(previousRecent, summary),
-          totals: totalsUpdate(totalsBase === undefined ? undefined : { ...totalsBase, recent: previousRecent }, summary)
+          totals: totalsUpdate(totalsBase === undefined ? undefined : { ...totalsBase, recent: previousRecent }, summary),
+          ...(bankUpdate === undefined ? {} : { mistakes: bankWrite(previousBank, bankUpdate.bank) })
         },
         { merge: true }
       );
@@ -806,7 +871,7 @@ export class SimulatorService {
           answers,
           status: "submitted",
           simulatorResult: result,
-          xpBasis: { freshCorrect, ...(typeof previousBestScore === "number" ? { previousBestScore } : {}) }
+          xpBasis: { freshCorrect, ...mistakesBasis, ...(typeof previousBestScore === "number" ? { previousBestScore } : {}) }
         }
       };
     });
@@ -985,6 +1050,67 @@ export class SimulatorService {
    * «Hoy te toca»: a share of the session from the weakest topics, the rest
    * from all active courses; without weak topics everything is mixed.
    */
+  /**
+   * «Mis errores»: preguntas del banco del alumno (una lectura del resumen y
+   * las preguntas elegidas), de un curso o tema si se pide.
+   */
+  private async bankPlan(
+    uid: string,
+    input: MistakeBankAttemptInput,
+    settings: SimulatorSettings,
+    metrics: OperationMetrics
+  ) {
+    if (!settings.mistakes.enabled) {
+      throw failedPrecondition("Mis errores is turned off.", { reason: "mistakes_unavailable" });
+    }
+    const summary = await this.userRef(uid).collection("simulatorSummary").doc("current").get();
+    metrics.readDocument();
+    const bank = parseMistakeBank(summary.data()?.mistakes);
+    const seed = `${uid}:${input.requestId}`;
+    const ids = pickFromBank(bank, peruDay(Date.now()), {
+      count: Math.min(input.count, settings.mistakes.practiceMax),
+      ...(input.courseId === undefined ? {} : { courseId: input.courseId }),
+      ...(input.topicId === undefined ? {} : { topicId: input.topicId }),
+      order: input.order,
+      shuffleIds: (list) => shuffle(list, `${seed}:bank`)
+    });
+    const docs = ids.length === 0
+      ? []
+      : await this.db.getAll(...ids.map((id) => this.db.collection(this.config.collections.questions).doc(id)));
+    metrics.readDocument(docs.length);
+    // Solo las que siguen publicadas; en el orden elegido.
+    const picked: Picked[] = docs.flatMap((document) => {
+      const question = document.exists ? parseCandidateQuestion(document.id, document.data() ?? {}) : undefined;
+      return question === undefined
+        ? []
+        : [{ question, alternativeOrder: shuffle(question.alternatives.map((alternative) => alternative.id), `${seed}:${question.questionId}`) }];
+    });
+    if (picked.length === 0) {
+      throw failedPrecondition("There are no mistakes to practice.", { reason: "no_mistakes" });
+    }
+    return {
+      title: "Mis errores",
+      durationSeconds: input.timed ? picked.length * mistakeSecondsPerQuestion : untimedPracticeSeconds,
+      picked,
+      scoring: {
+        questionCount: picked.length,
+        maxScore: 100,
+        correctPoints: 1,
+        incorrectPoints: 0,
+        blankPoints: 0
+      },
+      cutoffScore: undefined,
+      context: {
+        timed: input.timed,
+        mode: "mistake_bank",
+        order: input.order,
+        ...(input.courseId === undefined ? {} : { bankCourseId: input.courseId }),
+        ...(input.topicId === undefined ? {} : { bankTopicId: input.topicId }),
+        courseIds: [...new Set(picked.map(({ question }) => question.courseId).filter((id) => id.length > 0))]
+      }
+    };
+  }
+
   private async dailyPlan(
     uid: string,
     input: PlanAttemptInput,
@@ -1564,6 +1690,8 @@ export class SimulatorService {
         ? simulator?.examId === input.examId && simulator?.examUniversityId === input.universityId
         : input.mode === "mistakes"
           ? simulator?.mode === "mistakes" && simulator?.fromAttemptId === input.fromAttemptId
+          : input.mode === "mistake_bank"
+            ? simulator?.mode === "mistake_bank"
           : isPlanInput(input)
             ? simulator?.mode === input.mode
             : simulator?.mode === input.mode && simulator?.size === input.size);
@@ -1620,6 +1748,42 @@ export class SimulatorService {
 }
 
 /** Fixed-id, server-written learning event (base of the future XP). */
+/**
+ * El banco para un `set` con `merge`: Firestore fusiona los mapas anidados,
+ * así que las preguntas que salieron se borran con `FieldValue.delete()`
+ * (sin escrituras extra). `fixed` es una lista: se reemplaza entera.
+ */
+export function bankWrite(previous: MistakeBank, next: MistakeBank): Record<string, unknown> {
+  const items: Record<string, unknown> = {};
+  for (const [id, item] of Object.entries(next.items)) {
+    const before = previous.items[id];
+    items[id] = {
+      ...item,
+      // Campos opcionales que ya no van: también se borran.
+      ...(before?.b !== undefined && item.b === undefined ? { b: FieldValue.delete() } : {}),
+      ...(before?.from !== undefined && item.from === undefined ? { from: FieldValue.delete() } : {})
+    };
+  }
+  for (const id of Object.keys(previous.items)) {
+    if (next.items[id] === undefined) items[id] = FieldValue.delete();
+  }
+  return { ...next, items };
+}
+
+/** De dónde viene una corrección, para «Corregidas». */
+export function mistakeSourceOf(purpose: string, mode: unknown): string {
+  if (mode === "mistake_bank" || mode === "mistakes") return "mistakes";
+  if (mode === "plan") return "daily";
+  if (mode === "daily_challenge") return "challenge";
+  if (mode === "diagnostic") return "diagnostic";
+  return purpose === "past_exam" ? "past_exam" : "practice";
+}
+
+/** El día Perú siguiente a [ms]. */
+export function nextPeruDay(ms: number): string {
+  return peruDay(ms + 86_400_000);
+}
+
 export function learningEvent(type: string, data: Record<string, unknown>): Record<string, unknown> {
   return { schemaVersion: 1, type, ...data, occurredAt: FieldValue.serverTimestamp(), occurredAtMs: Date.now() };
 }

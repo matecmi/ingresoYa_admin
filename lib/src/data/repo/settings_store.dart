@@ -1,3 +1,4 @@
+import '../../domain/mistake_settings.dart';
 import 'dart:async';
 
 import '../../domain/ads_settings.dart';
@@ -34,6 +35,9 @@ class SettingsStore {
       (r) => r.settings.toMap(),
     ),
     SettingsDoc.plan => _config.watchPlanSettings().map((p) => p.toMap()),
+    SettingsDoc.mistakes => _config.watchMistakeSettings().map(
+      (m) => m.toMap(),
+    ),
     SettingsDoc.study => _config.watchStudyReviewRules().map(
       (r) => r.rules.toMap(),
     ),
@@ -91,6 +95,10 @@ class SettingsStore {
     ),
     SettingsDoc.plan => _config.savePlanSettings(
       PlanSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.mistakes => _config.saveMistakeSettings(
+      MistakeSettings.fromMap(map),
       editor: editor,
     ),
     SettingsDoc.study => _config.saveStudyReviewRules(

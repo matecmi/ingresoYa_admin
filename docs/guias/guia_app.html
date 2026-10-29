@@ -727,6 +727,40 @@ flowchart LR
   </div>
 </div>
 
+<h3 id="mis-errores">Mis errores (banco de errores y misión del día)</h3>
+<div class="screen two" id="mis-errores-principal">
+  <figure><img src="img/sim-mis-errores.jpg" alt="Mis errores: misión del día, contadores y cursos"><figcaption>Inicio → mosaico «Mis errores»: la misión del día, los tres contadores y los cursos con lo que falta repasar.</figcaption></figure>
+  <figure><img src="img/sim-mis-errores-hoja.jpg" alt="Hoja Practicar mis errores"><figcaption>«Seguir la misión»: cuántas, orden y reloj.</figcaption></figure>
+  <div class="body">
+    <p>Toda pregunta que el alumno falla o deja en blanco en <b>cualquier</b> examen del Simulador entra a «Mis errores»; sale a «Corregidas» cuando la acierta (en cualquier examen) las veces seguidas que pide el admin («Aciertos para salir», 1 de fábrica) <span class="chip info">ADMIN</span>. Los errores del reto de hoy esperan a mañana para no revelar respuestas.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+      <tr><td class="msg">«MISIÓN DE HOY» · «Corrige {n} errores» · «Llevas {d} de {n} · +{xp} XP al completarla»</td><td>Con errores por repasar y la misión encendida. {n} y {xp} los fija el admin (5 y 15 de fábrica) <span class="chip info">ADMIN</span>. Las barritas muestran lo corregido hoy (día de Perú).</td></tr>
+      <tr><td class="msg">«Empezar la misión» / «Seguir la misión · {f} más»</td><td>Abre la hoja «Practicar mis errores».</td></tr>
+      <tr><td class="msg">«MISIÓN DE HOY · CUMPLIDA» · «{n} de {n} corregidos» · «Mañana tendrás una nueva. Puedes seguir si quieres.» · «Seguir corrigiendo»</td><td>Ya cumplió la misión hoy.</td></tr>
+      <tr><td class="msg">«Repasa lo que fallaste» · «Practicar · {n}»</td><td>Con la misión apagada por el admin.</td></tr>
+      <tr><td class="msg">«{n} por repasar · {c} corregidas · {d} días de misión»</td><td>Contadores. «corregidas» abre la lista; «días de misión» es la racha (días seguidos cumpliéndola).</td></tr>
+      <tr><td class="msg">«TUS CURSOS» · «Practicar todo ›» · «{n} por repasar · {c} corregidas»</td><td>Un curso por fila, el que más tiene primero, con su barra verde (corregidas) sobre roja. Tocarlo abre el curso.</td></tr>
+      <tr><td class="msg">«{n} errores del reto de hoy podrás practicarlos desde mañana.»</td><td>Hay errores del reto del día.</td></tr>
+      <tr><td class="msg">«¡No tienes errores!» · «Hoy no hay misión. Cuando falles una pregunta del Simulador, aparecerá aquí.» · «Ir al Simulador» · «Un examen pasado»</td><td>Banco vacío.</td></tr>
+      <tr><td class="msg">«Mis errores no está disponible por ahora.»</td><td>El admin lo apagó <span class="chip info">ADMIN</span>.</td></tr>
+    </table></div>
+    <p><b>Hoja «Practicar mis errores»</b>: «Todos los cursos · {n} por repasar» (o el curso/tema). «¿CUÁNTAS?»: lo que falta de la misión («cierra la misión»), 10 y 20, sin pasar de lo disponible ni de «Práctica más larga» (20) <span class="chip info">ADMIN</span>. «ORDEN»: «Más falladas primero» o «Mezcladas». «Con reloj» (90 s por pregunta), apagado de fábrica. «Cada acierto la saca de tus errores: +{x} XP. Si cierras la misión, +{m} XP más.» · «Empezar · {n} preguntas». Sin penalidad.</p>
+  </div>
+</div>
+<div class="screen two" id="mis-errores-curso">
+  <figure><img src="img/sim-mis-errores-curso.jpg" alt="Mis errores de un curso"><figcaption>Un curso: avance, temas y las que más cuestan.</figcaption></figure>
+  <figure><img src="img/sim-mis-errores-corregidas.jpg" alt="Corregidas"><figcaption>«Corregidas»: total, semana y dónde se corrigió cada una.</figcaption></figure>
+  <div class="body">
+    <ul>
+      <li><b>Curso</b>: cabecera con el curso y «Misión {d}/{n}»; «Tu avance en {curso}» · «{c} de {t} corregidas»; «POR TEMA» con «{n} por repasar» y «Practicar {n}»; «LAS QUE MÁS TE CUESTAN»: las 5 más falladas con su enunciado (fórmulas incluidas), «Fallada {n} veces» o «En blanco» y cuándo; abajo «Practicar {curso} · {n}».</li>
+      <li><b>Corregidas</b>: «{n} · Errores que ya dominas», «ESTA SEMANA» (barras de lunes a domingo) y las últimas corregidas con «{curso} · {hoy/ayer/hace n días}, en Mis errores / en la práctica del día / en el reto del día / en el diagnóstico / en un examen pasado / en una práctica». «Se guardan las últimas 50. Si vuelves a fallar una, regresa a «Mis errores».»</li>
+      <li><b>Al terminar un examen del Simulador</b>: «{n} se sumaron a Mis errores» (o «Corregiste {n} errores») · «Y corregiste {c}: tu misión va {d} de {n}.» con las barritas, «Cerrar la misión» (abre la hoja) y «Ver Mis errores». Al practicar desde «Mis errores»: «Corregiste {c} de {t}»; si cumple la misión, «¡Misión cumplida!» con el búho celebrando, «Corregiste {n} errores hoy. Te quedan {r} por repasar.», la racha y «Seguir corrigiendo». El XP sale en «Ganaste XP»: «{n} errores corregidos» (+3 c/u, tope 30 al día) y «Misión del día» (+15) <span class="chip info">ADMIN</span>. Si responde demasiado rápido no gana XP, pero el banco sí cambia.</li>
+      <li><b>Inicio</b>: el mosaico dice «Misión {d}/{n} · {r} por repasar» con barritas, «Misión cumplida ✓» o «Estás al día». <b>Progreso → Resumen</b>: tarjeta «Tus errores» con los tres contadores y «Donde más fallas: {curso} ({n})».</li>
+    </ul>
+  </div>
+</div>
+
 <h3 id="sim-errores">Mensajes de error del Simulador</h3>
 <p>Al crear un examen salen como aviso abajo; al entregar, en rojo. Al guardar respuestas nunca hay aviso, solo la franja «Reintentar».</p>
 <div class="table-wrap"><table>
@@ -1130,6 +1164,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · «Mis errores»: banco con lo que fallas en el Simulador y misión del día «Corrige 5 errores» (con XP y racha), pantallas del curso y «Corregidas», hoja para practicar, tarjeta en el resultado, mosaico del Inicio y tarjeta en Progreso. Ajustes nuevos en Configuración → «Mis errores». Capturas nuevas.</li>
   <li><b>23-oct-2026</b> · Guía de estudio ordenada por el examen de la carrera: con las «Áreas del examen» del admin (grupos académicos del prospecto, preguntas y puntos por asignatura, cursos clave), Cursos muestra «Clave para tu examen», «También vienen en tu examen» y «No vienen en tu examen». «Lo que más te acerca» de Estadísticas usa esas preguntas. Cargado para la UNPRG (prospecto 2026-II, Anexo 1).</li>
   <li><b>22-oct-2026</b> · «¡Subiste de rango!» animado: la insignia anterior brilla, gira como moneda y se convierte en la nueva con destello, rayos, vibración y confeti; la estrella nueva entra volando a su etiqueta. Tocar la insignia salta al final; se apaga en el admin (Niveles e insignias → «Animación al subir de rango») y con «reducir movimiento». Captura nueva.</li>
   <li><b>19-oct-2026</b> · Admin: «Salud del contenido» ahora sale de un reporte que guarda el servidor y se recalcula solo cuando cambia el contenido. Se ve igual y casi no gasta lecturas. Abrir un curso también lee mucho menos.</li>

@@ -265,6 +265,24 @@ sequenceDiagram
   App->>Tablas: lee su grupo, «Esta semana» y la tabla del reto
 </pre>
 
+<h3 id="c-mis-errores">Mis errores (banco y misión del día)</h3>
+<p>El banco vive dentro de <code>{perfil}/simulatorSummary/current.mistakes</code>, el mismo documento que el envío del Simulador ya lee y escribe en su transacción: <b>no suma lecturas ni escrituras</b>. Al entregar cualquier examen del Simulador, <code>applyGraded</code> (<code>functions/src/mistake_bank.ts</code>) mete lo fallado o en blanco (o suma sus fallas) y saca lo acertado a <code>fixed</code> (últimas 50) al llegar a <code>exitHits</code> aciertos seguidos; cuenta la misión del día Perú y la racha; da XP <code>mistake_fixed</code> (con su tope diario) y <code>mistake_mission</code> (una vez al día), ambos bajo el «juego limpio». Los errores del reto de hoy llevan <code>from</code> = mañana. Practicar es <code>createExamAttempt</code> con <code>mode: "mistake_bank"</code>: lee el resumen (1) y solo las preguntas elegidas. La app lee el banco con la lectura compartida del resumen. Ajustes en <code>{config}/simulator.mistakes</code>. Contrato: <code>docs/mistakes_contract.md</code>.</p>
+<pre class="mermaid">
+flowchart LR
+  A[Envío de cualquier examen] --> B[submitExamAttempt · transacción]
+  B --> C[applyGraded · entra lo fallado · sale lo acertado]
+  C --> D[simulatorSummary/current.mistakes]
+  B --> E[XP · mistake_fixed · mistake_mission]
+  F[App · Mis errores] -->|misma lectura del resumen| D
+  F -->|Practicar| G[createExamAttempt · mistake_bank]
+  G -->|lee resumen y preguntas elegidas| D
+</pre>
+<table>
+  <tr><th>Error de <code>createExamAttempt</code> (mistake_bank)</th><th>Cuándo</th></tr>
+  <tr><td><code>failed-precondition</code> · <code>no_mistakes</code></td><td>No hay errores que practicar con ese filtro (o siguen esperando a mañana).</td></tr>
+  <tr><td><code>failed-precondition</code> · <code>mistakes_unavailable</code></td><td>El admin apagó «Mis errores».</td></tr>
+</table>
+
 <h3 id="c-admin">El admin cambia contenido</h3>
 <ul>
   <li><b>Editar una pregunta ya publicada</b> crea una versión nueva. Los exámenes que ya la usaron conservan la versión anterior, así nadie ve cambiar su nota.</li>
@@ -529,6 +547,7 @@ flowchart LR
 
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+<li><b>29-oct-2026</b> · «Mis errores» (rama <code>codex/mis-errores</code>): banco en <code>simulatorSummary/current.mistakes</code> (dentro de la transacción del envío, sin operaciones extra), modo de intento <code>mistake_bank</code> (<code>count</code>, <code>courseId?</code>, <code>topicId?</code>, <code>order</code>, <code>timed</code>; errores <code>no_mistakes</code> y <code>mistakes_unavailable</code>), resultado <code>simulator.mistakes</code>, eventos de XP <code>mistake_fixed</code> y <code>mistake_mission</code> (bajo el juego limpio) y ajustes <code>{config}/simulator.mistakes</code> (viajan en <code>{config}/app</code> con el resto del simulador). App: rutas <code>/mistakes</code>, <code>/mistakes/course/:id</code>, <code>/mistakes/fixed</code>; sin lecturas nuevas.</li>
 <li><b>29-oct-2026</b> · Barra de abajo N5 (solo app): nombres «Guía» y «Progreso» (claves <code>appNavCourses</code>/<code>appNavStats</code>), avisos desde <code>studyTodayProvider</code> y <code>planWeekProvider</code> (los mismos datos del Inicio, sin lecturas nuevas) e inicial del alumno en Perfil. Rutas sin cambios.</li>
 <li><b>28-oct-2026</b> · Noticias: <code>story.label</code> (string, máx. 24) = «Nombre en la historia»; la app lo muestra en el círculo o, si falta, arma el nombre del titular (<code>NewsItem.storyName</code>). El Inicio pone las historias en la cabecera y cambia los atajos por mosaicos; sin lecturas nuevas. <code>tool/sync_app_preview.py</code> adapta <code>CachedNetworkImage</code> a <code>Image.network</code> en la copia del admin.</li>
 <li><b>28-oct-2026</b> · Rankings renovado (solo app): pestañas «Mi liga» | «Reto de hoy» en <code>/rankings</code> (<code>?tab=reto</code>, <code>?from=</code> para la pestaña de la barra). Lecturas nuevas: antes de jugar el reto, una consulta de conteo y 3 filas de <code>challengeEntries</code> (cacheadas <code>tableCacheMinutes</code>); el resto reutiliza las del grupo, el asiento y las tablas. Etapas dibujadas en la app (<code>LeagueStageEmblem</code>), sin imágenes nuevas. Sin cambios en Functions, reglas ni configuración.</li>

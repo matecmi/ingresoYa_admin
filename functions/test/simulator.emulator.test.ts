@@ -288,6 +288,45 @@ test("XP: a practice gives session, fresh answers and streak once; repeats and r
   assert.equal(await xp.afterAttempt(uid, rushed.attemptId), undefined);
 });
 
+test("Mis errores: lo fallado entra al banco, se practica desde ahí y sale al acertar", async () => {
+  await seed();
+  const xp = new XpService(db, config);
+  const user = db.collection(config.collections.users).doc(uid);
+  await user.collection("simulatorSummary").doc("current").delete();
+  await assert.rejects(
+    service.create(uid, { requestId: "bank-0", purpose: "practice", mode: "mistake_bank", count: 3, order: "most_missed", timed: false }),
+    hasReason("failed-precondition", "no_mistakes")
+  );
+  const first = await service.create(uid, {
+    requestId: "bank-1", purpose: "practice", mode: "course",
+    courseIds: ["sim-course-a"], topicIds: [], size: "short", timed: true
+  });
+  await service.start(uid, first.attemptId);
+  const graded = await service.submit(uid, { attemptId: first.attemptId, answers: answersFor(first.questions, 7) });
+  assert.deepEqual(graded.simulator?.mistakes, { added: 3, fixed: 0, left: 3, missionDone: 0, missionSize: 5, missionCompleted: false });
+  const bank = (await user.collection("simulatorSummary").doc("current").get()).data()?.mistakes as { items: Record<string, { c: string; n: number }> };
+  assert.equal(Object.keys(bank.items).length, 3);
+  assert.equal(Object.values(bank.items)[0]?.c, "sim-course-a");
+
+  const practice = await service.create(uid, {
+    requestId: "bank-2", purpose: "practice", mode: "mistake_bank", count: 2, order: "most_missed", timed: false
+  });
+  assert.equal(practice.questions.length, 2);
+  assert.equal(practice.simulator?.mode, "mistake_bank");
+  assert.ok(practice.questions.every((question) => bank.items[question.questionId] !== undefined));
+  await service.start(uid, practice.attemptId);
+  await db.collection(config.collections.attempts).doc(practice.attemptId).update({ startedAtMs: Date.now() - 5 * 60 * 1000 });
+  const fixed = await service.submit(uid, { attemptId: practice.attemptId, answers: answersFor(practice.questions, 2) });
+  assert.deepEqual(fixed.simulator?.mistakes, { added: 0, fixed: 2, left: 1, missionDone: 2, missionSize: 5, missionCompleted: false });
+  const after = (await user.collection("simulatorSummary").doc("current").get()).data()?.mistakes as { items: Record<string, unknown>; fixedTotal: number; fixed: { w: string }[] };
+  // Lo corregido sale del documento guardado (no solo del cálculo).
+  assert.equal(Object.keys(after.items).length, 1);
+  assert.equal(after.fixedTotal, 2);
+  assert.equal(after.fixed[0]?.w, "mistakes");
+  const award = await xp.afterAttempt(uid, practice.attemptId);
+  assert.ok(award?.items.some((item) => item.type === "mistake_fixed" && item.xp === 6));
+});
+
 test("reto del día: same questions for the university, one attempt, answers hidden, entry and bonus", async () => {
   await seed();
   const rankings = db.collection(config.collections.config).doc("rankings");

@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/domain/mistake_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ingresoya_admin/src/domain/ads_settings.dart';
 import 'package:ingresoya_admin/src/domain/exam_settings.dart';
@@ -161,6 +162,24 @@ class AppConfigRepo {
     if (problem != null) throw StateError(problem);
     await _simulator.set({
       'plan': plan.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    }, SetOptions(merge: true));
+  }
+
+  /// «Mis errores» (`mistakes` of `{config}/simulator`).
+  Stream<MistakeSettings> watchMistakeSettings() => _simulator.snapshots().map(
+    (snapshot) => MistakeSettings.fromMap(snapshot.data()?['mistakes']),
+  );
+
+  Future<void> saveMistakeSettings(
+    MistakeSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _simulator.set({
+      'mistakes': settings.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
       'updatedBy': editor,
     }, SetOptions(merge: true));

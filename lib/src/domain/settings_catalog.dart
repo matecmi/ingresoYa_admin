@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'ads_settings.dart';
 import 'exam_settings.dart';
+import 'mistake_settings.dart';
 import 'plan_settings.dart';
 import 'premium_settings.dart';
 import 'news.dart';
@@ -27,6 +28,7 @@ enum SettingsDoc {
   xp,
   simulator,
   plan,
+  mistakes,
   study,
   sync,
   quality,
@@ -1104,6 +1106,134 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
   SettingsTopic(
+    id: 'mistakes',
+    label: 'Mis errores',
+    icon: Icons.replay_rounded,
+    intro:
+        'El banco de errores del alumno: lo que falla en el Simulador entra, '
+        'sale al acertarlo y cada día tiene una misión «Corrige N errores».',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['enabled'],
+        kind: SettingKind.toggle,
+        question: '¿Está activo «Mis errores»?',
+        label: 'Mis errores activo',
+        help:
+            'Encendido, cada examen del Simulador suma a «Mis errores» lo fallado o en blanco y saca lo que el alumno acierta. Apagado, la app lo oculta y el banco no cambia (no se borra).',
+        keywords: 'banco errores falladas activar',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['missionEnabled'],
+        kind: SettingKind.toggle,
+        question: '¿Hay misión del día?',
+        label: 'Misión del día',
+        help:
+            'La tarjeta «Corrige N errores» de «Mis errores» y del Inicio, con su bono y su racha. Apagada, el alumno igual puede practicar sus errores.',
+        keywords: 'mision diaria racha',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['missionSize'],
+        question: '¿Cuántos errores pide corregir la misión?',
+        label: 'Errores de la misión',
+        min: MistakeSettings.minMissionSize,
+        max: MistakeSettings.maxMissionSize,
+        unit: 'errores',
+        help:
+            'Cuántas preguntas del banco debe acertar el alumno en el día para cumplir la misión. Cuenta lo que corrige en cualquier examen del Simulador.',
+        inPractice: (v) =>
+            'El alumno ve «Corrige ${_int(v, SettingsDoc.mistakes, ['missionSize'], 5)} errores» y la práctica le ofrece justo lo que le falta.',
+        keywords: 'mision tamaño corregir',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['missionXp'],
+        question: '¿Cuánto XP da cumplir la misión?',
+        label: 'Bono de la misión',
+        min: 0,
+        max: MistakeSettings.maxMissionXp,
+        unit: 'XP',
+        help:
+            'Bono una vez al día al cumplir la misión. No cuenta para el tope diario general del XP. 0 = sin bono.',
+        keywords: 'xp bono mision',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['fixXp'],
+        question: '¿Cuánto XP da cada error corregido?',
+        label: 'XP por corregir',
+        min: 0,
+        max: MistakeSettings.maxFixXp,
+        unit: 'XP',
+        help:
+            'XP por cada pregunta que sale de «Mis errores» al acertarla. Si el alumno responde demasiado rápido no gana XP (juego limpio).',
+        keywords: 'xp corregir acierto',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['fixXpDailyCap'],
+        question: '¿Cuánto XP por corregir puede ganar en un día?',
+        label: 'Tope diario por corregir',
+        min: 0,
+        max: MistakeSettings.maxFixXpDailyCap,
+        unit: 'XP',
+        help:
+            'Tope propio del XP por corregir errores; el bono de la misión va aparte.',
+        inPractice: (v) {
+          final each = _int(v, SettingsDoc.mistakes, ['fixXp'], 3);
+          final cap = _int(v, SettingsDoc.mistakes, ['fixXpDailyCap'], 30);
+          return each == 0
+              ? 'Corregir no da XP.'
+              : 'Da XP hasta ${(cap / each).floor()} errores corregidos por día.';
+        },
+        keywords: 'tope xp diario corregir',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['exitHits'],
+        question: '¿Cuántos aciertos seguidos para salir de «Mis errores»?',
+        label: 'Aciertos para salir',
+        min: MistakeSettings.minExitHits,
+        max: MistakeSettings.maxExitHits,
+        unit: 'aciertos',
+        help:
+            'Con 1, la pregunta sale apenas el alumno la acierta. Con 2 o 3 tiene que acertarla esas veces seguidas; si la vuelve a fallar, empieza de nuevo.',
+        keywords: 'salir aciertos seguidos corregida',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['practiceMax'],
+        question:
+            '¿Cuántas preguntas como máximo tiene una práctica de errores?',
+        label: 'Práctica más larga',
+        min: MistakeSettings.minPracticeMax,
+        max: MistakeSettings.maxPracticeMax,
+        unit: 'preguntas',
+        help:
+            'La app ofrece lo que falta de la misión, 10 y 20, sin pasar de este número.',
+        keywords: 'practica tamaño maximo',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.mistakes,
+        path: const ['bankMax'],
+        question: '¿Cuántos errores guarda como máximo cada alumno?',
+        label: 'Tope del banco',
+        min: MistakeSettings.minBankMax,
+        max: MistakeSettings.maxBankMax,
+        unit: 'preguntas',
+        help:
+            'Al llenarse, salen las fallas más antiguas. Viaja dentro del resumen del alumno (una sola lectura), así que no cambia el costo.',
+        keywords: 'tope banco maximo costo',
+        advanced: true,
+      ),
+    ],
+  ),
+  SettingsTopic(
     id: 'study',
     label: 'Guía de estudio',
     icon: Icons.menu_book_outlined,
@@ -1895,6 +2025,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.xp => XpSettings.defaults.toMap(),
   SettingsDoc.simulator => SimulatorSettings.defaults.toMap(),
   SettingsDoc.plan => PlanSettings.defaults.toMap(),
+  SettingsDoc.mistakes => MistakeSettings.defaults.toMap(),
   SettingsDoc.study => StudyReviewRules.defaults.toMap(),
   SettingsDoc.sync => SyncSettings.defaults.toMap(),
   SettingsDoc.quality => QualitySettings.defaults.toMap(),
@@ -1912,6 +2043,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.xp => XpSettings.fromMap(map).validate(),
   SettingsDoc.simulator => SimulatorSettings.fromMap(map).validate(),
   SettingsDoc.plan => PlanSettings.fromMap(map).validate(),
+  SettingsDoc.mistakes => MistakeSettings.fromMap(map).validate(),
   SettingsDoc.study => StudyReviewRules.fromMap(map).validate(),
   SettingsDoc.sync => SyncSettings.fromMap(map).validate(),
   SettingsDoc.quality => QualitySettings.fromMap(map).validate(),
@@ -1932,6 +2064,7 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.xp => XpSettings.fromMap(map).toMap(),
   SettingsDoc.simulator => SimulatorSettings.fromMap(map).toMap(),
   SettingsDoc.plan => PlanSettings.fromMap(map).toMap(),
+  SettingsDoc.mistakes => MistakeSettings.fromMap(map).toMap(),
   SettingsDoc.study => StudyReviewRules.fromMap(map).toMap(),
   SettingsDoc.sync => SyncSettings.fromMap(map).toMap(),
   SettingsDoc.quality => QualitySettings.fromMap(map).toMap(),
