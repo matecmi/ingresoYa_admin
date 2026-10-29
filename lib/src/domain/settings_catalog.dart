@@ -14,6 +14,7 @@ import 'simulator_settings.dart';
 import 'stats_settings.dart';
 import 'study_review_rules.dart';
 import 'sync_settings.dart';
+import 'tour_settings.dart';
 import 'xp_settings.dart';
 
 /// Configuración en lenguaje simple (tableros 18 y 20 del lienzo).
@@ -37,6 +38,7 @@ enum SettingsDoc {
   ads,
   premium,
   stats,
+  tours,
 }
 
 enum SettingKind { integer, toggle, choice, time }
@@ -1234,6 +1236,73 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
   SettingsTopic(
+    id: 'tours',
+    label: 'Recorridos del búho',
+    icon: Icons.tour_outlined,
+    intro:
+        'La guía que el búho muestra la primera vez en la app y en cada '
+        'sección: qué se enciende, cada cuánto y sus textos.',
+    fullEditor: 'tours',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.tours,
+        path: const ['enabled'],
+        kind: SettingKind.toggle,
+        question: '¿El búho guía la primera vez?',
+        label: 'Recorridos activos',
+        help:
+            'Encendido, la primera vez que el alumno entra a la app y a cada sección el búho le explica cómo funciona. Apagado no se abren solas; el botón «?» de cada sección sigue funcionando.',
+        keywords: 'recorrido guia tutorial bienvenida buho',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.tours,
+        path: const ['animate'],
+        kind: SettingKind.toggle,
+        question: '¿Se anima el búho en los recorridos?',
+        label: 'Animar al búho',
+        help:
+            'Saluda, señala y celebra, y el aro de la pieza que explica late. Con «reducir movimiento» del teléfono nunca se anima.',
+        keywords: 'animacion buho recorrido',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.tours,
+        path: const ['maxPerSession'],
+        question: '¿Cuántas guías se abren solas por sesión?',
+        label: 'Guías por sesión',
+        min: 1,
+        max: 5,
+        unit: 'guías',
+        help:
+            'Para no saturar: si el alumno entra a varias secciones nuevas, solo esta cantidad se abre sola; las demás esperan a la próxima vez.',
+        keywords: 'saturar sesion guias',
+        advanced: true,
+      ),
+      SettingSpec(
+        doc: SettingsDoc.tours,
+        path: const ['version'],
+        question: '¿Qué versión de los recorridos usa la app?',
+        label: 'Versión de los recorridos',
+        min: 1,
+        max: 100,
+        help:
+            'Súbela tras un cambio grande de pantallas: todos los alumnos vuelven a ver las guías una vez. Lo visto se guarda en el teléfono, sin lecturas ni escrituras.',
+        keywords: 'version reiniciar recorridos',
+        advanced: true,
+      ),
+      for (final tour in tourCatalog)
+        SettingSpec(
+          doc: SettingsDoc.tours,
+          path: ['tours', tour.id, 'enabled'],
+          kind: SettingKind.toggle,
+          question: '¿Guía en ${tour.label}?',
+          label: 'Guía: ${tour.label}',
+          help:
+              '${tour.steps.length} pasos: ${[for (final s in tour.steps) s.title].join(' · ')}.',
+          keywords: 'recorrido ${tour.id}',
+        ),
+    ],
+  ),
+  SettingsTopic(
     id: 'study',
     label: 'Guía de estudio',
     icon: Icons.menu_book_outlined,
@@ -2034,6 +2103,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.ads => AdsSettings.defaults.toMap(),
   SettingsDoc.premium => PremiumSettings.defaults.toMap(),
   SettingsDoc.stats => StatsSettings.defaults.toMap(),
+  SettingsDoc.tours => TourSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -2052,6 +2122,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.ads => AdsSettings.fromMap(map).validate(),
   SettingsDoc.premium => PremiumSettings.fromMap(map).validate(),
   SettingsDoc.stats => StatsSettings.fromMap(map).validate(),
+  SettingsDoc.tours => TourSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -2073,4 +2144,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.ads => AdsSettings.fromMap(map).toMap(),
   SettingsDoc.premium => PremiumSettings.fromMap(map).toMap(),
   SettingsDoc.stats => StatsSettings.fromMap(map).toMap(),
+  SettingsDoc.tours => TourSettings.fromMap(map).toMap(),
 };

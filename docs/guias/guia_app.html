@@ -794,6 +794,35 @@ flowchart LR
   <tr><td class="msg">«No pudimos continuar ahora. Vuelve a intentarlo en unos momentos.»</td><td>Cualquier otro error, incluido «Mis errores» sin preguntas disponibles.</td></tr>
 </table></div>
 
+<h2 id="recorridos"><span class="chip info">GUÍA DEL BÚHO</span><br>Recorridos del búho</h2>
+<p>La primera vez que el alumno entra a la app y a cada sección, el búho (con la bufanda de su universidad) le explica cómo funciona: oscurece la pantalla, ilumina la pieza con un aro que late, la lleva a la vista si está más abajo y habla desde un globo con «Siguiente» y «Saltar». Gestos: saluda, señala, explica y celebra. Lienzo: https://claude.ai/artifact/5fKmk6QjuQNpSXvKUKXvSz. Contrato: <code>docs/tours_contract.md</code>.</p>
+<div class="screen two" id="recorridos-bienvenida">
+  <figure><img src="img/tour-bienvenida.jpg" alt="Bienvenida: el búho saluda"><figcaption>Bienvenida, paso 1: «¡Hola, Kevin! Soy tu búho guía.»</figcaption></figure>
+  <figure><img src="img/tour-barra.jpg" alt="Bienvenida: pestaña Inicio iluminada"><figcaption>Paso 2: ilumina la pestaña con una flecha.</figcaption></figure>
+  <div class="body">
+    <div class="table-wrap"><table>
+      <tr><th>Guía</th><th>Cuándo se abre</th><th>Pasos</th></tr>
+      <tr><td class="msg">Bienvenida</td><td>La primera vez en el Inicio.</td><td>«¡Hola, {nombre}! Soy tu búho guía.» («Empecemos») · Inicio · Guía · Simulador · Progreso · Perfil («¡Listo, a estudiar!», «¡Vamos!»).</td></tr>
+      <tr><td class="msg">Guía de estudio</td><td>Primera vez en Guía.</td><td>«Tus cursos» (primer curso) · «Avanza parte por parte» (completados y dominados).</td></tr>
+      <tr><td class="msg">Simulador</td><td>Primera vez en Simulador.</td><td>«Tus simulacros» · «El reto del día» (se salta si el reto está apagado) · «Elige tu examen».</td></tr>
+      <tr><td class="msg">Mis errores</td><td>Primera vez en Mis errores.</td><td>«Tu misión del día» · «Tus números» · «Repasa por curso».</td></tr>
+      <tr><td class="msg">Rankings</td><td>Primera vez en Rankings.</td><td>«Tu liga y el reto» (pestañas) · «Tu liga semanal».</td></tr>
+      <tr><td class="msg">Progreso</td><td>Primera vez en Progreso.</td><td>«Tu progreso» (pestañas) · «¿Cuánto te falta?».</td></tr>
+      <tr><td class="msg">Perfil</td><td>Primera vez en Perfil.</td><td>«Tu rango» · «¿Quieres verlo otra vez?» (tarjeta Recorridos del búho).</td></tr>
+    </table></div>
+    <ul>
+      <li>Se abre sola <b>una guía por sesión</b> <span class="chip info">ADMIN</span> («Guías por sesión», 1 de fábrica); las demás esperan a la próxima vez.</li>
+      <li>«?» en la cabecera de cada sección: la vuelve a abrir cuando quieras.</li>
+      <li>Perfil → «Recorridos del búho»: «Ya viste {n} de 7 guías.» · «Ver la bienvenida» · «Mostrar todas otra vez» («Listo: el búho te volverá a guiar en cada sección.»).</li>
+      <li>Admin: Configuración → «Recorridos del búho» (encender, animar, guías por sesión, versión, cada guía y, en «Más opciones», el título, texto y gesto de cada paso) <span class="chip info">ADMIN</span>.</li>
+    </ul>
+  </div>
+</div>
+<div class="screen two" id="recorridos-secciones">
+  <figure><img src="img/tour-simulador.jpg" alt="Simulador: Elige tu examen iluminado"><figcaption>Simulador, paso 3: el globo sube si la pieza está abajo.</figcaption></figure>
+  <figure><img src="img/tour-mis-errores.jpg" alt="Mis errores: misión iluminada"><figcaption>Mis errores, paso 1.</figcaption></figure>
+</div>
+
 <!-- ============================================================ XP -->
 <h2 id="xp"><span class="chip info">PERFIL</span><br>Rango de perfil y XP</h2>
 <p>El alumno gana XP con todo lo que hace en la app. Su <b>rango</b> sale del XP total y <b>nunca baja</b>. El XP lo da solo el servidor, una vez por cada logro, y llega solo: el alumno no tiene que tocar nada.</p>
@@ -1183,6 +1212,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Recorridos del búho: la primera vez en la app y en Guía, Simulador, Mis errores, Rankings, Progreso y Perfil, el búho (con la bufanda de tu universidad) ilumina cada pieza y la explica con gestos animados; «?» en cada sección y Perfil → «Recorridos del búho» para repetirlas. Textos y encendido en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Tu universidad en la app: el búho lleva la bufanda con los colores de tu universidad, el chip un puntito, «Tu examen» dice «para ser cachimbo», la subida de rango trae birrete, confeti con tus colores, la frase de tu universidad y «Compartir» (tarjeta tipo historia), y el examen pasado dice «¿habrías ingresado?» con otras carreras. Todo se configura en Universidades → «Identidad». Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · «Mis errores»: banco con lo que fallas en el Simulador y misión del día «Corrige 5 errores» (con XP y racha), pantallas del curso y «Corregidas», hoja para practicar, tarjeta en el resultado, mosaico del Inicio y tarjeta en Progreso. Ajustes nuevos en Configuración → «Mis errores». Capturas nuevas.</li>
   <li><b>23-oct-2026</b> · Guía de estudio ordenada por el examen de la carrera: con las «Áreas del examen» del admin (grupos académicos del prospecto, preguntas y puntos por asignatura, cursos clave), Cursos muestra «Clave para tu examen», «También vienen en tu examen» y «No vienen en tu examen». «Lo que más te acerca» de Estadísticas usa esas preguntas. Cargado para la UNPRG (prospecto 2026-II, Anexo 1).</li>

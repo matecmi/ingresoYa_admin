@@ -1,3 +1,4 @@
+import '../../domain/tour_settings.dart';
 import '../../domain/mistake_settings.dart';
 import 'dart:async';
 
@@ -50,6 +51,7 @@ class SettingsStore {
     SettingsDoc.ads => _config.watchAdsSettings().map((s) => s.toMap()),
     SettingsDoc.premium => _config.watchPremiumSettings().map((s) => s.toMap()),
     SettingsDoc.stats => _config.watchStatsSettings().map((s) => s.toMap()),
+    SettingsDoc.tours => _config.watchTourSettings().map((s) => s.toMap()),
   };
 
   /// Todos los documentos juntos; emite cuando cualquiera cambia.
@@ -131,6 +133,10 @@ class SettingsStore {
     ),
     SettingsDoc.stats => _config.saveStatsSettings(
       StatsSettings.fromMap(map),
+      editor: editor,
+    ),
+    SettingsDoc.tours => _config.saveTourSettings(
+      TourSettings.fromMap(map),
       editor: editor,
     ),
   };

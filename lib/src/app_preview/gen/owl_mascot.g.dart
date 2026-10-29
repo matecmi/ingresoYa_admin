@@ -1,5 +1,5 @@
 // GENERADO por tool/sync_app_preview.py — NO EDITAR A MANO.
-// Copia fiel de iya-app/lib/app/widgets/owl_mascot.dart (commit b8be648) para que la vista
+// Copia fiel de iya-app/lib/app/widgets/owl_mascot.dart (commit 72d4e02) para que la vista
 // previa del admin sea idéntica a la app. Textos tomados de app_es.arb.
 // ignore_for_file: type=lint, deprecated_member_use
 
@@ -10,7 +10,16 @@ import 'package:flutter/material.dart';
 /// Expressions of the IngresoYa owl. Each one has a clear moment of use:
 /// neutral in avatars, happy on the home header, thinking while an exam is
 /// prepared, celebrating on mastery and cheering on empty or retry states.
-enum OwlMood { neutral, happy, thinking, celebrating, cheering }
+/// [waving] and [pointing] are the guide of the tours (docs/tours_contract.md).
+enum OwlMood {
+  neutral,
+  happy,
+  thinking,
+  celebrating,
+  cheering,
+  waving,
+  pointing,
+}
 
 /// Bufanda del búho con los colores de la universidad del alumno.
 class OwlOutfit {
@@ -140,6 +149,7 @@ class _OwlPainter extends CustomPainter {
   final double t;
 
   static const _ears = Color(0xFF4C1D95);
+  static const _wingColor = Color(0xFF5B21B6);
   static const _body = Color(0xFF6D28D9);
   static const _face = Color(0xFFC4B5FD);
   static const _ink = Color(0xFF1E1B4B);
@@ -173,7 +183,10 @@ class _OwlPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = _ink;
 
-    // Ear tufts, body and face disc.
+    // Ear tufts, wings, body and face disc.
+    if (mood == OwlMood.waving || mood == OwlMood.pointing) {
+      _wing(canvas, fill);
+    }
     fill.color = _ears;
     canvas.drawPath(
       Path()
@@ -266,6 +279,36 @@ class _OwlPainter extends CustomPainter {
     canvas.drawCircle(c + look, 6, fill);
     fill.color = Colors.white;
     canvas.drawCircle(c + look + const Offset(2, -2), 2, fill);
+  }
+
+  /// Ala derecha que saluda (va y viene) o señala hacia abajo (late).
+  void _wing(Canvas canvas, Paint fill) {
+    fill.color = _wingColor;
+    canvas.save();
+    if (mood == OwlMood.waving) {
+      canvas.translate(80, 58);
+      canvas.rotate(-.35 + .55 * math.sin(t * 8 * math.pi).abs());
+      canvas.translate(-80, -58);
+      canvas.drawPath(
+        Path()
+          ..moveTo(84, 60)
+          ..quadraticBezierTo(104, 40, 98, 16)
+          ..quadraticBezierTo(86, 30, 78, 50)
+          ..close(),
+        fill,
+      );
+    } else {
+      canvas.translate(0, 3 * math.sin(t * 8 * math.pi).abs());
+      canvas.drawPath(
+        Path()
+          ..moveTo(82, 60)
+          ..quadraticBezierTo(102, 72, 106, 94)
+          ..quadraticBezierTo(90, 84, 78, 72)
+          ..close(),
+        fill,
+      );
+    }
+    canvas.restore();
   }
 
   /// Bufanda al cuello con una raya y la punta colgando.
