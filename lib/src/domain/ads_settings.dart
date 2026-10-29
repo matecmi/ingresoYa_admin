@@ -27,9 +27,9 @@ class AdsSettings {
   ];
   static const bannerScreenLabels = {
     'home': 'Inicio',
-    'courses': 'Cursos',
+    'courses': 'Guía (cursos)',
     'simulator': 'Simulador (inicio)',
-    'stats': 'Stats',
+    'stats': 'Progreso',
     'profile': 'Perfil',
     'news': 'Lista de noticias',
     'rankings': 'Rankings',
