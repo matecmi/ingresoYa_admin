@@ -228,7 +228,10 @@ export type XpEventType =
   | "weekly_goal"
   | "streak_day"
   | "daily_challenge"
-  | "explanation_video";
+  | "explanation_video"
+  /** «Mis errores»: el tope diario lo aplica el banco (docs/mistakes_contract.md). */
+  | "mistake_fixed"
+  | "mistake_mission";
 
 /** Repeatable events limited by the daily cap. */
 export const cappedTypes: ReadonlySet<XpEventType> = new Set(["simulator_session", "correct_answers", "streak_day"]);
@@ -364,16 +367,19 @@ export interface SimulatorXpInput {
   goalSessions?: number;
 }
 
+/** Juego limpio: answered faster than the minimum per question (average). */
+export function answeredTooFast(input: Pick<SimulatorXpInput, "total" | "timeUsedSeconds">, settings: XpSettings): boolean {
+  return input.total > 0 && input.timeUsedSeconds !== null &&
+    input.timeUsedSeconds / input.total < settings.minSecondsPerQuestion;
+}
+
 export function simulatorGrants(input: SimulatorXpInput, state: XpState, settings: XpSettings): XpGrant[] {
   const a = settings.amounts;
   const day = peruDay(input.atMs);
   const week = peruWeek(input.atMs);
   const source = { attemptId: input.attemptId, purpose: input.purpose, ...(input.mode ? { mode: input.mode } : {}), ...(input.examId ? { examId: input.examId } : {}) };
   // Juego limpio: answering faster than the minimum gives nothing.
-  if (input.total > 0 && input.timeUsedSeconds !== null &&
-    input.timeUsedSeconds / input.total < settings.minSecondsPerQuestion) {
-    return [];
-  }
+  if (answeredTooFast(input, settings)) return [];
   const grants: XpGrant[] = [];
   const counts = input.total >= settings.minQuestionsPerSession;
   if (counts) grants.push({ id: `session_${input.attemptId}`, type: "simulator_session", xp: a.simulatorSession, atMs: input.atMs, source });
@@ -624,8 +630,23 @@ export class XpService {
     const challengeDay = simulator.mode === "daily_challenge" && typeof simulator.day === "string" ? simulator.day : undefined;
     const rankings = await this.rankingsSettings(metrics);
     const bonus = challengeDay === undefined ? 0 : rankings.challenge.bonusXp;
+    // «Mis errores»: XP por corregir (ya con su tope diario) y la misión del día.
+    const mistakesFixed = typeof basis?.mistakesFixed === "number" ? basis.mistakesFixed : 0;
+    const mistakesXp = typeof basis?.mistakesXp === "number" ? basis.mistakesXp : 0;
+    const missionDay = typeof basis?.missionDay === "string" ? basis.missionDay : undefined;
+    const missionXp = typeof basis?.missionXp === "number" ? basis.missionXp : 0;
+    const mistakeGrants: XpGrant[] = [
+      ...(mistakesXp > 0
+        ? [{ id: `mistake_fixed_${attemptId}`, type: "mistake_fixed" as const, xp: mistakesXp, count: mistakesFixed, atMs: input.atMs, source: { attemptId } }]
+        : []),
+      ...(missionDay !== undefined && missionXp > 0
+        ? [{ id: `mistake_mission_${missionDay}`, type: "mistake_mission" as const, xp: missionXp, atMs: input.atMs, source: { attemptId, day: missionDay } }]
+        : [])
+    ];
     return this.grant(uid, (state, current) => [
       ...simulatorGrants(input, state, current),
+      // Juego limpio también para «Mis errores»: el banco sí cambia.
+      ...(answeredTooFast(input, current) ? [] : mistakeGrants),
       ...(challengeDay !== undefined && bonus > 0
         ? [{ id: `daily_challenge_${challengeDay}`, type: "daily_challenge" as const, xp: bonus, atMs: input.atMs, source: { attemptId, day: challengeDay } }]
         : [])

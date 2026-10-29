@@ -24,7 +24,7 @@ export type CreateExamAttemptInput = {
   courseId: string;
   topicId: string;
   subtopicId: string;
-} | PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | PlanAttemptInput;
+} | PastExamAttemptInput | PracticeAttemptInput | MistakesAttemptInput | MistakeBankAttemptInput | PlanAttemptInput;
 
 /** Training plan sessions: «Hoy te toca» (`plan`) or the first `diagnostic`. */
 export interface PlanAttemptInput {
@@ -40,6 +40,18 @@ export interface MistakesAttemptInput {
   purpose: "practice";
   mode: "mistakes";
   fromAttemptId: string;
+  timed: boolean;
+}
+
+/** «Mis errores»: questions from the student's mistake bank (docs/mistakes_contract.md). */
+export interface MistakeBankAttemptInput {
+  requestId: string;
+  purpose: "practice";
+  mode: "mistake_bank";
+  count: number;
+  courseId?: string;
+  topicId?: string;
+  order: "most_missed" | "mixed";
   timed: boolean;
 }
 
@@ -224,6 +236,26 @@ export function parseCreateExamAttempt(data: unknown): CreateExamAttemptInput {
       purpose: "practice",
       mode: "mistakes",
       fromAttemptId: id(value.fromAttemptId, "fromAttemptId"),
+      timed: value.timed
+    };
+  }
+  if (value.purpose === "practice" && value.mode === "mistake_bank") {
+    onlyKeys(value, ["requestId", "purpose", "mode", "count", "courseId", "topicId", "order", "timed"]);
+    if (typeof value.timed !== "boolean") throw invalidArgument("timed must be a boolean.");
+    if (typeof value.count !== "number" || !Number.isInteger(value.count) || value.count < 1 || value.count > 50) {
+      throw invalidArgument("count must be an integer between 1 and 50.");
+    }
+    if (value.order !== "most_missed" && value.order !== "mixed") {
+      throw invalidArgument("order must be most_missed or mixed.");
+    }
+    return {
+      requestId: id(value.requestId, "requestId"),
+      purpose: "practice",
+      mode: "mistake_bank",
+      count: value.count,
+      ...(value.courseId === undefined ? {} : { courseId: id(value.courseId, "courseId") }),
+      ...(value.topicId === undefined ? {} : { topicId: id(value.topicId, "topicId") }),
+      order: value.order,
       timed: value.timed
     };
   }
