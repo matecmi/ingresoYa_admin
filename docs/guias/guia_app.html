@@ -761,6 +761,25 @@ flowchart LR
   </div>
 </div>
 
+<h3 id="uni-identidad">Tu universidad en la app (colores, «cachimbo», ¿habrías ingresado?)</h3>
+<div class="screen two" id="uni-personalizacion">
+  <figure><img src="img/uni-inicio.jpg" alt="Inicio con el búho de bufanda verde, el puntito de la UNPRG y para ser cachimbo"><figcaption>Inicio con la identidad de la UNPRG (TEST, colores de ejemplo).</figcaption></figure>
+  <figure><img src="img/uni-examen-pasado.jpg" alt="Resultado de examen pasado con otras carreras"><figcaption>Examen pasado: «¿Y en otras carreras?».</figcaption></figure>
+  <div class="body">
+    <p>Si el admin carga la <b>Identidad</b> de la universidad <span class="chip info">ADMIN</span> (Universidades → ficha → «Identidad»), la app se viste con ella. Sin identidad, todo queda como siempre.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Dónde</th><th>Qué cambia</th></tr>
+      <tr><td class="msg">Todos los búhos</td><td>Bufanda con el color principal y una raya del secundario. Sin escudos ni logos oficiales.</td></tr>
+      <tr><td class="msg">Chip de la cabecera «UNPRG · Ingeniería de Sistemas»</td><td>Un puntito con los dos colores.</td></tr>
+      <tr><td class="msg">Inicio → «Tu examen · 32 días · para ser {cachimbo}»</td><td>Con fecha confirmada, en vez de la fecha. {cachimbo} es «Cómo llamar al ingresante»; vacío: «ingresante». Fecha por confirmar: sigue «por confirmar».</td></tr>
+      <tr><td class="msg">«¡Subiste de rango!»</td><td>El búho lleva birrete (borla del color secundario), el confeti suma los colores de la universidad y el mensaje es la frase del admin («Un paso más cerca de la UNPRG, Kevin.»). Nuevo botón «Compartir».</td></tr>
+      <tr><td class="msg">«Compartir»</td><td>Imagen tipo historia: «ME ESTOY PREPARANDO PARA · UNPRG», la carrera, el búho con birrete, rango, días seguidos y días al examen, y «{usuario} · con IngresoYa» (nunca el nombre real).</td></tr>
+      <tr><td class="msg">Examen pasado: «¡Con este puntaje habrías ingresado a {carrera}!» · «¿Y en otras carreras?»</td><td>Si «¿habrías ingresado?» está encendido. Debajo, hasta 4 carreras con su ingreso, las más cercanas a tu puntaje (✓ alcanzaba, – no).</td></tr>
+      <tr><td class="msg">«¡Misión cumplida!» de Mis errores</td><td>El búho celebra con birrete.</td></tr>
+    </table></div>
+  </div>
+</div>
+
 <h3 id="sim-errores">Mensajes de error del Simulador</h3>
 <p>Al crear un examen salen como aviso abajo; al entregar, en rojo. Al guardar respuestas nunca hay aviso, solo la franja «Reintentar».</p>
 <div class="table-wrap"><table>
@@ -1164,6 +1183,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Tu universidad en la app: el búho lleva la bufanda con los colores de tu universidad, el chip un puntito, «Tu examen» dice «para ser cachimbo», la subida de rango trae birrete, confeti con tus colores, la frase de tu universidad y «Compartir» (tarjeta tipo historia), y el examen pasado dice «¿habrías ingresado?» con otras carreras. Todo se configura en Universidades → «Identidad». Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · «Mis errores»: banco con lo que fallas en el Simulador y misión del día «Corrige 5 errores» (con XP y racha), pantallas del curso y «Corregidas», hoja para practicar, tarjeta en el resultado, mosaico del Inicio y tarjeta en Progreso. Ajustes nuevos en Configuración → «Mis errores». Capturas nuevas.</li>
   <li><b>23-oct-2026</b> · Guía de estudio ordenada por el examen de la carrera: con las «Áreas del examen» del admin (grupos académicos del prospecto, preguntas y puntos por asignatura, cursos clave), Cursos muestra «Clave para tu examen», «También vienen en tu examen» y «No vienen en tu examen». «Lo que más te acerca» de Estadísticas usa esas preguntas. Cargado para la UNPRG (prospecto 2026-II, Anexo 1).</li>
   <li><b>22-oct-2026</b> · «¡Subiste de rango!» animado: la insignia anterior brilla, gira como moneda y se convierte en la nueva con destello, rayos, vibración y confeti; la estrella nueva entra volando a su etiqueta. Tocar la insignia salta al final; se apaga en el admin (Niveles e insignias → «Animación al subir de rango») y con «reducir movimiento». Captura nueva.</li>

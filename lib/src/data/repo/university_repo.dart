@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/domain/university_identity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
@@ -161,6 +162,17 @@ class UniversityRepo {
             : {'name': (name ?? '').trim(), 'at': Timestamp.fromDate(at)},
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+  /// Identidad para el alumno: colores del búho y textos
+  /// (docs/universities_contract.md). Reemplaza el mapa entero.
+  Future<void> setIdentity(String id, UniversityIdentity identity) async {
+    final problem = identity.validate();
+    if (problem != null) throw StateError(problem);
+    await _col.doc(id).update({
+      'identity': identity.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   /// Ficha para el alumno (docs/universities_contract.md).
   Stream<UniversityStudentData> watchStudentData(String id) => _col
