@@ -1,5 +1,5 @@
 // GENERADO por tool/sync_app_preview.py — NO EDITAR A MANO.
-// Copia fiel de iya-app/lib/app/widgets/owl_mascot.dart (commit c92d18f) para que la vista
+// Copia fiel de iya-app/lib/app/widgets/owl_mascot.dart (commit b8be648) para que la vista
 // previa del admin sea idéntica a la app. Textos tomados de app_es.arb.
 // ignore_for_file: type=lint, deprecated_member_use
 
@@ -12,6 +12,35 @@ import 'package:flutter/material.dart';
 /// prepared, celebrating on mastery and cheering on empty or retry states.
 enum OwlMood { neutral, happy, thinking, celebrating, cheering }
 
+/// Bufanda del búho con los colores de la universidad del alumno.
+class OwlOutfit {
+  const OwlOutfit({required this.scarf, required this.stripe});
+
+  final Color scarf;
+  final Color stripe;
+
+  @override
+  bool operator ==(Object other) =>
+      other is OwlOutfit && other.scarf == scarf && other.stripe == stripe;
+
+  @override
+  int get hashCode => Object.hash(scarf, stripe);
+}
+
+/// Viste a todos los búhos de debajo con [outfit] (la raíz de la app la pone
+/// con la universidad del alumno); null = el búho de siempre.
+class OwlOutfitScope extends InheritedWidget {
+  const OwlOutfitScope({super.key, required this.outfit, required super.child});
+
+  final OwlOutfit? outfit;
+
+  static OwlOutfit? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<OwlOutfitScope>()?.outfit;
+
+  @override
+  bool updateShouldNotify(OwlOutfitScope old) => old.outfit != outfit;
+}
+
 /// Vector owl drawn in the app palette, with light motion: it blinks, floats,
 /// tilts its head while thinking and hops when celebrating. It stays still
 /// when the system asks to reduce motion or [OwlMascot.animationsEnabled] is
@@ -22,10 +51,18 @@ class OwlMascot extends StatefulWidget {
     this.size = 80,
     this.mood = OwlMood.neutral,
     this.semanticLabel,
+    this.cap = false,
+    this.plain = false,
   });
 
   final double size;
   final OwlMood mood;
+
+  /// Birrete de graduado (celebraciones y la tarjeta para compartir).
+  final bool cap;
+
+  /// Sin la bufanda de la universidad aunque haya [OwlOutfitScope].
+  final bool plain;
 
   /// Null keeps the owl decorative for screen readers.
   final String? semanticLabel;
@@ -71,7 +108,12 @@ class _OwlMascotState extends State<OwlMascot>
       child: AnimatedBuilder(
         animation: _loop,
         builder: (_, __) => CustomPaint(
-          painter: _OwlPainter(mood: widget.mood, t: _loop.value),
+          painter: _OwlPainter(
+            mood: widget.mood,
+            t: _loop.value,
+            outfit: widget.plain ? null : OwlOutfitScope.of(context),
+            cap: widget.cap,
+          ),
         ),
       ),
     );
@@ -83,9 +125,16 @@ class _OwlMascotState extends State<OwlMascot>
 }
 
 class _OwlPainter extends CustomPainter {
-  _OwlPainter({required this.mood, required this.t});
+  _OwlPainter({
+    required this.mood,
+    required this.t,
+    this.outfit,
+    this.cap = false,
+  });
 
   final OwlMood mood;
+  final OwlOutfit? outfit;
+  final bool cap;
 
   /// Position in the 4 s loop, 0..1.
   final double t;
@@ -177,6 +226,8 @@ class _OwlPainter extends CustomPainter {
         ..close(),
       fill,
     );
+    if (outfit case final outfit?) _scarf(canvas, outfit, fill, stroke);
+    if (cap) _cap(canvas, fill, stroke);
     canvas.restore();
 
     if (mood == OwlMood.thinking) _thoughtDots(canvas, s);
@@ -217,6 +268,69 @@ class _OwlPainter extends CustomPainter {
     canvas.drawCircle(c + look + const Offset(2, -2), 2, fill);
   }
 
+  /// Bufanda al cuello con una raya y la punta colgando.
+  void _scarf(Canvas canvas, OwlOutfit outfit, Paint fill, Paint stroke) {
+    fill.color = outfit.scarf;
+    canvas.drawPath(
+      Path()
+        ..moveTo(16, 76)
+        ..quadraticBezierTo(50, 90, 84, 76)
+        ..lineTo(84, 86)
+        ..quadraticBezierTo(50, 100, 16, 86)
+        ..close(),
+      fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(60, 84, 13, 14),
+        const Radius.circular(3),
+      ),
+      fill,
+    );
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = outfit.stripe;
+    canvas.drawPath(
+      Path()
+        ..moveTo(17, 81)
+        ..quadraticBezierTo(50, 95, 83, 81),
+      line,
+    );
+    fill.color = outfit.stripe;
+    canvas.drawRect(const Rect.fromLTWH(60, 89, 13, 2.5), fill);
+    canvas.drawRect(const Rect.fromLTWH(60, 94, 13, 2.5), fill);
+  }
+
+  /// Birrete con la borla del color de la universidad (o naranja).
+  void _cap(Canvas canvas, Paint fill, Paint stroke) {
+    fill.color = _ink;
+    canvas.drawPath(
+      Path()
+        ..moveTo(20, 18)
+        ..lineTo(50, 5)
+        ..lineTo(80, 18)
+        ..lineTo(50, 31)
+        ..close(),
+      fill,
+    );
+    canvas.drawRect(const Rect.fromLTWH(37, 20, 26, 8), fill);
+    final tassel = outfit?.stripe ?? _beak;
+    final cord = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = tassel;
+    canvas.drawPath(
+      Path()
+        ..moveTo(50, 18)
+        ..lineTo(76, 21)
+        ..lineTo(76, 33),
+      cord,
+    );
+    fill.color = tassel;
+    canvas.drawCircle(const Offset(76, 35), 3, fill);
+  }
+
   /// Two dots that appear one after the other, like a thought forming.
   void _thoughtDots(Canvas canvas, double s) {
     final phase = (t * 2) % 1;
@@ -230,7 +344,8 @@ class _OwlPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_OwlPainter old) => old.t != t || old.mood != mood;
+  bool shouldRepaint(_OwlPainter old) =>
+      old.t != t || old.mood != mood || old.outfit != outfit || old.cap != cap;
 }
 
 /// Places the owl peeking at the lower right of [child] (a medal, a trophy)

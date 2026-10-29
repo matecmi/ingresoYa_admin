@@ -12,6 +12,7 @@ Todo vive en el documento de la universidad `iya-universities-{env}/{id}` (catá
 | `faculties` | `[{id, name, acronym, active}]` | «Facultad de Ingeniería Civil, de Sistemas y de Arquitectura» · `FICSA` (sigla en mayúsculas, única en la universidad) |
 | `careerDetails` | `{ [careerId]: {...} }` | Ver abajo. La clave es el `id` de `professions[]` |
 | `profile` | mapa | Ver abajo |
+| `identity` | mapa | Identidad para el alumno (abajo). Ausente: la app queda como siempre |
 
 `careerDetails.{careerId}`:
 
@@ -40,9 +41,21 @@ Todo vive en el documento de la universidad `iya-universities-{env}/{id}` (catá
 | `source` | string | Obligatorio si `visible`: «Prospecto de admisión 2026-I» |
 | `sourceCheckedAt` | timestamp \| null | Última revisión de los datos |
 
+`identity` (lienzo «Personalización por universidad», https://claude.ai/artifact/Cy1v2BPPwUaY1UqAqAJcBQ, 2026-10-29):
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `primaryColor` | `#RRGGBB` | Bufanda del búho, confeti de las celebraciones (nunca en el dominio, que es dorado) y el puntito del chip de la cabecera. Sin él no hay bufanda |
+| `secondaryColor` | `#RRGGBB` | Rayas de la bufanda y borla del birrete; sin él, blanco |
+| `freshmanName` | string ≤ 24 | «cachimbo»: Inicio → «Tu examen · 33 días · para ser cachimbo» (con fecha confirmada). Vacío con colores: «ingresante» |
+| `rankUpPhrase` | string ≤ 90 | Frase del búho al subir de rango; `{uni}` = sigla, `{nombre}` = nombre del alumno (sin nombre se va también la coma) |
+| `showWouldHaveEntered` | bool (`true`) | Resultado de un examen pasado: «¡Con este puntaje habrías ingresado a {carrera}!» y «¿Y en otras carreras?» (las 4 más cercanas a su puntaje, con los `cutoffs` del examen que la app ya tiene) |
+
+Sin escudos ni logos oficiales (marcas registradas): solo colores y texto. La app no suma lecturas: todo viene en el documento de la universidad que ya lee una vez por sesión.
+
 ## Admin
 
-Universidades → ficha → «Ficha para el alumno» (`/universities/:id/ficha`): pestañas Resumen y enlaces (con fuente y «Marcar revisada hoy»), Facultades (agregar, editar, quitar), Carreras (facultad, vacantes, puntajes con su proceso, duración, título, enlace) y Admisión (próximo examen, cómo es la admisión, calendario). Muestra lo que falta. Las carreras de la universidad se siguen eligiendo en la pestaña «Profesiones».
+Universidades → ficha → «Ficha para el alumno» (`/universities/:id/ficha`): pestañas Resumen y enlaces (con fuente y «Marcar revisada hoy»), Facultades (agregar, editar, quitar), Carreras (facultad, vacantes, puntajes con su proceso, duración, título, enlace) y Admisión (próximo examen, cómo es la admisión, calendario) e Identidad (colores con la vista previa del búho real, cómo llamar al ingresante, frase al subir de rango, «¿habrías ingresado?»; `UniversityRepo.setIdentity`). Muestra lo que falta. Las carreras de la universidad se siguen eligiendo en la pestaña «Profesiones».
 
 ## App (fases U2–U5)
 

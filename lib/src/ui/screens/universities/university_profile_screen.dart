@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/admin_ui.dart';
 import '../news/news_format.dart';
 import 'widgets/exam_areas_card.dart';
+import 'widgets/university_identity_card.dart';
 import 'widgets/university_next_exam_card.dart';
 import 'widgets/university_profile_dialogs.dart';
 
@@ -123,7 +124,7 @@ class _UniversityProfileScreenState
     final profile = _current;
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -176,6 +177,7 @@ class _UniversityProfileScreenState
                 Tab(text: 'Carreras'),
                 Tab(text: 'Admisión'),
                 Tab(text: 'Áreas del examen'),
+                Tab(text: 'Identidad'),
               ],
             ),
           ),
@@ -196,6 +198,12 @@ class _UniversityProfileScreenState
                     _admissionCard(profile),
                   ]),
                   _page([ExamAreasCard(data: data)]),
+                  _page([
+                    UniversityIdentityCard(
+                      key: ValueKey('identity-${data.universityId}'),
+                      data: data,
+                    ),
+                  ]),
                 ],
               ),
             ),

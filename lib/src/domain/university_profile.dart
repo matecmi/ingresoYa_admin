@@ -1,3 +1,4 @@
+import 'university_identity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'entities/university_entities.dart';
@@ -543,6 +544,7 @@ class UniversityStudentData {
     required this.careerDetails,
     this.nextExam,
     this.examAreas = const [],
+    this.identity = UniversityIdentity.empty,
   });
 
   final String universityId;
@@ -554,6 +556,9 @@ class UniversityStudentData {
   final Map<String, CareerDetails> careerDetails;
   final UniversityNextExam? nextExam;
   final List<ExamArea> examAreas;
+
+  /// Colores y textos para el alumno (`identity`).
+  final UniversityIdentity identity;
 
   factory UniversityStudentData.fromDoc(String id, Map<String, dynamic>? d) {
     final data = d ?? const <String, dynamic>{};
@@ -588,6 +593,7 @@ class UniversityStudentData {
         for (final a in (data['examAreas'] as List? ?? const []))
           ?ExamArea.fromMap(a),
       ],
+      identity: UniversityIdentity.fromMap(data['identity']),
     );
   }
 
