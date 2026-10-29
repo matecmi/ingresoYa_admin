@@ -145,7 +145,9 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'No se pudo subir la imagen. Inténtalo otra vez.');
+        setState(
+          () => _error = 'No se pudo subir la imagen. Inténtalo otra vez.',
+        );
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -264,7 +266,8 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
     final canPublish = session.can(StaffSection.news, StaffAction.publish);
     final canDelete = session.can(StaffSection.news, StaffAction.archive);
     final item = _current;
-    final locked = !canEdit || (item.status == NewsStatus.published && !canPublish);
+    final locked =
+        !canEdit || (item.status == NewsStatus.published && !canPublish);
 
     final form = AbsorbPointer(
       absorbing: locked,
@@ -347,9 +350,7 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
             children: [
               if (canPublish)
                 FilledButton.icon(
-                  onPressed: _saving
-                      ? null
-                      : () => _save(NewsStatus.published),
+                  onPressed: _saving ? null : () => _save(NewsStatus.published),
                   icon: const Icon(Icons.send_rounded, size: 18),
                   label: Text(
                     item.status == NewsStatus.published
@@ -540,9 +541,8 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
   }
 
   Widget _priorityCard(NewsItem item) {
-    final limit =
-        (ref.watch(_settingsProvider).value ?? NewsSettings.defaults)
-            .urgentPerWeek;
+    final limit = (ref.watch(_settingsProvider).value ?? NewsSettings.defaults)
+        .urgentPerWeek;
     return SectionCard(
       title: 'Prioridad',
       child: Column(
@@ -557,7 +557,8 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
             onSelectionChanged: (s) => _set(
               (n) => n.copyWith(
                 priority: s.single,
-                expiresAt: s.single != NewsPriority.normal && n.expiresAt == null
+                expiresAt:
+                    s.single != NewsPriority.normal && n.expiresAt == null
                     ? () => n.publishAt.add(const Duration(days: 7))
                     : null,
               ),
@@ -649,15 +650,13 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
   bool _pickingUnis = false;
 
   Widget _datesCard(NewsItem item) {
-    Future<void> pick(
-      DateTime initial,
-      void Function(DateTime d) apply,
-    ) async {
+    Future<void> pick(DateTime initial, void Function(DateTime d) apply) async {
       final picked = await pickDateTime(context, initial: initial);
       if (picked != null) setState(() => apply(picked));
     }
 
-    final isLive = item.status == NewsStatus.published &&
+    final isLive =
+        item.status == NewsStatus.published &&
         !item.publishAt.isAfter(DateTime.now());
     return SectionCard(
       title: 'Fechas',
@@ -714,7 +713,8 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
                       : 'Vence el ${formatNewsDate(item.expiresAt!)}',
                 ),
               ),
-              if (item.expiresAt != null && item.priority == NewsPriority.normal)
+              if (item.expiresAt != null &&
+                  item.priority == NewsPriority.normal)
                 TextButton(
                   onPressed: () =>
                       _set((n) => n.copyWith(expiresAt: () => null)),
@@ -794,9 +794,8 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
           trailing: IconButton(
             tooltip: 'Quitar',
             icon: const Icon(Icons.close_rounded),
-            onPressed: () => _set(
-              (n) => n.copyWith(keyDates: [...n.keyDates]..removeAt(i)),
-            ),
+            onPressed: () =>
+                _set((n) => n.copyWith(keyDates: [...n.keyDates]..removeAt(i))),
           ),
         ),
       Align(
@@ -865,6 +864,22 @@ class _NewsEditorScreenState extends ConsumerState<NewsEditorScreen> {
               'Configuración.',
             ),
           ),
+          if (item.story) ...[
+            TextFormField(
+              key: const ValueKey('news-story-label'),
+              initialValue: item.storyLabel,
+              maxLength: NewsItem.storyLabelMax,
+              decoration: const InputDecoration(
+                labelText: 'Nombre en la historia (opcional)',
+                hintText: 'Ej.: Inscripciones 2026-II',
+                helperText:
+                    'Lo que dice el círculo del Inicio. Vacío: se usa el '
+                    'titular (hasta los dos puntos).',
+              ),
+              onChanged: (v) => _set((n) => n.copyWith(storyLabel: v)),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (item.story && item.image == null)
             Wrap(
               spacing: 6,

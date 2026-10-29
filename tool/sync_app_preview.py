@@ -178,6 +178,20 @@ def adapt(src, arb, rel, commit):
         "import 'package:ingresoya/features/questions/presentation/widgets/question_content_renderer.dart';",
         "import 'question_content_renderer.g.dart';",
     )
+    # La web del admin no usa la caché de disco de la app: CachedNetworkImage
+    # pasa a Image.network con el mismo fondo mientras carga y el mismo error.
+    if 'CachedNetworkImage(' in src:
+        src = re.sub(r"import 'package:cached_network_image/cached_network_image\.dart';\n?", '', src)
+        src = src.replace('CachedNetworkImage(\n      imageUrl: url,', 'Image.network(\n      url,')
+        src = src.replace('memCacheWidth: memCacheWidth,', 'cacheWidth: memCacheWidth,')
+        src = src.replace(
+            'placeholder: (context, url) => ColoredBox(color: colors.elevatedSurface),',
+            'loadingBuilder: (context, child, progress) =>\n'
+            '          progress == null ? child : ColoredBox(color: colors.elevatedSurface),',
+        )
+        src = src.replace('errorWidget: (context, url, error) =>', 'errorBuilder: (context, error, stack) =>')
+        if 'CachedNetworkImage' in src:
+            raise SystemExit('news_visuals: CachedNetworkImage cambió; actualiza adapt() del sync.')
     header = (
         '// GENERADO por tool/sync_app_preview.py — NO EDITAR A MANO.\n'
         f'// Copia fiel de iya-app/{rel} (commit {commit}) para que la vista\n'

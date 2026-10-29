@@ -72,8 +72,8 @@
 <h2 id="inicio">Inicio</h2>
 <p>Es la primera pestaña (lienzo «Inicio final»). Muestra lo que el alumno tiene pendiente, cuánto lleva de su guía, cuánto falta para su examen y lo lleva a los demás apartados.</p>
 <div class="screen two">
-  <figure><img src="img/ini-inicio.jpg" alt="Inicio con días al examen, % de la guía, aviso fijado y pendiente"><figcaption>Inicio (TEST, 17-oct-2026).</figcaption></figure>
-  <figure><img src="img/ini-inicio-abajo.jpg" alt="Inicio con historias y atajos"><figcaption>Historias y atajos.</figcaption></figure>
+  <figure><img src="img/ini-inicio.jpg" alt="Inicio con las historias en la cabecera y el plan de hoy"><figcaption>Inicio con «NOVEDADES» en la cabecera (TEST, 28-oct-2026).</figcaption></figure>
+  <figure><img src="img/ini-inicio-abajo.jpg" alt="Inicio con los cuatro mosaicos de color"><figcaption>Los mosaicos de color bajo el plan.</figcaption></figure>
 </div>
 
 <h3 id="inicio-cabecera">Cabecera</h3>
@@ -96,7 +96,7 @@
   </div>
 </div>
 
-<h3 id="inicio-resto">Aviso fijado, pendientes, historias y atajos</h3>
+<h3 id="inicio-resto">Historias, aviso fijado, pendientes y mosaicos</h3>
 <div class="table-wrap"><table>
   <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
   <tr><td class="msg">Franja roja «AVISO UNPRG · {título}»</td><td>Si hay una noticia urgente o fijada vigente para tu universidad (o general). Solo una: la urgente más reciente; si no, la fijada más reciente. Ver <a href="#noticias">Noticias</a>.</td><td>Abre el detalle.</td></tr>
@@ -105,8 +105,8 @@
   <tr><td class="msg">«Termina tu examen del Simulador» · «{examen} · {n} respuestas guardadas» · «Retomar»</td><td>Hay un examen del Simulador sin entregar guardado en el teléfono.</td><td>Lo retoma.</td></tr>
   <tr><td class="msg">«Ver los {n} ›»</td><td>Con más de un pendiente.</td><td>Abre «Tus pendientes» con todos.</td></tr>
   <tr><td class="msg">«¡Estás al día!» · «Sigue con tu guía o practica en el Simulador.» · «Ir a la guía»</td><td>Sin pendientes.</td><td>Abre la Guía de estudio.</td></tr>
-  <tr><td class="msg">Círculos de historias (anillo de color) y «Ver todas»</td><td>Si hay noticias marcadas como historia, vigentes y de los últimos {días} <span class="chip info">ADMIN</span> 7, máximo 5. El anillo se vuelve gris cuando ya la viste.</td><td>Abre el visor de historias; «Ver todas», la lista de Noticias.</td></tr>
-  <tr><td class="msg">Atajos «Noticias» (con contador de no leídas), «Rankings», «Mis errores», «Favoritos»</td><td>Siempre.</td><td>Abren cada apartado. «Favoritos» abre las preguntas guardadas.</td></tr>
+  <tr><td class="msg">En la <b>cabecera morada</b>, bajo los contadores: «NOVEDADES» · «Ver todas ›» y un círculo por historia (anillo cálido; blanco tenue si ya la viste) con su <b>nombre corto</b> en hasta dos líneas</td><td>Si hay noticias marcadas como historia, vigentes y de los últimos {días} <span class="chip info">ADMIN</span> 7, máximo 5; sin historias, la cabecera queda como antes. El nombre es el «Nombre en la historia» del admin <span class="chip info">ADMIN</span>; si está vacío, el titular: sin paréntesis, hasta los dos puntos (si lo de antes es muy corto, como «Nuevo:», lo de después) y hasta 24 letras sin palabras sueltas al final («Inscripciones abiertas», «Rankings con tu búho», «Reto del día»).</td><td>Abre el visor de historias; «Ver todas ›», la lista de Noticias.</td></tr>
+  <tr><td class="msg">Cuatro <b>mosaicos de color</b> (degradado oscuro, ícono grande de fondo y una línea de estado): «Noticias» · «{n} nuevas» con contador / «Estás al día»; «Rankings» · el búho de tu etapa · «Aspirante · 55 XP» (XP de la semana) / «Ligas y reto diario» con la liga apagada; «Mis errores» · «Practica lo que fallaste»; «Favoritos» · «{n} guardadas» / «Guarda preguntas»</td><td>Siempre. Colores: morado, azul, coral y turquesa (sin dorado, que es del dominio). Sin lecturas nuevas: no leídas, etapa, XP y guardadas ya estaban en el teléfono.</td><td>Abren cada apartado. «Favoritos» abre las preguntas guardadas.</td></tr>
 </table></div>
 <p><b>Tus pendientes</b> (desde «Ver los {n}»): la misma lista, cada uno con su etiqueta («EXAMEN DE PARTE», «CONTINUAR ESTUDIANDO», «SIMULADOR», «PLAN DE ENTRENAMIENTO») y su botón. Lo último estudiado se guarda por cuenta y en ese teléfono.</p>
 
@@ -1077,7 +1077,7 @@ flowchart LR
   <tr><td class="msg">Prioridad</td><td>Normal · Fijada · Urgente. Fijada y urgente piden vencimiento. Urgentes: máximo {n} por semana para la misma audiencia (Configuración → Noticias, fábrica 1).</td></tr>
   <tr><td class="msg">¿A quién va dirigida?</td><td>General (todos) o Por universidad (una o varias). Explica que los demás solo la ven en «Otras universidades».</td></tr>
   <tr><td class="msg">Fechas</td><td>Publicar ahora o programar; vencimiento; cuenta regresiva (fecha y «¿Qué pasa ese día?»); fechas clave.</td></tr>
-  <tr><td class="msg">Historia, botón y notificación</td><td>«Mostrar también como historia» (color si no hay imagen); botón «Abrir una web» o «Abrir una sección de la app»; «Enviar notificación al teléfono» (una sola vez).</td></tr>
+  <tr><td class="msg">Historia, botón y notificación</td><td>«Mostrar también como historia» con «Nombre en la historia (opcional)», hasta 24 letras, y el color si no hay imagen; la vista previa muestra el círculo como en la cabecera del Inicio; botón «Abrir una web» o «Abrir una sección de la app»; «Enviar notificación al teléfono» (una sola vez).</td></tr>
   <tr><td class="msg">«Así la ve el alumno»</td><td>Vista previa con las piezas reales de la app: Ventana, Inicio y Lista (con lo que ven los de otras universidades).</td></tr>
   <tr><td class="msg">Botones</td><td>«Publicar ahora» / «Programar» / «Guardar cambios» (permiso de publicar), «Guardar borrador», «Archivar», «Eliminar» (permiso de borrar). Sin permiso de publicar: «Guárdala como borrador y pide a alguien con permiso de publicar que la revise.».</td></tr>
   <tr><td class="msg">Universidades → ficha → «Próximo examen de admisión»</td><td>Nombre, fecha y hora del examen: la cuenta regresiva del Inicio. Avisa «ya pasó: actualiza la fecha».</td></tr>
@@ -1137,6 +1137,7 @@ flowchart LR
   <li><b>19-oct-2026</b> · Candado del video renovado: tarjeta compacta con el degradado de la cabecera y el búho guiñando, «Desbloquea la explicación · Ganas +5 XP · te quedan 25 XP hoy», «Ver video · +5 XP» y «Premium». Ver el video completo da XP (5 por explicación, tope de 25 al día, una vez por pregunta, ajustables en el admin) y abre la explicación con el búho feliz y «¡Así se resuelve!».</li>
   <li><b>19-oct-2026</b> · Revisión por pregunta renovada (examen de parte, de dominio y Simulador): filtros «Falladas · En blanco · Correctas · Todas», mapa de casillas para saltar a cualquier pregunta, tarjeta que se entiende cerrada («Marcaste B · era C» y el inicio del enunciado), todas las alternativas marcadas al abrirla (rojo la tuya, verde la correcta, gris en blanco) y, en el Simulador, «Ver en la guía» por pregunta.</li>
   <li><b>19-oct-2026</b> · Anuncios: el banner va también en Cursos, Simulador (portada), Stats y Perfil (siete pantallas, cada una con su interruptor en Configuración → Anuncios) y se comparte entre pestañas para aparecer al instante; el anuncio de pantalla completa sale al terminar cada examen, antes del resultado (de fábrica sin espera ni primer examen libre; ambos siguen siendo ajustes del admin). App #123, admin #107.</li>
+  <li><b>28-oct-2026</b> · Inicio: las historias pasan a la cabecera («NOVEDADES · Ver todas ›») con su nombre corto en vez de la categoría, y los atajos son cuatro mosaicos de color con una línea de estado (lienzo https://claude.ai/artifact/UsM2hc7LMjh2Aua6FCGFgW, «E ajustada» e «Historias en la cabecera»). Admin: «Nombre en la historia». Capturas nuevas.</li>
   <li><b>28-oct-2026</b> · Rankings renovado (lienzo https://claude.ai/artifact/75ZcsgNe2yxgUL7hbgLdmX): pestañas «Mi liga» | «Reto de hoy», cabecera con el búho que evoluciona por etapa, podio del grupo, ↑ / ↓ por fila, hoja «Cómo funciona la liga», el reto con invitación y podio antes de jugar y tu puesto después, «Esta semana» con tu puesto destacado y el búho cuando no tienes puesto, aviso del lunes en pantalla completa con la evolución del búho, y atajos de Inicio y Perfil con el búho de tu etapa. Corregido: la barra marcaba «Perfil» al abrir Rankings desde Inicio, y «Aún hay pocos de tu carrera aquí» salía en la pestaña de la universidad.</li>
   <li><b>27-oct-2026</b> · «Tu plan de hoy» compacta (Inicio y Simulador): cabecera en una línea con «Mi semana ›», cada tarea con título y detalle de una línea, botones más pequeños, sin la frase del ritmo (queda en Tu semana) y sin el chip de días en el Inicio. Capturas nuevas.</li>
   <li><b>27-oct-2026</b> · Onboarding con plan de estudio opcional (paso 4 de 5): las mismas preguntas de Tu meta, «Guardar mi plan» o «Lo armo después en el Simulador», y la confirmación muestra el plan elegido. Tu meta y el onboarding comparten el mismo formulario.</li>

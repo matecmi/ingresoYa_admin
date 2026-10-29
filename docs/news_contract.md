@@ -23,7 +23,7 @@ Un documento por noticia. Lo escribe el admin; el servidor solo escribe `pushSen
 | `eventAt`, `eventLabel` | timestamp \| null, string | Cuenta regresiva («Faltan 3 días · Cierre de inscripciones») |
 | `keyDates` | `[{label, at}]` | «Fechas clave» del detalle (máx. 6) |
 | `image` | `{storagePath, url, width, height, alt, mode: 'only' \| 'withText'}` \| null | Imagen en Storage `news-public/{uuid}.{ext}` (≤ 2 MB, PNG/JPG/WebP). `url` es la URL de descarga: la app no usa Firebase Storage. `alt` obligatorio |
-| `story` | `{enabled, color}` | También como historia. `color`: `violet` `blue` `red` `green` `amber` (si no hay imagen) |
+| `story` | `{enabled, color, label}` | También como historia. `color`: `violet` `blue` `red` `green` `amber` (si no hay imagen). `label`: «Nombre en la historia», lo que dice el círculo del Inicio (máx. 24); vacío = la app usa el titular (sin paréntesis, hasta los dos puntos, hasta 24 letras) |
 | `action` | `{label, type: 'url' \| 'route', target}` \| null | Botón. `route` = ruta de go_router de la app (`/simulators`, `/admission_exams`, `/study_guide`, `/rankings`, `/practice?mode=mistakes`, `/profile`) |
 | `push` | bool | Enviar notificación al publicarse (una vez) |
 | `pushSentAt` | timestamp \| null | Solo el servidor |

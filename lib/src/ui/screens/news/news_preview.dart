@@ -86,7 +86,62 @@ class _Phone extends StatelessWidget {
   final NewsItem item;
   final _View view;
 
-  String get _title => item.title.trim().isEmpty ? 'Título de la noticia' : item.title;
+  String get _title =>
+      item.title.trim().isEmpty ? 'Título de la noticia' : item.title;
+
+  /// Igual que `NewsItem.storyName` de la app: el nombre del admin o el
+  /// titular (sin paréntesis, hasta los dos puntos) con hasta 24 letras.
+  String get _storyName {
+    final own = item.storyLabel.trim();
+    if (own.isNotEmpty) return own;
+    final parts = _title
+        .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
+        .split(RegExp(r':|\s[—–·]\s'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    final headline = parts.isEmpty
+        ? ''
+        : parts.first.length < 8 && parts.length > 1
+        ? '${parts[1][0].toUpperCase()}${parts[1].substring(1)}'
+        : parts.first;
+    final words = (headline.isEmpty ? _title.trim() : headline).split(
+      RegExp(r'\s+'),
+    );
+    final out = StringBuffer();
+    for (final word in words) {
+      final next = out.isEmpty ? word : '${out.toString()} $word';
+      if (next.length > 24 && out.isNotEmpty) break;
+      out
+        ..clear()
+        ..write(next);
+    }
+    const dangling = {
+      'a',
+      'al',
+      'con',
+      'de',
+      'del',
+      'el',
+      'en',
+      'la',
+      'las',
+      'los',
+      'para',
+      'por',
+      'que',
+      'su',
+      'tu',
+      'un',
+      'una',
+      'y',
+    };
+    final kept = out.toString().split(' ');
+    while (kept.length > 1 && dangling.contains(kept.last.toLowerCase())) {
+      kept.removeLast();
+    }
+    return kept.join(' ').replaceAll(RegExp(r'[\s:;,.·—–-]+$'), '');
+  }
 
   String get _audience => item.universityLabels.join(', ');
 
@@ -94,7 +149,9 @@ class _Phone extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = app.AppPaletteColors.forPalette(app.AppColorPalette.classic);
     final now = DateTime.now();
-    final eventDays = item.eventAt == null ? null : daysUntil(item.eventAt!, now);
+    final eventDays = item.eventAt == null
+        ? null
+        : daysUntil(item.eventAt!, now);
     return ColoredBox(
       color: colors.background,
       child: switch (view) {
@@ -105,7 +162,10 @@ class _Phone extends StatelessWidget {
             ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 30,
+                ),
                 child: NewsUrgentCard(
                   tag: item.isGeneral
                       ? 'AVISO IMPORTANTE'
@@ -120,7 +180,8 @@ class _Phone extends StatelessWidget {
                   countdownDate: item.eventAt == null
                       ? null
                       : [
-                          if (item.eventLabel.trim().isNotEmpty) item.eventLabel,
+                          if (item.eventLabel.trim().isNotEmpty)
+                            item.eventLabel,
                           formatNewsDate(item.eventAt!),
                         ].join(' · '),
                   footnote: 'Queda fijado en tu Inicio.',
@@ -157,27 +218,28 @@ class _Phone extends StatelessWidget {
               ),
             if (item.story) ...[
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  NewsStoryBubble(
-                    label: _title,
-                    categoryKey: item.category.key,
-                    colorKey: item.storyColor,
-                    imageUrl: item.image?.url,
+              // Como en la cabecera del Inicio de la app.
+              Container(
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [colors.headerStart, colors.headerEnd],
                   ),
-                  const SizedBox(width: 6),
-                  NewsBubbleFrame(
-                    label: 'Ver todas',
-                    seen: true,
-                    child: ColoredBox(
-                      color: colors.surface,
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        color: colors.onSurface,
-                      ),
+                ),
+                child: Row(
+                  children: [
+                    NewsStoryBubble(
+                      label: _storyName,
+                      categoryKey: item.category.key,
+                      colorKey: item.storyColor,
+                      imageUrl: item.image?.url,
+                      onHeader: true,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ],

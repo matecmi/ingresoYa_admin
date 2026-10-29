@@ -1,5 +1,5 @@
 // GENERADO por tool/sync_app_preview.py — NO EDITAR A MANO.
-// Copia fiel de iya-app/lib/features/news/presentation/widgets/news_visuals.dart (commit c92d18f) para que la vista
+// Copia fiel de iya-app/lib/features/news/presentation/widgets/news_visuals.dart (commit b7f242f) para que la vista
 // previa del admin sea idéntica a la app. Textos tomados de app_es.arb.
 // ignore_for_file: type=lint, deprecated_member_use
 
@@ -34,7 +34,11 @@ import 'app_theme.g.dart';
       Icons.lightbulb_outline_rounded,
       'Consejo',
     ),
-    _ => (colors.error, Icons.campaign_outlined, 'Aviso'),
+    _ => (
+      colors.error,
+      Icons.campaign_outlined,
+      'Aviso',
+    ),
   };
 }
 
@@ -47,35 +51,39 @@ Color newsStoryColor(String key) => switch (key) {
   _ => const Color(0xFF3B1880),
 };
 
-/// Imagen de una noticia desde su URL, con fondo mientras carga.
+/// Imagen de una noticia desde su URL, con fondo mientras carga. Queda en la
+/// caché de disco (Fase 2D de costos): la segunda apertura no la descarga.
+/// [memCacheWidth] decodifica a ese ancho (miniaturas de historias y lista).
 class NewsNetworkImage extends StatelessWidget {
   const NewsNetworkImage({
     super.key,
     required this.url,
     this.fit = BoxFit.cover,
     this.semanticLabel,
+    this.memCacheWidth,
   });
 
   final String url;
   final BoxFit fit;
   final String? semanticLabel;
+  final int? memCacheWidth;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    return Image.network(
+    final image = Image.network(
       url,
       fit: fit,
-      semanticLabel: semanticLabel,
-      excludeFromSemantics: semanticLabel == null,
-      loadingBuilder: (context, child, progress) => progress == null
-          ? child
-          : ColoredBox(color: colors.elevatedSurface),
+      cacheWidth: memCacheWidth,
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : ColoredBox(color: colors.elevatedSurface),
       errorBuilder: (context, error, stack) => ColoredBox(
         color: colors.elevatedSurface,
         child: Icon(Icons.image_not_supported_outlined, color: colors.muted),
       ),
     );
+    if (semanticLabel == null) return ExcludeSemantics(child: image);
+    return Semantics(label: semanticLabel, image: true, child: image);
   }
 }
 
@@ -141,7 +149,7 @@ class NewsListTile extends StatelessWidget {
                   child: SizedBox.square(
                     dimension: 48,
                     child: imageUrl != null
-                        ? NewsNetworkImage(url: imageUrl!)
+                        ? NewsNetworkImage(url: imageUrl!, memCacheWidth: 240)
                         : DecoratedBox(
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: .16),
@@ -597,6 +605,7 @@ class NewsStoryBubble extends StatelessWidget {
     this.imageUrl,
     this.seen = false,
     this.onTap,
+    this.onHeader = false,
   });
 
   final String label;
@@ -606,6 +615,9 @@ class NewsStoryBubble extends StatelessWidget {
   final bool seen;
   final VoidCallback? onTap;
 
+  /// Sobre el degradado de la cabecera del Inicio.
+  final bool onHeader;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -614,11 +626,16 @@ class NewsStoryBubble extends StatelessWidget {
       label: label,
       seen: seen,
       onTap: onTap,
+      onHeader: onHeader,
       child: imageUrl != null
           ? NewsNetworkImage(url: imageUrl!)
           : ColoredBox(
               color: newsStoryColor(colorKey),
-              child: Icon(icon, size: 22, color: Color.lerp(color, colors.onPrimary, .6)),
+              child: Icon(
+                icon,
+                size: 22,
+                color: Color.lerp(color, colors.onPrimary, .6),
+              ),
             ),
     );
   }
@@ -632,6 +649,7 @@ class NewsBubbleFrame extends StatelessWidget {
     required this.child,
     this.seen = false,
     this.onTap,
+    this.onHeader = false,
   });
 
   final String label;
@@ -639,9 +657,27 @@ class NewsBubbleFrame extends StatelessWidget {
   final bool seen;
   final VoidCallback? onTap;
 
+  /// Sobre la cabecera: anillo cálido que resalta sobre el morado, separación
+  /// del color de la cabecera y nombre en blanco.
+  final bool onHeader;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final ring = onHeader
+        ? const [
+            Color(0xFFFDE68A),
+            Color(0xFFF472B6),
+            Color(0xFFA78BFA),
+            Color(0xFFFDE68A),
+          ]
+        : [colors.error, colors.secondary, colors.primary, colors.error];
+    final gap = onHeader
+        ? Color.lerp(colors.headerStart, colors.headerEnd, .45)!
+        : colors.background;
+    final text = onHeader
+        ? Colors.white.withValues(alpha: seen ? .7 : 1)
+        : colors.onSurface;
     return Semantics(
       button: true,
       label: label,
@@ -649,7 +685,7 @@ class NewsBubbleFrame extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(
-          width: 64,
+          width: 78,
           child: Column(
             children: [
               Container(
@@ -658,22 +694,17 @@ class NewsBubbleFrame extends StatelessWidget {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: seen ? colors.onSurface.withValues(alpha: .25) : null,
-                  gradient: seen
-                      ? null
-                      : SweepGradient(
-                          colors: [
-                            colors.error,
-                            colors.secondary,
-                            colors.primary,
-                            colors.error,
-                          ],
-                        ),
+                  color: seen
+                      ? (onHeader ? Colors.white : colors.onSurface).withValues(
+                          alpha: onHeader ? .3 : .25,
+                        )
+                      : null,
+                  gradient: seen ? null : SweepGradient(colors: ring),
                 ),
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: colors.background, width: 3),
+                    border: Border.all(color: gap, width: 3),
                   ),
                   child: ClipOval(child: child),
                 ),
@@ -682,10 +713,15 @@ class NewsBubbleFrame extends StatelessWidget {
               ExcludeSemantics(
                 child: Text(
                   label,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: colors.onSurface),
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                    color: text,
+                  ),
                 ),
               ),
             ],
