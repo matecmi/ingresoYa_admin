@@ -11,7 +11,7 @@
   <ol>
     <li><a href="#como-leer">Cómo leer esta guía</a></li>
     <li><a href="#inicio">Inicio</a>
-      <ol><li><a href="#inicio-cabecera">Cabecera y «Continúa…»</a></li><li><a href="#inicio-resto">Novedades y accesos</a></li></ol></li>
+      <ol><li><a href="#inicio-cabecera">Cabecera y «Continúa…»</a></li><li><a href="#inicio-resto">Novedades y accesos</a></li><li><a href="#inicio-carga">Mientras carga</a></li></ol></li>
     <li><a href="#estudio">Guía de estudio</a>
       <ol>
         <li><a href="#est-cursos">Cursos</a></li>
@@ -110,6 +110,21 @@
   <tr><td class="msg">Cuatro <b>mosaicos de color</b> (degradado oscuro, ícono grande de fondo y una línea de estado): «Noticias» · «{n} nuevas» con contador / «Estás al día»; «Rankings» · el búho de tu etapa · «Aspirante · 55 XP» (XP de la semana) / «Ligas y reto diario» con la liga apagada; «Mis errores» · «Practica lo que fallaste»; «Favoritos» · «{n} guardadas» / «Guarda preguntas»</td><td>Siempre. Colores: morado, azul, coral y turquesa (sin dorado, que es del dominio). Sin lecturas nuevas: no leídas, etapa, XP y guardadas ya estaban en el teléfono.</td><td>Abren cada apartado. «Favoritos» abre las preguntas guardadas.</td></tr>
 </table></div>
 <p><b>Tus pendientes</b> (desde «Ver los {n}»): la misma lista, cada uno con su etiqueta («EXAMEN DE PARTE», «CONTINUAR ESTUDIANDO», «SIMULADOR», «PLAN DE ENTRENAMIENTO») y su botón. Lo último estudiado se guarda por cuenta y en ese teléfono.</p>
+
+<h3 id="inicio-carga">Mientras carga</h3>
+<p>Lienzo «Estados de carga», opción C (https://claude.ai/artifact/7DdgcpRzgN7PrkQnvPoWML). Una tarjeta nunca dice algo antes de saberlo: ni «¡Estás al día!» en Inicio ni «Jugar» en el Reto del día.</p>
+<div class="flow">
+  <figure><img src="img/carga-esqueleto.jpg" alt="Inicio con el plan y la fecha del examen en gris mientras cargan"><figcaption>Sin nada guardado: esqueleto con brillo (TEST, 29-oct-2026).</figcaption></figure>
+  <figure><img src="img/carga-actualizando.jpg" alt="Tu plan de hoy con «Actualizando» arriba a la derecha"><figcaption>Con lo guardado en el teléfono: «Actualizando».</figcaption></figure>
+  <figure><img src="img/carga-reto.jpg" alt="Reto del día en gris mientras se confirma"><figcaption>Simulador: el Reto del día espera al servidor.</figcaption></figure>
+</div>
+<div class="table-wrap"><table>
+  <tr><th>Mensaje</th><th>Cuándo aparece</th><th>Al tocar</th></tr>
+  <tr><td class="msg">Bloques grises con un brillo que los recorre, con la forma de la tarjeta</td><td>La app aún no sabe la respuesta y no tiene nada guardado en el teléfono (primera vez, datos borrados, día nuevo del reto): «Tu plan de hoy» y los pendientes, la fecha de «Tu examen» y el Reto del día. Con «reducir movimiento» el brillo queda quieto.</td><td>Nada.</td></tr>
+  <tr><td class="msg">«Actualizando» con un círculo pequeño, arriba a la derecha de «Tu plan de hoy», de los pendientes o del Reto del día</td><td>Se muestra lo último guardado en el teléfono mientras llega la respuesta del servidor; desaparece al llegar. Lo guardado no cuenta como lectura en Firebase.</td><td>Nada.</td></tr>
+  <tr><td class="msg">Mosaico «Noticias» sin línea de estado</td><td>Mientras cargan las noticias (antes decía «Estás al día» un instante).</td><td>Abre Noticias.</td></tr>
+  <tr><td class="msg">Reto del día «Jugar»</td><td>Solo cuando el servidor confirma que hoy no lo jugaste. Si lo jugaste, «Hecho · {aciertos}/{total} · {tiempo}» aparece al instante desde el teléfono.</td><td>Ver <a href="#sim">Simulador</a>.</td></tr>
+</table></div>
 
 <!-- ============================================================ NOTICIAS -->
 <h2 id="noticias"><span class="chip info">NOTICIAS</span><br>Noticias</h2>
@@ -1234,6 +1249,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Estados de carga: al volver a la app, Inicio ya no dice «¡Estás al día!» ni «Sin fecha», y el Reto del día ya no dice «Jugar» antes de saberlo. Se muestra lo último guardado en el teléfono con «Actualizando» o, sin nada guardado, un esqueleto con brillo. Sección nueva <a href="#inicio-carga">Mientras carga</a> con capturas.</li>
   <li><b>29-oct-2026</b> · Sonidos de logros: campanas suaves al ganar XP, completar la misión, una parte o un subtema, subir de rango o de liga y al dominar; en silencio no suenan y en vibración solo vibran. Interruptores en Perfil y ajustes en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Recorridos del búho: la primera vez en la app y en Guía, Simulador, Mis errores, Rankings, Progreso y Perfil, el búho (con la bufanda de tu universidad) ilumina cada pieza y la explica con gestos animados; «?» en cada sección y Perfil → «Recorridos del búho» para repetirlas. Textos y encendido en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Tu universidad en la app: el búho lleva la bufanda con los colores de tu universidad, el chip un puntito, «Tu examen» dice «para ser cachimbo», la subida de rango trae birrete, confeti con tus colores, la frase de tu universidad y «Compartir» (tarjeta tipo historia), y el examen pasado dice «¿habrías ingresado?» con otras carreras. Todo se configura en Universidades → «Identidad». Capturas nuevas.</li>
