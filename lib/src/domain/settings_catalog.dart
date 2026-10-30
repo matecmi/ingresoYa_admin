@@ -1022,6 +1022,17 @@ final List<SettingsTopic> settingsTopics = [
       ),
       SettingSpec(
         doc: SettingsDoc.plan,
+        path: const ['diagnosticTotal'],
+        question: '¿Cuántas preguntas tiene el diagnóstico en total?',
+        label: 'Preguntas del diagnóstico',
+        help:
+            'Tope del examen diagnóstico. Se toman cursos al azar, con las preguntas por curso de arriba, hasta llegar a este número. Un alumno nuevo no termina un examen largo.',
+        min: 5,
+        max: 30,
+        unit: 'preguntas',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.plan,
         path: const ['diagnosticMinutes'],
         question: '¿Cuántos minutos dura el diagnóstico?',
         label: 'Minutos del diagnóstico',

@@ -107,6 +107,8 @@ export interface PlanSettings {
   weakThresholdPercent: number;
   minAnswersToJudge: number;
   diagnosticPerCourse: number;
+  /** Tope de preguntas de todo el diagnóstico (un alumno nuevo no termina 70). */
+  diagnosticTotal: number;
   diagnosticMinutes: number;
 }
 
@@ -139,6 +141,7 @@ export function parsePlanSettings(value: unknown): PlanSettings {
     weakThresholdPercent: bounded("weakThresholdPercent", 50, 1, 99),
     minAnswersToJudge: bounded("minAnswersToJudge", 5, 1, 50),
     diagnosticPerCourse: bounded("diagnosticPerCourse", 4, 1, 10),
+    diagnosticTotal: bounded("diagnosticTotal", 15, 5, 30),
     diagnosticMinutes: bounded("diagnosticMinutes", 30, 5, 180)
   };
 }
@@ -1335,7 +1338,11 @@ export class SimulatorService {
     });
   }
 
-  /** First session without history: a few questions of every active course. */
+  /**
+   * First session without history: `diagnosticPerCourse` questions of
+   * courses taken in random order until `diagnosticTotal` (contract §4).
+   * Only the courses used are read.
+   */
   private async diagnosticPlan(
     uid: string,
     input: PlanAttemptInput,
@@ -1347,12 +1354,14 @@ export class SimulatorService {
     const taken = new Set<string>();
     const picked: CandidateQuestion[] = [];
     const courseIds: string[] = [];
-    for (const courseId of await activeCourseIds(this.db, this.config, metrics)) {
-      const pool = await this.coursePool(courseId, [], plan.diagnosticPerCourse * 3, `${seed}:${courseId}`, metrics,
-        { need: plan.diagnosticPerCourse });
+    const active = shuffle(await activeCourseIds(this.db, this.config, metrics), `${seed}:courses`);
+    for (const courseId of active) {
+      const need = Math.min(plan.diagnosticPerCourse, plan.diagnosticTotal - picked.length);
+      if (need <= 0) break;
+      const pool = await this.coursePool(courseId, [], need * 3, `${seed}:${courseId}`, metrics, { need });
       // Only courses with enough questions (contract §4).
-      if (pool.length < plan.diagnosticPerCourse) continue;
-      const chosen = pickFresh(pool, plan.diagnosticPerCourse, new Set(), taken, `${seed}:${courseId}:pick`);
+      if (pool.length < need) continue;
+      const chosen = pickFresh(pool, need, new Set(), taken, `${seed}:${courseId}:pick`);
       chosen.forEach((question) => taken.add(question.questionId));
       picked.push(...chosen);
       courseIds.push(courseId);

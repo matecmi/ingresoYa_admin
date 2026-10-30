@@ -620,14 +620,14 @@ flowchart LR
 </div>
 
 <div class="screen" id="sim-diagnostico">
-  <figure><img src="img/sim-diagnostico.jpg" alt="Diagnóstico inicial"><figcaption>Diagnóstico inicial.</figcaption></figure>
+  <figure><img src="img/sim-diagnostico.jpg" alt="Diagnóstico inicial"><figcaption>Diagnóstico inicial (captura anterior al tope: hoy muestra «15 preguntas»).</figcaption></figure>
   <div class="body">
     <h3>Diagnóstico inicial</h3>
     <div class="table-wrap"><table>
       <tr><th>Mensaje</th><th>Qué pasa realmente</th></tr>
       <tr><td class="msg">«Aún no sé en qué temas vas bien y en cuáles no. Con este examen corto armo tu plan desde mañana.»</td><td>—</td></tr>
-      <tr><td class="msg">«4× preguntas» · «30' aprox.» · «0 penalidad»</td><td>4 preguntas de cada curso con preguntas cargadas <span class="chip info">ADMIN</span>. Los 30 min son solo un texto: el diagnóstico <b>no tiene reloj</b> (cierra a las 4 h).</td></tr>
-      <tr><td class="msg">Consejos 1-3 («déjala en blanco…», «verás tu resultado por curso y tema», «cuenta como tu primera sesión»)</td><td>Cuenta como sesión solo si junta 10 o más preguntas (3 cursos o más).</td></tr>
+      <tr><td class="msg">«15 preguntas» · «30' aprox.» · «0 penalidad» y «QUÉ INCLUYE: {15} preguntas de varios cursos, hasta {4} de cada uno. Lo demás lo mide tu práctica diaria.»</td><td>Desde el 29-oct-2026 el diagnóstico tiene un <b>tope total</b> «Preguntas del diagnóstico» <span class="chip info">ADMIN</span> 15 (de 5 a 30): el servidor toma cursos al azar, con «preguntas por curso» <span class="chip info">ADMIN</span> 4 cada uno, hasta llegar al tope (el último curso puede dar menos). Antes eran 4 de <i>cada</i> curso activo: en TEST salían 72. Los 30 min son solo un texto <span class="chip info">ADMIN</span>: el diagnóstico <b>no tiene reloj</b> (cierra a las 4 h).</td></tr>
+      <tr><td class="msg">Consejos 1-3 («déjala en blanco…», «verás tu resultado por curso y tema», «cuenta como tu primera sesión»)</td><td>Cuenta como sesión si junta 10 o más preguntas (con el tope de fábrica, 15, siempre cuenta).</td></tr>
       <tr><td class="msg">«Empezar diagnóstico» · «Hacerlo después»</td><td>Al terminar se vuelve al inicio del Simulador.</td></tr>
     </table></div>
   </div>
@@ -1249,6 +1249,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Diagnóstico inicial más corto: tope total «Preguntas del diagnóstico» en el admin (15 de fábrica, de 5 a 30), con cursos al azar hasta llegar al tope; antes eran 4 preguntas de cada curso (72 en TEST). La pantalla muestra el total.</li>
   <li><b>29-oct-2026</b> · Estados de carga: al volver a la app, Inicio ya no dice «¡Estás al día!» ni «Sin fecha», y el Reto del día ya no dice «Jugar» antes de saberlo. Se muestra lo último guardado en el teléfono con «Actualizando» o, sin nada guardado, un esqueleto con brillo. Sección nueva <a href="#inicio-carga">Mientras carga</a> con capturas.</li>
   <li><b>29-oct-2026</b> · Sonidos de logros: campanas suaves al ganar XP, completar la misión, una parte o un subtema, subir de rango o de liga y al dominar; en silencio no suenan y en vibración solo vibran. Interruptores en Perfil y ajustes en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Recorridos del búho: la primera vez en la app y en Guía, Simulador, Mis errores, Rankings, Progreso y Perfil, el búho (con la bufanda de tu universidad) ilumina cada pieza y la explica con gestos animados; «?» en cada sección y Perfil → «Recorridos del búho» para repetirlas. Textos y encendido en Configuración. Capturas nuevas.</li>
