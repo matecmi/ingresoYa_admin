@@ -1,3 +1,4 @@
+import 'package:ingresoya_admin/src/domain/sound_settings.dart';
 import 'package:ingresoya_admin/src/domain/tour_settings.dart';
 import 'package:ingresoya_admin/src/domain/mistake_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -73,8 +74,6 @@ class AppConfigRepo {
     });
   }
 
-  /// `{config}/stats` (docs/stats_contract.md): umbrales de la pestaña
-  /// Estadísticas de la app.
   /// Recorridos del búho (docs/tours_contract.md).
   DocumentReference<Map<String, dynamic>> get _tours =>
       db.collection(AppEnv.configCollection).doc('tours');
@@ -96,6 +95,29 @@ class AppConfigRepo {
     });
   }
 
+  /// Sonidos de logros (docs/sounds_contract.md).
+  DocumentReference<Map<String, dynamic>> get _sounds =>
+      db.collection(AppEnv.configCollection).doc('sounds');
+
+  Stream<SoundSettings> watchSoundSettings() => _sounds.snapshots().map(
+    (snapshot) => SoundSettings.fromMap(snapshot.data()),
+  );
+
+  Future<void> saveSoundSettings(
+    SoundSettings settings, {
+    required String editor,
+  }) async {
+    final problem = settings.validate();
+    if (problem != null) throw StateError(problem);
+    await _sounds.set({
+      ...settings.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': editor,
+    });
+  }
+
+  /// `{config}/stats` (docs/stats_contract.md): umbrales de la pestaña
+  /// Estadísticas de la app.
   DocumentReference<Map<String, dynamic>> get _stats =>
       db.collection(AppEnv.configCollection).doc('stats');
 

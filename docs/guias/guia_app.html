@@ -823,6 +823,28 @@ flowchart LR
   <figure><img src="img/tour-mis-errores.jpg" alt="Mis errores: misión iluminada"><figcaption>Mis errores, paso 1.</figcaption></figure>
 </div>
 
+<h2 id="sonidos"><span class="chip info">SONIDOS</span><br>Sonidos de logros</h2>
+<p>La app suena <b>solo al completar algo</b>: nunca en medio de una pregunta ni durante el simulacro (suena en la pantalla de resultado). Familia «Campanita»: campanas suaves que crecen con el logro. Lienzo: https://claude.ai/artifact/2E7GTptcH6pLFAPmymMbrC. Contrato: <code>docs/sounds_contract.md</code>.</p>
+<div class="screen two" id="sonidos-niveles">
+  <figure><img src="img/sonidos-xp.jpg" alt="Resultado del reto con Ganaste XP"><figcaption>«Ganaste XP»: suena el nivel 1 al aparecer la tarjeta.</figcaption></figure>
+  <figure><img src="img/sonidos-perfil.jpg" alt="Perfil: tarjeta Sonidos de logros"><figcaption>Perfil → «Sonidos de logros»: «Probar», «Sonidos» y «Vibración».</figcaption></figure>
+  <div class="body">
+    <div class="table-wrap"><table>
+      <tr><th>Nivel</th><th>Cuándo suena</th><th>Sonido</th></tr>
+      <tr><td class="msg">1 · Pequeño</td><td>Tarjeta «Ganaste XP»; resultado con preguntas corregidas de «Mis errores».</td><td>«Ding» de dos notas (0,4 s).</td></tr>
+      <tr><td class="msg">2 · Medio</td><td>Misión del día cumplida; «¡Parte completada!»; «¡Logro conseguido!» del subtema; nueva estrella de rango.</td><td>Tres notas que suben (0,8 s).</td></tr>
+      <tr><td class="msg">3 · Grande</td><td>«¡Subiste de rango!»; tema completado; ascenso de liga al cerrar la semana.</td><td>Fanfarria corta (1,6 s).</td></tr>
+      <tr><td class="msg">4 · Dominio</td><td>«¡Dominaste …!»; llegar a Maestro.</td><td>Brillo único, reservado como el dorado (2,2 s).</td></tr>
+    </table></div>
+    <ul>
+      <li>Celular en <b>silencio</b>: no suena ni vibra. En <b>vibración</b>: solo vibra. No pausa la música del alumno.</li>
+      <li>Un sonido a la vez: si llegan varios logros juntos suena solo el mayor; el nivel 1 no se repite antes de 3 s <span class="chip info">ADMIN</span>.</li>
+      <li>Perfil → «Sonidos de logros»: «Sonidos» («Suenan solo al completar algo. Con el celular en silencio no suenan.»), «Vibración» («Un pulso corto al celebrar, también en modo vibración.») y «Probar».</li>
+      <li>Admin: Configuración → «Sonidos de logros» (sonidos activos, volumen 70 %, vibración, pausa del nivel 1 y cada nivel) <span class="chip info">ADMIN</span>. Los sonidos vienen dentro de la app: sin lecturas.</li>
+    </ul>
+  </div>
+</div>
+
 <!-- ============================================================ XP -->
 <h2 id="xp"><span class="chip info">PERFIL</span><br>Rango de perfil y XP</h2>
 <p>El alumno gana XP con todo lo que hace en la app. Su <b>rango</b> sale del XP total y <b>nunca baja</b>. El XP lo da solo el servidor, una vez por cada logro, y llega solo: el alumno no tiene que tocar nada.</p>
@@ -1212,6 +1234,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Sonidos de logros: campanas suaves al ganar XP, completar la misión, una parte o un subtema, subir de rango o de liga y al dominar; en silencio no suenan y en vibración solo vibran. Interruptores en Perfil y ajustes en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Recorridos del búho: la primera vez en la app y en Guía, Simulador, Mis errores, Rankings, Progreso y Perfil, el búho (con la bufanda de tu universidad) ilumina cada pieza y la explica con gestos animados; «?» en cada sección y Perfil → «Recorridos del búho» para repetirlas. Textos y encendido en Configuración. Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · Tu universidad en la app: el búho lleva la bufanda con los colores de tu universidad, el chip un puntito, «Tu examen» dice «para ser cachimbo», la subida de rango trae birrete, confeti con tus colores, la frase de tu universidad y «Compartir» (tarjeta tipo historia), y el examen pasado dice «¿habrías ingresado?» con otras carreras. Todo se configura en Universidades → «Identidad». Capturas nuevas.</li>
   <li><b>29-oct-2026</b> · «Mis errores»: banco con lo que fallas en el Simulador y misión del día «Corrige 5 errores» (con XP y racha), pantallas del curso y «Corregidas», hoja para practicar, tarjeta en el resultado, mosaico del Inicio y tarjeta en Progreso. Ajustes nuevos en Configuración → «Mis errores». Capturas nuevas.</li>

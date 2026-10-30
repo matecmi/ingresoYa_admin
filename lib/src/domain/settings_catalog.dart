@@ -14,6 +14,7 @@ import 'simulator_settings.dart';
 import 'stats_settings.dart';
 import 'study_review_rules.dart';
 import 'sync_settings.dart';
+import 'sound_settings.dart';
 import 'tour_settings.dart';
 import 'xp_settings.dart';
 
@@ -39,6 +40,7 @@ enum SettingsDoc {
   premium,
   stats,
   tours,
+  sounds,
 }
 
 enum SettingKind { integer, toggle, choice, time }
@@ -1303,6 +1305,72 @@ final List<SettingsTopic> settingsTopics = [
     ],
   ),
   SettingsTopic(
+    id: 'sounds',
+    label: 'Sonidos de logros',
+    icon: Icons.music_note_outlined,
+    intro:
+        'La app suena solo al completar algo, nunca en medio de una pregunta '
+        'ni durante el simulacro. Mientras más grande el logro, más largo el '
+        'sonido. Con el celular en silencio no suena.',
+    specs: [
+      SettingSpec(
+        doc: SettingsDoc.sounds,
+        path: const ['enabled'],
+        kind: SettingKind.toggle,
+        question: '¿La app suena al completar algo?',
+        label: 'Sonidos activos',
+        help:
+            'Apagado, la app no suena ni vibra al celebrar y el alumno deja de ver los interruptores de Perfil. Los sonidos vienen dentro de la app: no cuestan lecturas.',
+        keywords: 'sonido audio musica logro celebracion',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.sounds,
+        path: const ['volume'],
+        question: '¿A qué volumen suenan?',
+        label: 'Volumen',
+        min: 0,
+        max: 100,
+        unit: '%',
+        help:
+            'Relativo al volumen multimedia del celular: 100 % es el volumen que el alumno tiene puesto. 0 deja solo la vibración.',
+        keywords: 'volumen sonido',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.sounds,
+        path: const ['vibrate'],
+        kind: SettingKind.toggle,
+        question: '¿Vibra al celebrar?',
+        label: 'Vibración',
+        help:
+            'Un pulso corto (más largo en rangos y dominio). Con el celular en vibración es lo único que se siente; en silencio total no vibra.',
+        keywords: 'vibracion vibrar',
+      ),
+      SettingSpec(
+        doc: SettingsDoc.sounds,
+        path: const ['smallCooldownSeconds'],
+        question: '¿Cada cuánto puede repetirse el sonido pequeño?',
+        label: 'Pausa del nivel 1',
+        min: 0,
+        max: 60,
+        unit: 's',
+        help:
+            'Evita que el «ding» de XP suene seguido si el alumno gana XP varias veces en pocos segundos.',
+        keywords: 'pausa repetir ding xp',
+        advanced: true,
+      ),
+      for (final MapEntry(key: level, value: label) in soundLevels.entries)
+        SettingSpec(
+          doc: SettingsDoc.sounds,
+          path: ['levels', '$level'],
+          kind: SettingKind.toggle,
+          question: '¿Suena el ${label.split(' (').first.toLowerCase()}?',
+          label: label.split(' (').first,
+          help: 'Cuándo: ${label.split(' (').last.replaceAll(')', '')}.',
+          keywords: 'nivel $level sonido',
+        ),
+    ],
+  ),
+  SettingsTopic(
     id: 'study',
     label: 'Guía de estudio',
     icon: Icons.menu_book_outlined,
@@ -2104,6 +2172,7 @@ Map<String, dynamic> factoryValues(SettingsDoc doc) => switch (doc) {
   SettingsDoc.premium => PremiumSettings.defaults.toMap(),
   SettingsDoc.stats => StatsSettings.defaults.toMap(),
   SettingsDoc.tours => TourSettings.defaults.toMap(),
+  SettingsDoc.sounds => SoundSettings.defaults.toMap(),
 };
 
 /// Pasa el mapa por el dominio (mismas reglas que la app y Functions) y
@@ -2123,6 +2192,7 @@ String? validateDoc(SettingsDoc doc, Map<String, dynamic> map) => switch (doc) {
   SettingsDoc.premium => PremiumSettings.fromMap(map).validate(),
   SettingsDoc.stats => StatsSettings.fromMap(map).validate(),
   SettingsDoc.tours => TourSettings.fromMap(map).validate(),
+  SettingsDoc.sounds => SoundSettings.fromMap(map).validate(),
 };
 
 /// El mapa tal como lo dejaría el dominio al leerlo (para detectar valores que
@@ -2145,4 +2215,5 @@ Map<String, dynamic> validateMapRoundTrip(
   SettingsDoc.premium => PremiumSettings.fromMap(map).toMap(),
   SettingsDoc.stats => StatsSettings.fromMap(map).toMap(),
   SettingsDoc.tours => TourSettings.fromMap(map).toMap(),
+  SettingsDoc.sounds => SoundSettings.fromMap(map).toMap(),
 };
