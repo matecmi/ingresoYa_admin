@@ -41,6 +41,7 @@
         <li><a href="#sim-despues">Revisión, errores, historial</a></li>
         <li><a href="#sim-errores">Mensajes de error</a></li>
       </ol></li>
+    <li><a href="#progreso-ingreso">Progreso · Tu camino al ingreso</a></li>
     <li><a href="#xp">Rango de perfil y XP</a>
       <ol><li><a href="#xp-ganar">Cómo se gana XP</a></li><li><a href="#xp-perfil">En el Perfil</a></li><li><a href="#xp-camino">Tu camino de rangos</a></li><li><a href="#xp-terminar">Al terminar un examen</a></li><li><a href="#xp-celebracion">¡Subiste de rango!</a></li><li><a href="#xp-usuario">Nombre de usuario</a></li><li><a href="#xp-rankings">Rankings: Mi liga</a></li><li><a href="#xp-reto">Reto del día</a></li></ol></li>
     <li><a href="#panel-admin">Panel de administración</a></li>
@@ -809,6 +810,25 @@ flowchart LR
   <tr><td class="msg">«No pudimos continuar ahora. Vuelve a intentarlo en unos momentos.»</td><td>Cualquier otro error, incluido «Mis errores» sin preguntas disponibles.</td></tr>
 </table></div>
 
+<h2 id="progreso-ingreso"><span class="chip info">PROGRESO</span><br>Tu camino al ingreso</h2>
+<p>Primera tarjeta de Progreso → Resumen. Desde el 29-oct-2026 habla en <b>puntos del examen real</b>, no en % de acierto: antes decía «Ingreso 77 %» y «Para {carrera} necesitas 77 de 100», que no se entendía.</p>
+<div class="screen">
+  <figure><img src="img/stats-ingreso-puntos.jpg" alt="Tu camino al ingreso con la barra en puntos y la marca Ingreso 710"><figcaption>Barra en puntos con «Ingreso 710» (TEST, 29-oct-2026; los 710 son datos de prueba).</figcaption></figure>
+  <div class="body">
+  <div class="table-wrap"><table>
+    <tr><th>Mensaje</th><th>Cuándo aparece</th></tr>
+    <tr><td class="msg">Barra de 0 al máximo con «{P}» · «puntos con lo que aciertas hoy» y la marca «Ingreso {puntaje}»</td><td>Hay un examen pasado de tu universidad con puntaje de ingreso para tu carrera <span class="chip info">ADMIN</span> (el más reciente). {P} = puntaje que sacarías en ese examen con tu mezcla real de correctas, incorrectas y en blanco del Simulador, con sus reglas (+4 / −1 / 0, sobre 1000 en la UNPRG): <code>máximo · max(0, crudo) / (preguntas · valor de la correcta)</code>, la misma fórmula del servidor. Verde si llegas a la marca.</td></tr>
+    <tr><td class="msg">«En el examen {Ordinario 2026-II} ingresaron a {carrera} con {710} de {1000} puntos.»</td><td>Siempre que hay puntaje de ingreso.</td></tr>
+    <tr><td class="msg">«Con lo que aciertas hoy, sacarías unos {P}.»</td><td>{P} mayor que 0 y menor que el ingreso.</td></tr>
+    <tr><td class="msg">«… sacarías unos {P}: ya alcanzas el ingreso. ¡Mantenlo!»</td><td>{P} igual o mayor que el ingreso.</td></tr>
+    <tr><td class="msg">«Hoy los errores restan más que tus aciertos: deja en blanco las que no sepas.»</td><td>{P} = 0 porque los errores restan más de lo que suman los aciertos.</td></tr>
+    <tr><td class="msg">Letra pequeña: «Cada error resta puntos: si no sabes una, mejor déjala en blanco.»</td><td>El examen castiga los errores (y no se mostró ya el mensaje de 0 puntos).</td></tr>
+    <tr><td class="msg">Barra en % con «de acierto en tus simulacros» · «Cuando tengamos el puntaje de ingreso a tu carrera, verás aquí cuánto te falta.»</td><td>Sin puntaje de ingreso cargado para tu carrera.</td></tr>
+    <tr><td class="msg">«A este ritmo, el día del examen acertarías {n} de cada 100.» / «Cada semana aciertas {n} más…» / «Para lograrlo, acierta {n} preguntas más de cada 100 cada semana.»</td><td>Con 3 o más exámenes en varios días (tendencia), como antes.</td></tr>
+  </table></div>
+  </div>
+</div>
+
 <h2 id="recorridos"><span class="chip info">GUÍA DEL BÚHO</span><br>Recorridos del búho</h2>
 <p>La primera vez que el alumno entra a la app y a cada sección, el búho (con la bufanda de su universidad) le explica cómo funciona: oscurece la pantalla, ilumina la pieza con un aro que late, la lleva a la vista si está más abajo y habla desde un globo con «Siguiente» y «Saltar». Gestos: saluda, señala, explica y celebra. Lienzo: https://claude.ai/artifact/5fKmk6QjuQNpSXvKUKXvSz. Contrato: <code>docs/tours_contract.md</code>.</p>
 <div class="screen two" id="recorridos-bienvenida">
@@ -1249,6 +1269,7 @@ flowchart LR
 <!-- ============================================================ CAMBIOS -->
 <h2 id="cambios">Historial de cambios</h2>
 <ul class="changelog">
+  <li><b>29-oct-2026</b> · Progreso → «Tu camino al ingreso» en puntos del examen real: barra con lo que sacarías y la marca «Ingreso {puntaje}», «En el examen {X} ingresaron a {carrera} con {710} de {1000} puntos» y el consejo de dejar en blanco cuando los errores restan. Antes: «Ingreso 77 %» y «necesitas 77 de 100». Sección nueva con captura.</li>
   <li><b>29-oct-2026</b> · Diagnóstico inicial más corto: tope total «Preguntas del diagnóstico» en el admin (15 de fábrica, de 5 a 30), con cursos al azar hasta llegar al tope; antes eran 4 preguntas de cada curso (72 en TEST). La pantalla muestra el total.</li>
   <li><b>29-oct-2026</b> · Estados de carga: al volver a la app, Inicio ya no dice «¡Estás al día!» ni «Sin fecha», y el Reto del día ya no dice «Jugar» antes de saberlo. Se muestra lo último guardado en el teléfono con «Actualizando» o, sin nada guardado, un esqueleto con brillo. Sección nueva <a href="#inicio-carga">Mientras carga</a> con capturas.</li>
   <li><b>29-oct-2026</b> · Sonidos de logros: campanas suaves al ganar XP, completar la misión, una parte o un subtema, subir de rango o de liga y al dominar; en silencio no suenan y en vibración solo vibran. Interruptores en Perfil y ajustes en Configuración. Capturas nuevas.</li>
