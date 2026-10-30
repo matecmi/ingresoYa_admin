@@ -11,6 +11,7 @@ class PlanSettings {
     this.weakThresholdPercent = 50,
     this.minAnswersToJudge = 5,
     this.diagnosticPerCourse = 4,
+    this.diagnosticTotal = 15,
     this.diagnosticMinutes = 30,
     this.showWhy = true,
     this.defaultMockDay = 6,
@@ -51,6 +52,9 @@ class PlanSettings {
 
   /// First session without history: questions per course and duration.
   final int diagnosticPerCourse;
+
+  /// Tope de preguntas de todo el diagnóstico.
+  final int diagnosticTotal;
   final int diagnosticMinutes;
   final bool showWhy;
 
@@ -104,6 +108,7 @@ class PlanSettings {
         'diagnosticPerCourse',
         defaults.diagnosticPerCourse,
       ),
+      diagnosticTotal: number('diagnosticTotal', defaults.diagnosticTotal),
       diagnosticMinutes: number(
         'diagnosticMinutes',
         defaults.diagnosticMinutes,
@@ -134,6 +139,7 @@ class PlanSettings {
     'weakThresholdPercent': weakThresholdPercent,
     'minAnswersToJudge': minAnswersToJudge,
     'diagnosticPerCourse': diagnosticPerCourse,
+    'diagnosticTotal': diagnosticTotal,
     'diagnosticMinutes': diagnosticMinutes,
     'showWhy': showWhy,
     'defaultMockDay': defaultMockDay,
@@ -172,6 +178,9 @@ class PlanSettings {
     }
     if (diagnosticPerCourse < 1 || diagnosticPerCourse > 10) {
       return 'El diagnóstico usa de 1 a 10 preguntas por curso.';
+    }
+    if (diagnosticTotal < 5 || diagnosticTotal > 30) {
+      return 'El diagnóstico tiene de 5 a 30 preguntas en total.';
     }
     if (diagnosticMinutes < 5 || diagnosticMinutes > 180) {
       return 'El diagnóstico debe durar entre 5 y 180 minutos.';

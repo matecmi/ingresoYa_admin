@@ -150,6 +150,7 @@ entregado cuenta para la semana.
 | `weakThresholdPercent` | `50` | Un tema es débil si sus aciertos están bajo este % |
 | `minAnswersToJudge` | `5` | Respuestas mínimas para juzgar un tema |
 | `diagnosticPerCourse` / `diagnosticMinutes` | `4` / `30` | Diagnóstico inicial |
+| `diagnosticTotal` | `15` (5–30) | Tope de preguntas de todo el diagnóstico |
 | `showWhy` | `true` | Mostrar «¿Por qué?» |
 | `defaultMockDay` | `6` | Día del simulacro semanal (1 = lunes … 7 = domingo) |
 | `defaultReminderTime` | `"19:00"` | Hora del recordatorio |
@@ -194,7 +195,9 @@ dueño solo lee. Un tema es débil con `answered ≥ minAnswersToJudge` y
   `focusTopicIds` (los temas débiles usados).
 - `mode: 'diagnostic'` — primera sesión sin historial: `{requestId, purpose:
   'practice', mode: 'diagnostic'}`. `diagnosticPerCourse` preguntas de cada
-  curso activo con preguntas suficientes, sin reloj ni penalidad.
+  curso activo con preguntas suficientes, tomando los cursos al azar hasta
+  llegar a `diagnosticTotal` (el último curso puede dar menos); sin reloj ni
+  penalidad. Solo se leen los cursos usados.
 
 ### Semana y racha (app)
 

@@ -140,6 +140,9 @@ test("the plan reads its settings and finds the weakest judged topics", () => {
   const plan = parsePlanSettings({ dailyQuestions: 12, weakSharePercent: 200 });
   assert.equal(plan.dailyQuestions, 12);
   assert.equal(plan.weakSharePercent, 60);
+  assert.equal(plan.diagnosticTotal, 15);
+  assert.equal(parsePlanSettings({ diagnosticTotal: 10 }).diagnosticTotal, 10);
+  assert.equal(parsePlanSettings({ diagnosticTotal: 70 }).diagnosticTotal, 15);
   const weak = weakTopics([
     { topicId: "a", courseId: "c", answered: 10, correct: 2 },
     { topicId: "b", courseId: "c", answered: 10, correct: 4 },
